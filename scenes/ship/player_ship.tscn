@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://xvlhiy5lpey7"]
+
+[ext_resource type="Script" uid="uid://gh2ynbfa56yd" path="res://scripts/ship/ship_controller.gd" id="1_itbyv"]
+[ext_resource type="Resource" uid="uid://dbq3tumvm5jlw" path="res://resources/ship/starter_ship_stats.tres" id="2_53lce"]
+
+[node name="PlayerShip" type="CharacterBody2D" unique_id=909317427]
+script = ExtResource("1_itbyv")
+stats = ExtResource("2_53lce")
+
+[node name="ShipSprite" type="Sprite2D" parent="." unique_id=1699135627]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=320629206]
+
+[node name="ThrusterMain" type="Marker2D" parent="." unique_id=553697377]
+
+[node name="ThrusterLeft" type="Marker2D" parent="." unique_id=484323165]
+
+[node name="ThrusterRight" type="Marker2D" parent="." unique_id=1207611150]
+
+[node name="ThrusterVFX" type="Node" parent="." unique_id=1540413642]
+
+[node name="MainTrail" type="GPUParticles2D" parent="ThrusterVFX" unique_id=1666216420]
+
+[node name="LeftTrail" type="GPUParticles2D" parent="ThrusterVFX" unique_id=1921453641]
+
+[node name="RightTrail" type="GPUParticles2D" parent="ThrusterVFX" unique_id=537347014]
+
+[node name="BurstVFX" type="Node" parent="." unique_id=661938963]
+
+[node name="BurstVFX" type="GPUParticles2D" parent="BurstVFX" unique_id=190418297]
+
+[node name="DamageVFX" type="Node" parent="." unique_id=1019515418]
+
+[node name="DamageVFX" type="GPUParticles2D" parent="DamageVFX" unique_id=906999986]
+
+[node name="CameraRig" type="Node2D" parent="." unique_id=231110882]
+
+[node name="Camera2D" type="Camera2D" parent="CameraRig" unique_id=904658001]
+
+[node name="MiningAnchor" type="Marker2D" parent="." unique_id=1675486037]
+
+[node name="InteractionArea" type="Area2D" parent="." unique_id=157226434]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractionArea" unique_id=595309612]
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1514081432]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=1933461139]
+
+[node name="Node" type="Node" parent="." unique_id=1147926905]
+
+[node name="EngineLoop" type="AudioStreamPlayer2D" parent="Node" unique_id=1888702256]
+
+[node name="BurstSound" type="AudioStreamPlayer2D" parent="Node" unique_id=358744886]
+
+[node name="ImpactSound" type="AudioStreamPlayer2D" parent="Node" unique_id=178269170]
+
+[node name="WarningSound" type="AudioStreamPlayer2D" parent="Node" unique_id=1893963906]
+
+[node name="DebugLabel" type="Label" parent="." unique_id=1886762668]
+offset_right = 40.0
+offset_bottom = 23.0

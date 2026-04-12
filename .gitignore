@@ -1,0 +1,35 @@
+# Godot 4.x
+
+# Godot editor cache
+.godot/
+
+# Imported assets
+.import/
+
+# Exported builds
+.export/
+
+# Godot cache & temp
+*.import
+*.tmp
+*.log
+
+# Mono / C#
+.mono/
+data_*/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE (optional)
+.vscode/
+.idea/
+
+# Build files
+*.exe
+*.apk
+*.ipa
+
+# Debug
+*.pdb
