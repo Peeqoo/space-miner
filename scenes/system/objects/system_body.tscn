@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://ck7s1am8a7ou3"]
+
+[ext_resource type="Script" uid="uid://c7pgd62y2lfj4" path="res://scripts/system/system_body.gd" id="1_7k7re"]
+[ext_resource type="Script" uid="uid://b4fmjn20rrpa3" path="res://scripts/system/selection_ring.gd" id="2_4phf2"]
+[ext_resource type="Script" uid="uid://7wvdnqdnra00" path="res://scripts/system/orbit_pivot.gd" id="2_4v77c"]
+
+[node name="SystemBody" type="Node2D" unique_id=1408650769]
+script = ExtResource("1_7k7re")
+
+[node name="OrbitPivot" type="Node2D" parent="." unique_id=214705234]
+
+[node name="BodyVisual" type="Sprite2D" parent="OrbitPivot" unique_id=2126353444]
+script = ExtResource("2_4v77c")
+
+[node name="SelectionRing" type="Node2D" parent="OrbitPivot" unique_id=629646061]
+script = ExtResource("2_4phf2")
+
+[node name="ClickArea" type="Area2D" parent="OrbitPivot" unique_id=310868067]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OrbitPivot/ClickArea" unique_id=587887253]
+
+[node name="LabelAnchor" type="Marker2D" parent="OrbitPivot" unique_id=490650530]

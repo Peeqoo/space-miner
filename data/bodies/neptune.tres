@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://cfr3siva2h0h8"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_vnxkd"]
+[ext_resource type="Texture2D" uid="uid://4l8vep62kyq" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Neptune/1.png" id="2_rajhx"]
+
+[resource]
+script = ExtResource("1_vnxkd")
+id = "neptune"
+display_name = "Neptune"
+body_type = "planet"
+orbit_center_id = "sun"
+orbit_radius = 1000.0
+orbit_speed = 0.035
+texture = ExtResource("2_rajhx")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://btkqe3a2cdmem"]
+
+[ext_resource type="Texture2D" uid="uid://cil3uruwumt5s" path="res://assets/sprites/backgrounds/SpaceBg/Backgrounds/Red1.png" id="1_be1hs"]
+[ext_resource type="PackedScene" uid="uid://xvlhiy5lpey7" path="res://scenes/ship/player_ship.tscn" id="1_lbgo4"]
+[ext_resource type="Texture2D" uid="uid://dk72kvew67307" path="res://assets/sprites/backgrounds/SpaceBg/Backgrounds/YellowStars.png" id="2_l10on"]
+[ext_resource type="Texture2D" uid="uid://boj6trmmpq4t2" path="res://assets/sprites/planets/PlanetsFull/Asteroids/12.png" id="3_c5hxb"]
+[ext_resource type="Texture2D" uid="uid://cdiwukouixmrf" path="res://assets/sprites/planets/PlanetsFull/Asteroids/10.png" id="4_h2tc2"]
+[ext_resource type="Texture2D" uid="uid://djkg5hjj0m2ae" path="res://assets/sprites/planets/PlanetsFull/Barren_or_Moon/1.png" id="5_be1hs"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_be1hs"]
+radius = 16.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_l10on"]
+radius = 18.027756
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_c5hxb"]
+radius = 24.5153
+
+[node name="ShipTestScene" type="Node2D" unique_id=781378500]
+
+[node name="Background" type="Sprite2D" parent="." unique_id=340574983]
+texture = ExtResource("1_be1hs")
+
+[node name="Background2" type="Sprite2D" parent="." unique_id=400628334]
+texture = ExtResource("2_l10on")
+
+[node name="AsteroidField" type="Node2D" parent="." unique_id=309372643]
+
+[node name="AsteroidDummy01" type="StaticBody2D" parent="AsteroidField" unique_id=433345210]
+position = Vector2(-226, 58)
+collision_layer = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="AsteroidField/AsteroidDummy01" unique_id=897157467]
+texture = ExtResource("3_c5hxb")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AsteroidField/AsteroidDummy01" unique_id=1425108424]
+shape = SubResource("CircleShape2D_be1hs")
+
+[node name="AsteroidDummy02" type="StaticBody2D" parent="AsteroidField" unique_id=1575504303]
+position = Vector2(-115, -95)
+collision_layer = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="AsteroidField/AsteroidDummy02" unique_id=2101159823]
+texture = ExtResource("4_h2tc2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AsteroidField/AsteroidDummy02" unique_id=141395073]
+shape = SubResource("CircleShape2D_l10on")
+
+[node name="AsteroidDummy03" type="StaticBody2D" parent="AsteroidField" unique_id=2030596963]
+position = Vector2(193, -51)
+collision_layer = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="AsteroidField/AsteroidDummy03" unique_id=1610106613]
+texture = ExtResource("5_be1hs")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AsteroidField/AsteroidDummy03" unique_id=516840036]
+shape = SubResource("CircleShape2D_c5hxb")
+
+[node name="PlayerShip" parent="." unique_id=909317427 instance=ExtResource("1_lbgo4")]

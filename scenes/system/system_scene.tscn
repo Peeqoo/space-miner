@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://snsdxefmfjdl"]
+
+[ext_resource type="PackedScene" uid="uid://xvlhiy5lpey7" path="res://scenes/ship/player_ship.tscn" id="1_1oact"]
+[ext_resource type="Script" uid="uid://df4vo2cmmqtud" path="res://scripts/system/system_scene.gd" id="1_f7o5m"]
+[ext_resource type="Script" uid="uid://ss3qyoy1r1ff" path="res://scripts/system/orbit_guides_renderer.gd" id="2_3j3kx"]
+[ext_resource type="Resource" uid="uid://lmrv7drdrtg6" path="res://data/galaxy_systems/sol_system.tres" id="2_kukkp"]
+[ext_resource type="Script" uid="uid://cvjfsm5141352" path="res://scripts/ui/context_info_panel.gd" id="4_kukkp"]
+
+[node name="SystemScene" type="Node2D" unique_id=652065169]
+script = ExtResource("1_f7o5m")
+system_definition = ExtResource("2_kukkp")
+
+[node name="BackgroundRoot" type="Node2D" parent="." unique_id=185956986]
+
+[node name="StarBackdrop" type="Node2D" parent="BackgroundRoot" unique_id=1690168111]
+
+[node name="OrbitGuidesLayer" type="Node2D" parent="BackgroundRoot" unique_id=1172912976]
+script = ExtResource("2_3j3kx")
+
+[node name="WorldRoot" type="Node2D" parent="." unique_id=662299346]
+
+[node name="StarRoot" type="Node2D" parent="WorldRoot" unique_id=1005195896]
+
+[node name="SystemBodiesRoot" type="Node2D" parent="WorldRoot" unique_id=650976075]
+
+[node name="PointOfInterestRoot" type="Node2D" parent="WorldRoot" unique_id=1993523218]
+
+[node name="PlayerShip" parent="WorldRoot" unique_id=909317427 instance=ExtResource("1_1oact")]
+
+[node name="CameraRoot" type="Node2D" parent="." unique_id=1347754730]
+
+[node name="SystemCamera2D" type="Camera2D" parent="CameraRoot" unique_id=616417330]
+position_smoothing_enabled = true
+position_smoothing_speed = 6.0
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1790193946]
+
+[node name="ContextInfoPanel" type="PanelContainer" parent="UI" unique_id=642536890]
+offset_right = 192.0
+offset_bottom = 107.0
+script = ExtResource("4_kukkp")
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/ContextInfoPanel" unique_id=1838538555]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/ContextInfoPanel/MarginContainer" unique_id=203902712]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="UI/ContextInfoPanel/MarginContainer/VBoxContainer" unique_id=1942741691]
+layout_mode = 2
+
+[node name="TypeLabel" type="Label" parent="UI/ContextInfoPanel/MarginContainer/VBoxContainer" unique_id=800726433]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="UI/ContextInfoPanel/MarginContainer/VBoxContainer" unique_id=663517589]
+layout_mode = 2

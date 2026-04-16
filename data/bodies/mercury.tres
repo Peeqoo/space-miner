@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://cm54p0xtvg54u"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_xgygx"]
+[ext_resource type="Texture2D" uid="uid://b2qpbiuh4cq3u" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mercury/1.png" id="2_awxwk"]
+
+[resource]
+script = ExtResource("1_xgygx")
+id = "mercury"
+display_name = "Merkury"
+body_type = "planet"
+orbit_center_id = "sun"
+orbit_radius = 120.0
+orbit_speed = 0.45
+texture = ExtResource("2_awxwk")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://bl10qgk27s6m7"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_gyo2m"]
+[ext_resource type="Texture2D" uid="uid://djkg5hjj0m2ae" path="res://assets/sprites/planets/PlanetsFull/Barren_or_Moon/1.png" id="2_qbke3"]
+
+[resource]
+script = ExtResource("1_gyo2m")
+id = "moon"
+display_name = "Moon"
+body_type = "moon"
+orbit_center_id = "earth"
+orbit_radius = 35.0
+orbit_speed = 1.4
+texture = ExtResource("2_qbke3")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

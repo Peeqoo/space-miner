@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://cbx42rg14brif"]
+
+[ext_resource type="Script" uid="uid://b2d5bqxtgepmi" path="res://scripts/system/point_of_interest.gd" id="1_k47ak"]
+[ext_resource type="Script" uid="uid://b4fmjn20rrpa3" path="res://scripts/system/selection_ring.gd" id="2_5n20i"]
+
+[node name="PointOfInterest" type="Node2D" unique_id=8344825]
+script = ExtResource("1_k47ak")
+
+[node name="OrbitPivot" type="Node2D" parent="." unique_id=168195340]
+
+[node name="POIVisual" type="Sprite2D" parent="OrbitPivot" unique_id=247263547]
+
+[node name="SelectionRing" type="Node2D" parent="OrbitPivot" unique_id=133029384]
+script = ExtResource("2_5n20i")
+
+[node name="ClickArea" type="Area2D" parent="OrbitPivot" unique_id=1737038930]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OrbitPivot/ClickArea" unique_id=167387049]
