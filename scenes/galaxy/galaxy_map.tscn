@@ -1,3 +1,66 @@
 [gd_scene format=3 uid="uid://cf4qpk6wlft1d"]
 
+[ext_resource type="Script" uid="uid://c47slblyf7ptx" path="res://scripts/galaxy/galaxy_map.gd" id="1_cmndk"]
+[ext_resource type="Script" uid="uid://teq1shx3il5t" path="res://scripts/galaxy/galaxy_system_node.gd" id="2_4q7h0"]
+[ext_resource type="Resource" uid="uid://lmrv7drdrtg6" path="res://data/galaxy_systems/sol_system.tres" id="3_uta3y"]
+[ext_resource type="Texture2D" uid="uid://57vt4pp8oxrp" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Sun/1.png" id="4_4q7h0"]
+[ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="4_5o4t4"]
+[ext_resource type="Texture2D" uid="uid://dju1ifeecd3nj" path="res://assets/sprites/planets/PlanetsFull/Suns/13.png" id="6_uta3y"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_uta3y"]
+radius = 96.76776
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_5o4t4"]
+radius = 27.073973
+
 [node name="GalaxyMap" type="Node2D" unique_id=1430231750]
+script = ExtResource("1_cmndk")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1573798091]
+
+[node name="SystemsRoot" type="Node2D" parent="." unique_id=1622724227]
+
+[node name="SolSystem" type="Node2D" parent="SystemsRoot" unique_id=2132108268]
+script = ExtResource("2_4q7h0")
+system_definition = ExtResource("3_uta3y")
+
+[node name="Sprite2D" type="Sprite2D" parent="SystemsRoot/SolSystem" unique_id=512826962]
+texture = ExtResource("4_4q7h0")
+
+[node name="Area2D" type="Area2D" parent="SystemsRoot/SolSystem" unique_id=1623095258]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SystemsRoot/SolSystem/Area2D" unique_id=1727745553]
+shape = SubResource("CircleShape2D_uta3y")
+
+[node name="ProximaSystem" type="Node2D" parent="SystemsRoot" unique_id=1253771322]
+position = Vector2(400, 200)
+script = ExtResource("2_4q7h0")
+system_definition = ExtResource("4_5o4t4")
+
+[node name="Sprite2D" type="Sprite2D" parent="SystemsRoot/ProximaSystem" unique_id=671326141]
+texture = ExtResource("6_uta3y")
+
+[node name="Area2D" type="Area2D" parent="SystemsRoot/ProximaSystem" unique_id=1802702614]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SystemsRoot/ProximaSystem/Area2D" unique_id=1652831142]
+shape = SubResource("CircleShape2D_5o4t4")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=535031517]
+
+[node name="Control" type="Control" parent="UI" unique_id=772177529]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Control" unique_id=906792358]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="SystemName" type="Label" parent="UI/Control/VBoxContainer" unique_id=403772752]
+layout_mode = 2
+
+[node name="EnterButton" type="Button" parent="UI/Control/VBoxContainer" unique_id=169199759]
+layout_mode = 2
+text = "Enter"

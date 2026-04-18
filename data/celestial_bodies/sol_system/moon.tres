@@ -11,5 +11,6 @@ body_type = "moon"
 orbit_center_id = "earth"
 orbit_radius = 35.0
 orbit_speed = 1.4
+body_scale = 0.27
 texture = ExtResource("2_qbke3")
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

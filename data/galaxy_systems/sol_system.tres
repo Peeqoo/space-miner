@@ -2,129 +2,22 @@
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_a0nf3"]
 [ext_resource type="Script" uid="uid://chw5alb6hnolt" path="res://resources/definitions/point_of_interest_definition.gd" id="2_s0d8x"]
-[ext_resource type="Texture2D" uid="uid://cyp5c64hdqm15" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Earth/Eurasia_Africa/Clouds/1.png" id="2_vnau3"]
-[ext_resource type="Texture2D" uid="uid://djkg5hjj0m2ae" path="res://assets/sprites/planets/PlanetsFull/Barren_or_Moon/1.png" id="3_ls12o"]
+[ext_resource type="Resource" uid="uid://hbk5bvf4pssf" path="res://data/celestial_bodies/sol_system/earth.tres" id="2_wklrf"]
+[ext_resource type="Resource" uid="uid://b1emurvotk828" path="res://data/celestial_bodies/sol_system/jupiter.tres" id="3_vi0g5"]
 [ext_resource type="Script" uid="uid://f0syjee2xw2l" path="res://resources/definitions/system_definition.gd" id="3_vnau3"]
-[ext_resource type="Texture2D" uid="uid://b2qpbiuh4cq3u" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mercury/1.png" id="4_06b2o"]
+[ext_resource type="Resource" uid="uid://c1e1263o343pg" path="res://data/celestial_bodies/sol_system/mars.tres" id="4_47t22"]
 [ext_resource type="Texture2D" uid="uid://57vt4pp8oxrp" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Sun/1.png" id="4_s0d8x"]
-[ext_resource type="Texture2D" uid="uid://bohus4wvfvvg5" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Venus/1.png" id="5_wklrf"]
-[ext_resource type="Texture2D" uid="uid://ckmthn4f332ki" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mars/1.png" id="6_vi0g5"]
-[ext_resource type="Texture2D" uid="uid://kxdhm6m76m1k" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Jupiter/1.png" id="7_47t22"]
-[ext_resource type="Texture2D" uid="uid://dmkyem5otemdk" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Saturn/With_rings/1.png" id="8_hjg5e"]
-[ext_resource type="Texture2D" uid="uid://bafmj7fpp78oc" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Uranus/With_rings/1.png" id="9_s6k21"]
-[ext_resource type="Texture2D" uid="uid://4l8vep62kyq" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Neptune/1.png" id="10_vi0g5"]
-
-[sub_resource type="Resource" id="Resource_wklrf"]
-script = ExtResource("1_a0nf3")
-id = "mercury"
-display_name = "Merkury"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 120.0
-orbit_speed = 0.45
-texture = ExtResource("4_06b2o")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_vi0g5"]
-script = ExtResource("1_a0nf3")
-id = "venus"
-display_name = "Venus"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 205.0
-orbit_speed = 0.32
-orbit_start_angle_degrees = 40.0
-texture = ExtResource("5_wklrf")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_47t22"]
-script = ExtResource("1_a0nf3")
-id = "earth"
-display_name = "Earth"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 265.0
-orbit_speed = 0.22
-orbit_start_angle_degrees = 80.0
-texture = ExtResource("2_vnau3")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_hjg5e"]
-script = ExtResource("1_a0nf3")
-id = "moon"
-display_name = "Moon"
-body_type = "moon"
-orbit_center_id = "earth"
-orbit_radius = 35.0
-orbit_speed = 1.4
-body_scale = 0.27
-texture = ExtResource("3_ls12o")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_uudfo"]
-script = ExtResource("1_a0nf3")
-id = "mars"
-display_name = "Mars"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 355.0
-orbit_speed = 0.15
-orbit_start_angle_degrees = 160.0
-texture = ExtResource("6_vi0g5")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_s6k21"]
-script = ExtResource("1_a0nf3")
-id = "jupiter"
-display_name = "Jupiter"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 520.0
-orbit_speed = 0.08
-orbit_start_angle_degrees = 200.0
-texture = ExtResource("7_47t22")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_v5oln"]
-script = ExtResource("1_a0nf3")
-id = "saturn"
-display_name = "Saturn"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 680.0
-orbit_speed = 0.06
-orbit_start_angle_degrees = 240.0
-texture = ExtResource("8_hjg5e")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_ymn2c"]
-script = ExtResource("1_a0nf3")
-id = "uranus"
-display_name = "Uranus"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 840.0
-orbit_speed = 0.045
-orbit_start_angle_degrees = 280.0
-texture = ExtResource("9_s6k21")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
-
-[sub_resource type="Resource" id="Resource_xw7b0"]
-script = ExtResource("1_a0nf3")
-id = "neptune"
-display_name = "Neptune"
-body_type = "planet"
-orbit_center_id = "sun"
-orbit_radius = 1000.0
-orbit_speed = 0.035
-orbit_start_angle_degrees = 320.0
-texture = ExtResource("10_vi0g5")
-metadata/_custom_type_script = "uid://c1hb30l5a8obm"
+[ext_resource type="Resource" uid="uid://cm54p0xtvg54u" path="res://data/celestial_bodies/sol_system/mercury.tres" id="5_hjg5e"]
+[ext_resource type="Resource" uid="uid://bl10qgk27s6m7" path="res://data/celestial_bodies/sol_system/moon.tres" id="6_s6k21"]
+[ext_resource type="Resource" uid="uid://cfr3siva2h0h8" path="res://data/celestial_bodies/sol_system/neptune.tres" id="7_uudfo"]
+[ext_resource type="Resource" uid="uid://ywtuh8kpgx0r" path="res://data/celestial_bodies/sol_system/saturn.tres" id="8_v5oln"]
+[ext_resource type="Resource" uid="uid://cf58e8ip0rmu5" path="res://data/celestial_bodies/sol_system/uranus.tres" id="9_ymn2c"]
+[ext_resource type="Resource" uid="uid://cg4mgi0b86c3c" path="res://data/celestial_bodies/sol_system/venus.tres" id="10_xw7b0"]
 
 [resource]
 script = ExtResource("3_vnau3")
 id = "sol"
 display_name = "Sol-System"
 star_texture = ExtResource("4_s0d8x")
-bodies = Array[ExtResource("1_a0nf3")]([SubResource("Resource_wklrf"), SubResource("Resource_vi0g5"), SubResource("Resource_47t22"), SubResource("Resource_hjg5e"), SubResource("Resource_uudfo"), SubResource("Resource_s6k21"), SubResource("Resource_v5oln"), SubResource("Resource_ymn2c"), SubResource("Resource_xw7b0")])
+bodies = Array[ExtResource("1_a0nf3")]([ExtResource("2_wklrf"), ExtResource("3_vi0g5"), ExtResource("4_47t22"), ExtResource("5_hjg5e"), ExtResource("6_s6k21"), ExtResource("7_uudfo"), ExtResource("8_v5oln"), ExtResource("9_ymn2c"), ExtResource("10_xw7b0")])
 metadata/_custom_type_script = "uid://f0syjee2xw2l"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://cg4mgi0b86c3c"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_kik37"]
+[ext_resource type="Texture2D" uid="uid://bohus4wvfvvg5" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Venus/1.png" id="2_4lux5"]
+
+[resource]
+script = ExtResource("1_kik37")
+id = "venus"
+display_name = "Venus"
+body_type = "planet"
+orbit_center_id = "star"
+orbit_radius = 205.0
+orbit_speed = 0.32
+texture = ExtResource("2_4lux5")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

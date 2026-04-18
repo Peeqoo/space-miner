@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://xt87dyuqbo0r"]
 
 [ext_resource type="PackedScene" uid="uid://xvlhiy5lpey7" path="res://scenes/ship/player_ship.tscn" id="1_dlkw0"]
-[ext_resource type="Script" uid="uid://c4tvofk4d4vr1" path="res://scripts/ui/ship_hud_debug.gd" id="2_fjs0h"]
+[ext_resource type="Script" uid="uid://c4tvofk4d4vr1" path="res://scripts/debug/ship_hud_debug.gd" id="2_fjs0h"]
 
 [node name="TestSystemScene" type="Node2D" unique_id=209191301]
 
@@ -19,6 +19,7 @@ player_ship_path = NodePath("../PlayerShip")
 
 [node name="Control" type="Control" parent="CanvasLayer" unique_id=786897574]
 layout_mode = 3
+anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 

@@ -3,44 +3,39 @@ extends Node2D
 
 signal selected(poi: PointOfInterest)
 
-@export var poi_id: String = ""
-@export var display_name: String = "Unknown POI"
-@export var poi_type: String = "asteroid_field"
-
-@export_group("Orbit")
-@export var orbit_radius: float = 500.0
-@export var orbit_speed: float = 0.12
-@export var orbit_start_angle_degrees: float = 0.0
-
-@export_group("Visual")
-@export var poi_color: Color = Color(0.8, 0.8, 0.8)
-@export var selection_ring_radius: float = 28.0
-
+@onready var orbit_pivot: Node2D = $OrbitPivot
 @onready var poi_visual: Sprite2D = $OrbitPivot/POIVisual
 @onready var selection_ring: Node2D = $OrbitPivot/SelectionRing
 @onready var click_area: Area2D = $OrbitPivot/ClickArea
 @onready var click_collision: CollisionShape2D = $OrbitPivot/ClickArea/CollisionShape2D
+
+var definition: PointOfInterestDefinition = null
+
+var poi_id: String = ""
+var display_name: String = "Unknown POI"
+var poi_type: String = "asteroid_field"
+
+var orbit_radius: float = 500.0
+var orbit_speed: float = 0.12
+var orbit_start_angle_degrees: float = 0.0
+
+var poi_color: Color = Color(0.8, 0.8, 0.8)
+var selection_ring_radius: float = 28.0
 
 var orbit_center: Node2D = null
 var orbit_angle: float = 0.0
 var is_selected: bool = false
 
 func _ready() -> void:
-	apply_orbit_values()
-	apply_definition_values()
-	set_selected(false)
+	if definition != null:
+		_apply_definition()
 
+	set_selected(false)
 	_update_click_shape()
 
 	if not click_area.input_event.is_connected(_on_click_area_input_event):
 		click_area.input_event.connect(_on_click_area_input_event)
 
-func apply_orbit_values() -> void:
-	orbit_angle = deg_to_rad(orbit_start_angle_degrees)
-
-func apply_definition_values() -> void:
-	poi_visual.modulate = poi_color
-	
 func _process(delta: float) -> void:
 	if orbit_center == null:
 		return
@@ -48,8 +43,39 @@ func _process(delta: float) -> void:
 	orbit_angle += orbit_speed * delta
 	global_position = orbit_center.global_position + Vector2.RIGHT.rotated(orbit_angle) * orbit_radius
 
+func set_definition(def: PointOfInterestDefinition) -> void:
+	definition = def
+
+	if is_inside_tree():
+		_apply_definition()
+
+func _apply_definition() -> void:
+	if definition == null:
+		return
+
+	poi_id = definition.id
+	display_name = definition.display_name
+	poi_type = definition.poi_type
+
+	orbit_radius = definition.orbit_radius
+	orbit_speed = definition.orbit_speed
+	orbit_start_angle_degrees = definition.orbit_start_angle_degrees
+
+	poi_color = definition.poi_color
+
+	orbit_angle = deg_to_rad(orbit_start_angle_degrees)
+
+	poi_visual.modulate = poi_color
+	poi_visual.texture = definition.texture
+
 func set_orbit_center(node: Node2D) -> void:
 	orbit_center = node
+
+func refresh_orbit_position() -> void:
+	if orbit_center == null:
+		return
+
+	global_position = orbit_center.global_position + Vector2.RIGHT.rotated(orbit_angle) * orbit_radius
 
 func set_selected(value: bool) -> void:
 	is_selected = value

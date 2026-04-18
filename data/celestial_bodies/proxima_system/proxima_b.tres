@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://d3k0wjvywqh0e"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_y2s6n"]
+[ext_resource type="Texture2D" uid="uid://ccv784e2jnc05" path="res://assets/sprites/planets/PlanetsFull/Terran_or_Earth-like/9.png" id="2_dkwxl"]
+
+[resource]
+script = ExtResource("1_y2s6n")
+id = "proxima_b"
+display_name = "Proxima Centauri B"
+body_type = "planet"
+orbit_center_id = "star"
+orbit_radius = 140.0
+orbit_speed = 0.32
+orbit_start_angle_degrees = 20.0
+body_scale = 0.42
+texture = ExtResource("2_dkwxl")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

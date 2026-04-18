@@ -13,6 +13,10 @@ config_version=5
 config/name="SpaceMining"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
+[autoload]
+
+GameSession="*uid://bka6ficg15sia"
+
 [display]
 
 window/size/viewport_width=640

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://dmxm0sfa6eewj"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_qm6f4"]
+[ext_resource type="Texture2D" uid="uid://bins83drc7kao" path="res://assets/sprites/planets/PlanetsFull/Rocky/1.png" id="2_epjyb"]
+
+[resource]
+script = ExtResource("1_qm6f4")
+id = "proxima_d"
+display_name = "Proxima Centauri D"
+body_type = "planet"
+orbit_center_id = "star"
+orbit_radius = 70.0
+texture = ExtResource("2_epjyb")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

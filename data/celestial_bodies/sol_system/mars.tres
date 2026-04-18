@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://c1e1263o343pg"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_fodo3"]
+[ext_resource type="Texture2D" uid="uid://ckmthn4f332ki" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mars/1.png" id="2_puof5"]
+
+[resource]
+script = ExtResource("1_fodo3")
+id = "mars"
+display_name = "Mars"
+body_type = "planet"
+orbit_center_id = "star"
+orbit_radius = 355.0
+orbit_speed = 0.15
+texture = ExtResource("2_puof5")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

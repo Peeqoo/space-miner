@@ -1,224 +1,108 @@
 extends Node2D
 
 @export var system_definition: SystemDefinition
-
-@export var camera_speed: float = 600.0
-@export var zoom_speed: float = 0.1
-@export var zoom_min: float = 0.3
-@export var zoom_max: float = 2.0
-@export var zoom_step: float = 0.1
-@export var zoom_smooth_speed: float = 8.0
+@export var start_docked_body_id: String = "earth"
 
 @onready var orbit_guides_layer: Node2D = $BackgroundRoot/OrbitGuidesLayer
 @onready var star_root: Node2D = $WorldRoot/StarRoot
 @onready var system_bodies_root: Node2D = $WorldRoot/SystemBodiesRoot
 @onready var poi_root: Node2D = $WorldRoot/PointOfInterestRoot
 @onready var player_ship: CharacterBody2D = $WorldRoot/PlayerShip
-@onready var camera: Camera2D = $CameraRoot/SystemCamera2D
-@onready var context_info_panel = $UI/ContextInfoPanel
+@onready var camera: SystemCameraController = $CameraRoot/SystemCamera2D
+@onready var context_info_panel = $UI/MarginContainer/ContextInfoPanel
+@onready var back_button: Button = $UI/MarginContainer/ContextInfoPanel/VBoxContainer/BackButton
+@onready var start_button: Button = $UI/MarginContainer/ShipControlPanel/VBoxContainer/StartButton
+@onready var dock_button: Button = $UI/MarginContainer/ShipControlPanel/VBoxContainer/DockButton
 
 var selected_node: Node = null
 var spawned_lookup: Dictionary = {}
 var star_visual: Sprite2D = null
-var zoom_target: Vector2 = Vector2.ONE
+
+var docked_body: SystemBody = null
+var is_docked: bool = true
 
 const SYSTEM_BODY_SCENE: PackedScene = preload("res://scenes/system/objects/system_body.tscn")
 const POINT_OF_INTEREST_SCENE: PackedScene = preload("res://scenes/system/objects/point_of_interest.tscn")
 
 func _ready() -> void:
-	camera.make_current()
-	zoom_target = camera.zoom
+	if GameSession.selected_system_definition != null:
+		system_definition = GameSession.selected_system_definition
+		GameSession.selected_system_definition = null
+	elif GameSession.current_system_definition != null:
+		system_definition = GameSession.current_system_definition
+
+	if system_definition != null:
+		GameSession.current_system_definition = system_definition
+		GameSession.current_system_id = system_definition.id
+
+	back_button.pressed.connect(_on_back_pressed)
+	start_button.pressed.connect(_on_start_pressed)
+	dock_button.pressed.connect(_on_dock_pressed)
 
 	_spawn_from_definition()
 	_setup_orbit_guides()
 
-	player_ship.global_position = Vector2(0, 330)
-	context_info_panel.show_empty()
+	call_deferred("_restore_ship_state")
+	call_deferred("_restore_camera_state")
 
-func _process(delta: float) -> void:
-	_handle_camera_movement(delta)
+	context_info_panel.show_empty()
+	_update_ship_ui()
+
+func _process(_delta: float) -> void:
+	if is_docked and docked_body != null:
+		player_ship.global_position = docked_body.global_position
+
+	if not is_docked:
+		var state := _get_or_create_ship_state()
+		if state != null:
+			state.free_position = player_ship.global_position
+
 	_setup_orbit_guides()
 
-	camera.zoom = camera.zoom.lerp(zoom_target, zoom_smooth_speed * delta)
+func _get_or_create_ship_state() -> ShipState:
+	if system_definition == null:
+		return null
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_target(-zoom_step)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_target(zoom_step)
-			
-func _zoom_target(amount: float) -> void:
-	var new_zoom = zoom_target + Vector2(amount, amount)
+	var system_id: String = system_definition.id
 
-	new_zoom.x = clamp(new_zoom.x, zoom_min, zoom_max)
-	new_zoom.y = clamp(new_zoom.y, zoom_min, zoom_max)
+	if not GameSession.system_states.has(system_id):
+		var state := ShipState.new()
+		GameSession.system_states[system_id] = state
 
-	zoom_target = new_zoom
+	return GameSession.system_states[system_id] as ShipState
 
-func _handle_camera_movement(delta: float) -> void:
-	var input_vector := Vector2.ZERO
+func _save_current_ship_state() -> void:
+	var state := _get_or_create_ship_state()
+	if state == null:
+		return
 
-	if Input.is_action_pressed("move_up"):
-		input_vector.y -= 1.0
-	if Input.is_action_pressed("move_down"):
-		input_vector.y += 1.0
-	if Input.is_action_pressed("move_left"):
-		input_vector.x -= 1.0
-	if Input.is_action_pressed("move_right"):
-		input_vector.x += 1.0
-
-	input_vector = input_vector.normalized()
-	camera.global_position += input_vector * camera_speed * delta
-
-func _zoom_camera(amount: float) -> void:
-	var new_zoom := camera.zoom + Vector2(amount, amount)
-	new_zoom.x = clamp(new_zoom.x, zoom_min, zoom_max)
-	new_zoom.y = clamp(new_zoom.y, zoom_min, zoom_max)
-	camera.zoom = new_zoom
+	if is_docked and docked_body != null:
+		state.is_docked = true
+		state.docked_body_id = docked_body.body_id
+	else:
+		state.is_docked = false
+		state.docked_body_id = ""
+		state.free_position = player_ship.global_position
 
 func _spawn_from_definition() -> void:
 	if system_definition == null:
-		push_error("SystemDefinition fehlt auf SystemScene.")
+		push_error("SystemDefinition fehlt.")
 		return
 
-	_cleanup_spawned_content()
-
 	spawned_lookup.clear()
-	spawned_lookup["sun"] = star_root
+	spawned_lookup["star"] = star_root
 
-	_setup_star_from_definition()
-	_spawn_bodies_from_definition()
-	_spawn_pois_from_definition()
-	_resolve_orbit_centers_from_definition()
+	_setup_star()
+	_spawn_bodies()
+	_spawn_pois()
+	_resolve_orbits()
 
-func _cleanup_spawned_content() -> void:
-	for child in system_bodies_root.get_children():
-		child.queue_free()
-
-	for child in poi_root.get_children():
-		child.queue_free()
-
-	if star_visual != null and is_instance_valid(star_visual):
-		star_visual.queue_free()
-		star_visual = null
-
-	selected_node = null
-
-func _setup_star_from_definition() -> void:
+func _setup_star() -> void:
 	star_visual = Sprite2D.new()
-	star_visual.name = "StarVisual"
-	star_visual.centered = true
 	star_visual.texture = system_definition.star_texture
 	star_visual.scale = system_definition.star_scale
 	star_visual.modulate = system_definition.star_modulate
 	star_root.add_child(star_visual)
-
-func _spawn_bodies_from_definition() -> void:
-	for body_def in system_definition.bodies:
-		if body_def == null:
-			push_warning("Null-Eintrag in system_definition.bodies gefunden.")
-			continue
-
-		var body: SystemBody = SYSTEM_BODY_SCENE.instantiate()
-		system_bodies_root.add_child(body)
-
-		body.body_id = body_def.id
-		body.display_name = body_def.display_name
-		body.body_type = body_def.body_type
-
-		if body_def.orbit_center_id == "sun":
-			body.orbit_radius = system_definition.star_visual_radius + body_def.orbit_radius
-		else:
-			body.orbit_radius = body_def.orbit_radius
-
-		body.orbit_speed = body_def.orbit_speed
-		body.orbit_start_angle_degrees = body_def.orbit_start_angle_degrees
-
-		body.body_scale = body_def.body_scale
-		body.body_color = body_def.body_color
-
-		var visual := body.get_node_or_null("OrbitPivot/BodyVisual") as Sprite2D
-		if visual != null:
-			visual.texture = body_def.texture
-		else:
-			push_warning("BodyVisual nicht gefunden für Body: %s" % body_def.id)
-
-		body.apply_orbit_values()
-		body.apply_definition_values()
-		body.selected.connect(_on_body_selected)
-
-		spawned_lookup[body_def.id] = body
-
-func _spawn_pois_from_definition() -> void:
-	for poi_def in system_definition.pois:
-		if poi_def == null:
-			push_warning("Null-Eintrag in system_definition.pois gefunden.")
-			continue
-
-		var poi: PointOfInterest = POINT_OF_INTEREST_SCENE.instantiate()
-		poi_root.add_child(poi)
-
-		poi.poi_id = poi_def.id
-		poi.display_name = poi_def.display_name
-		poi.poi_type = poi_def.poi_type
-
-		if poi_def.orbit_center_id == "sun":
-			poi.orbit_radius = system_definition.star_visual_radius + poi_def.orbit_radius
-		else:
-			poi.orbit_radius = poi_def.orbit_radius
-
-		poi.orbit_speed = poi_def.orbit_speed
-		poi.orbit_start_angle_degrees = poi_def.orbit_start_angle_degrees
-
-		poi.poi_color = poi_def.poi_color
-
-		var visual := poi.get_node_or_null("OrbitPivot/POIVisual") as Sprite2D
-		if visual != null:
-			visual.texture = poi_def.texture
-		else:
-			push_warning("POIVisual nicht gefunden für POI: %s" % poi_def.id)
-
-		poi.apply_orbit_values()
-		poi.apply_definition_values()
-		poi.selected.connect(_on_poi_selected)
-
-		spawned_lookup[poi_def.id] = poi
-
-func _resolve_orbit_centers_from_definition() -> void:
-	for body_def in system_definition.bodies:
-		if body_def == null:
-			continue
-
-		var body := spawned_lookup.get(body_def.id) as SystemBody
-		var center := spawned_lookup.get(body_def.orbit_center_id) as Node2D
-
-		if body == null:
-			push_warning("Spawned Body fehlt für ID: %s" % body_def.id)
-			continue
-
-		if center == null:
-			push_warning("Orbit center fehlt für Body '%s' -> '%s'" % [body_def.id, body_def.orbit_center_id])
-			continue
-
-		body.set_orbit_center(center)
-
-	for poi_def in system_definition.pois:
-		if poi_def == null:
-			continue
-
-		var poi := spawned_lookup.get(poi_def.id) as PointOfInterest
-		var center := spawned_lookup.get(poi_def.orbit_center_id) as Node2D
-
-		if poi == null:
-			push_warning("Spawned POI fehlt für ID: %s" % poi_def.id)
-			continue
-
-		if center == null:
-			push_warning("Orbit center fehlt für POI '%s' -> '%s'" % [poi_def.id, poi_def.orbit_center_id])
-			continue
-
-		poi.set_orbit_center(center)
 
 func _setup_orbit_guides() -> void:
 	var orbit_entries: Array = []
@@ -246,6 +130,159 @@ func _setup_orbit_guides() -> void:
 	if orbit_guides_layer.has_method("set_orbits"):
 		orbit_guides_layer.set_orbits(orbit_entries)
 
+func _spawn_bodies() -> void:
+	for body_def in system_definition.bodies:
+		var body: SystemBody = SYSTEM_BODY_SCENE.instantiate()
+		body.set_definition(body_def)
+
+		if body_def.orbit_center_id == "star":
+			body.orbit_radius = system_definition.star_visual_radius + body_def.orbit_radius
+
+		system_bodies_root.add_child(body)
+		body.selected.connect(_on_body_selected)
+
+		spawned_lookup[body_def.id] = body
+
+func _spawn_pois() -> void:
+	for poi_def in system_definition.pois:
+		var poi: PointOfInterest = POINT_OF_INTEREST_SCENE.instantiate()
+		poi.set_definition(poi_def)
+
+		if poi_def.orbit_center_id == "star":
+			poi.orbit_radius = system_definition.star_visual_radius + poi_def.orbit_radius
+
+		poi_root.add_child(poi)
+		poi.selected.connect(_on_poi_selected)
+
+		spawned_lookup[poi_def.id] = poi
+
+func _resolve_orbits() -> void:
+	for body_def in system_definition.bodies:
+		var body: SystemBody = spawned_lookup.get(body_def.id) as SystemBody
+		var center: Node2D = spawned_lookup.get(body_def.orbit_center_id) as Node2D
+
+		if body != null and center != null:
+			body.set_orbit_center(center)
+			body.refresh_orbit_position()
+
+	for poi_def in system_definition.pois:
+		var poi: PointOfInterest = spawned_lookup.get(poi_def.id) as PointOfInterest
+		var center: Node2D = spawned_lookup.get(poi_def.orbit_center_id) as Node2D
+
+		if poi != null and center != null:
+			poi.set_orbit_center(center)
+			poi.refresh_orbit_position()
+
+func _restore_ship_state() -> void:
+	await get_tree().process_frame
+
+	if GameSession.arriving_from_travel:
+		GameSession.arriving_from_travel = false
+		_spawn_at_entry()
+		return
+
+	var state := _get_or_create_ship_state()
+	if state == null:
+		_dock_to_start_body()
+		return
+
+	if state.is_docked and state.docked_body_id != "":
+		var body: SystemBody = spawned_lookup.get(state.docked_body_id) as SystemBody
+		if body != null:
+			_dock_to_body(body)
+			return
+
+	if not state.is_docked:
+		_restore_undocked(state.free_position)
+		return
+
+	_dock_to_start_body()
+
+func _restore_camera_state() -> void:
+	await get_tree().process_frame
+
+	if is_docked and docked_body != null:
+		camera.set_follow_target(docked_body, true)
+	elif GameSession.arriving_from_travel:
+		camera.clear_follow()
+		camera.set_start_position(player_ship)
+	else:
+		camera.clear_follow()
+		camera.set_start_position(player_ship)
+
+func _spawn_at_entry() -> void:
+	var angle := deg_to_rad(system_definition.entry_spawn_angle_degrees)
+	var dir := Vector2.RIGHT.rotated(angle)
+	var pos := star_root.global_position + dir * system_definition.entry_spawn_radius
+	_restore_undocked(pos)
+
+func _restore_undocked(pos: Vector2) -> void:
+	is_docked = false
+	docked_body = null
+
+	player_ship.global_position = pos
+
+	var nav = player_ship.get_node_or_null("ShipNavigationComponent")
+	if nav:
+		nav.set_process(true)
+		if nav.has_method("clear_target"):
+			nav.clear_target()
+
+func _dock_to_start_body() -> void:
+	var body: SystemBody = spawned_lookup.get(start_docked_body_id) as SystemBody
+	if body != null:
+		_dock_to_body(body)
+
+func _dock_to_body(body: SystemBody) -> void:
+	if body == null:
+		return
+
+	docked_body = body
+	is_docked = true
+
+	player_ship.global_position = body.global_position
+	camera.set_follow_target(body, true)
+
+	var nav = player_ship.get_node_or_null("ShipNavigationComponent")
+	if nav:
+		nav.set_process(false)
+		if nav.has_method("clear_target"):
+			nav.clear_target()
+
+	var state := _get_or_create_ship_state()
+	if state != null:
+		state.is_docked = true
+		state.docked_body_id = body.body_id
+
+func _launch_ship() -> void:
+	if docked_body == null:
+		return
+
+	var pos := docked_body.global_position + Vector2.RIGHT * 80.0
+
+	is_docked = false
+	docked_body = null
+
+	player_ship.global_position = pos
+	camera.clear_follow()
+	camera.set_start_position(player_ship)
+
+	var nav = player_ship.get_node_or_null("ShipNavigationComponent")
+	if nav:
+		nav.set_process(true)
+		if nav.has_method("clear_target"):
+			nav.clear_target()
+
+	var state := _get_or_create_ship_state()
+	if state != null:
+		state.is_docked = false
+		state.docked_body_id = ""
+		state.free_position = pos
+
+func _update_ship_ui() -> void:
+	start_button.visible = is_docked
+	dock_button.visible = not is_docked
+
 func _clear_selection() -> void:
 	if selected_node == null:
 		return
@@ -260,16 +297,39 @@ func _on_body_selected(body: SystemBody) -> void:
 	selected_node = body
 	body.set_selected(true)
 	context_info_panel.show_body_info(body.get_info())
-	_send_ship_to_target(body.global_position)
+
+	if not is_docked:
+		_send_ship_to_target(body.global_position)
 
 func _on_poi_selected(poi: PointOfInterest) -> void:
 	_clear_selection()
 	selected_node = poi
 	poi.set_selected(true)
 	context_info_panel.show_poi_info(poi.get_info())
-	_send_ship_to_target(poi.global_position)
+
+	if not is_docked:
+		_send_ship_to_target(poi.global_position)
 
 func _send_ship_to_target(target: Vector2) -> void:
 	var nav := player_ship.get_node_or_null("ShipNavigationComponent")
 	if nav != null and nav.has_method("set_target"):
 		nav.set_target(target)
+
+func _on_start_pressed() -> void:
+	_launch_ship()
+	_update_ship_ui()
+
+func _on_dock_pressed() -> void:
+	if not (selected_node is SystemBody):
+		return
+
+	var body := selected_node as SystemBody
+	var dist := player_ship.global_position.distance_to(body.global_position)
+
+	if dist <= 100.0:
+		_dock_to_body(body)
+		_update_ship_ui()
+
+func _on_back_pressed() -> void:
+	_save_current_ship_state()
+	get_tree().change_scene_to_file("res://scenes/galaxy/galaxy_map.tscn")

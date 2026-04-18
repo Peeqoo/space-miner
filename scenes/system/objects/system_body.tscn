@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c7pgd62y2lfj4" path="res://scripts/system/system_body.gd" id="1_7k7re"]
 [ext_resource type="Script" uid="uid://b4fmjn20rrpa3" path="res://scripts/system/selection_ring.gd" id="2_4phf2"]
-[ext_resource type="Script" uid="uid://7wvdnqdnra00" path="res://scripts/system/orbit_pivot.gd" id="2_4v77c"]
+[ext_resource type="Script" uid="uid://7wvdnqdnra00" path="res://scripts/debug/orbit_pivot.gd" id="2_4v77c"]
 
 [node name="SystemBody" type="Node2D" unique_id=1408650769]
 script = ExtResource("1_7k7re")

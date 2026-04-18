@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SystemDefinition" format=3 uid="uid://diuo6smelwwxc"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_eaw4p"]
+[ext_resource type="Resource" uid="uid://d3k0wjvywqh0e" path="res://data/celestial_bodies/proxima_system/proxima_b.tres" id="2_3ta0x"]
+[ext_resource type="Script" uid="uid://chw5alb6hnolt" path="res://resources/definitions/point_of_interest_definition.gd" id="2_mh2o4"]
+[ext_resource type="Resource" uid="uid://crg0884iortpx" path="res://data/celestial_bodies/proxima_system/proxima_c.tres" id="3_43vep"]
+[ext_resource type="Script" uid="uid://f0syjee2xw2l" path="res://resources/definitions/system_definition.gd" id="3_ojsok"]
+[ext_resource type="Texture2D" uid="uid://dju1ifeecd3nj" path="res://assets/sprites/planets/PlanetsFull/Suns/13.png" id="4_mh2o4"]
+[ext_resource type="Resource" uid="uid://dmxm0sfa6eewj" path="res://data/celestial_bodies/proxima_system/proxima_d.tres" id="4_v7pv5"]
+
+[resource]
+script = ExtResource("3_ojsok")
+id = "proxima"
+display_name = "Proxima Centauri-System"
+star_texture = ExtResource("4_mh2o4")
+bodies = Array[ExtResource("1_eaw4p")]([ExtResource("2_3ta0x"), ExtResource("3_43vep"), ExtResource("4_v7pv5")])
+metadata/_custom_type_script = "uid://f0syjee2xw2l"

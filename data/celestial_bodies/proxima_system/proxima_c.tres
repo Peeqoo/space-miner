@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://crg0884iortpx"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_enoce"]
+[ext_resource type="Texture2D" uid="uid://ctsrdh6tiucmr" path="res://assets/sprites/planets/PlanetsFull/Ice_or_Snow/1.png" id="2_xv5cp"]
+
+[resource]
+script = ExtResource("1_enoce")
+id = "proxima_c"
+display_name = "Proxima Centauri C"
+body_type = "planet"
+orbit_center_id = "star"
+orbit_radius = 250.0
+orbit_speed = 0.18
+orbit_start_angle_degrees = 170.0
+body_scale = 0.55
+texture = ExtResource("2_xv5cp")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

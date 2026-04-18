@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://ywtuh8kpgx0r"]
+
+[ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_ak16d"]
+[ext_resource type="Texture2D" uid="uid://dmkyem5otemdk" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Saturn/With_rings/1.png" id="2_4ya0n"]
+
+[resource]
+script = ExtResource("1_ak16d")
+id = "saturn"
+display_name = "Saturn"
+body_type = "planet"
+orbit_center_id = "star"
+orbit_radius = 680.0
+orbit_speed = 0.06
+texture = ExtResource("2_4ya0n")
+metadata/_custom_type_script = "uid://c1hb30l5a8obm"

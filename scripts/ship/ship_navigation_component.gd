@@ -9,7 +9,7 @@ extends Node
 @export var slow_down_radius: float = 90.0
 @export var manual_cancel_action: StringName = &"clear_navigation_target"
 
-var target_position: Vector2
+var target_position: Vector2 = Vector2.ZERO
 var has_target: bool = false
 
 @onready var ship: CharacterBody2D = get_parent() as CharacterBody2D
@@ -59,8 +59,8 @@ func _physics_process(delta: float) -> void:
 
 	move_ship()
 
-func set_target(world_position: Vector2) -> void:
-	target_position = world_position
+func set_target(pos: Vector2) -> void:
+	target_position = pos
 	has_target = true
 
 func clear_target() -> void:
