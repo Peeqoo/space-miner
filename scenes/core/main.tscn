@@ -1,3 +1,10 @@
-[gd_scene format=3 uid="uid://bgu1860lor7m7"]
+[gd_scene format=3 uid="uid://4dvylj0kxlmu"]
 
-[node name="Main" type="Node" unique_id=654417499]
+[ext_resource type="Script" uid="uid://pgipusyfma8j" path="res://scripts/core/main.gd" id="1_main"]
+
+[node name="Main" type="Node" unique_id=1902202173]
+script = ExtResource("1_main")
+
+[node name="SceneRoot" type="Node" parent="." unique_id=1745541857]
+
+[node name="CurrentSceneSlot" type="Node" parent="SceneRoot" unique_id=1413855861]

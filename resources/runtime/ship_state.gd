@@ -1,4 +1,4 @@
-class_name ShipRuntimeState
+class_name ShipState
 extends RefCounted
 
 var is_docked: bool = true

@@ -13,6 +13,7 @@
 [ext_resource type="Resource" uid="uid://ywtuh8kpgx0r" path="res://data/celestial_bodies/sol_system/saturn.tres" id="8_v5oln"]
 [ext_resource type="Resource" uid="uid://cf58e8ip0rmu5" path="res://data/celestial_bodies/sol_system/uranus.tres" id="9_ymn2c"]
 [ext_resource type="Resource" uid="uid://cg4mgi0b86c3c" path="res://data/celestial_bodies/sol_system/venus.tres" id="10_xw7b0"]
+[ext_resource type="Resource" path="res://data/points_of_interest/sol_system/luna_ore_field.tres" id="11_poi"]
 
 [resource]
 script = ExtResource("3_vnau3")
@@ -20,4 +21,5 @@ id = "sol"
 display_name = "Sol-System"
 star_texture = ExtResource("4_s0d8x")
 bodies = Array[ExtResource("1_a0nf3")]([ExtResource("2_wklrf"), ExtResource("3_vi0g5"), ExtResource("4_47t22"), ExtResource("5_hjg5e"), ExtResource("6_s6k21"), ExtResource("7_uudfo"), ExtResource("8_v5oln"), ExtResource("9_ymn2c"), ExtResource("10_xw7b0")])
+pois = Array[ExtResource("2_s0d8x")]([ExtResource("11_poi")])
 metadata/_custom_type_script = "uid://f0syjee2xw2l"

@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://lmrv7drdrtg6" path="res://data/galaxy_systems/sol_system.tres" id="2_kukkp"]
 [ext_resource type="Script" uid="uid://cvjfsm5141352" path="res://scripts/ui/context_info_panel.gd" id="4_kukkp"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/system_camera_controller.gd" id="5_5mh7d"]
+[ext_resource type="LabelSettings" uid="uid://m626j61arge7" path="res://scenes/ui/panels/system_scene_label_settings.tres" id="7_gwfk2"]
 
 [node name="SystemScene" type="Node2D" unique_id=652065169]
 script = ExtResource("1_f7o5m")
@@ -39,7 +40,7 @@ script = ExtResource("5_5mh7d")
 
 [node name="MarginContainer" type="MarginContainer" parent="UI" unique_id=1838538555]
 offset_right = 138.0
-offset_bottom = 143.0
+offset_bottom = 91.0
 
 [node name="ContextInfoPanel" type="PanelContainer" parent="UI/MarginContainer" unique_id=642536890]
 layout_mode = 2
@@ -51,15 +52,19 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=1942741691]
 layout_mode = 2
+label_settings = ExtResource("7_gwfk2")
 
 [node name="TypeLabel" type="Label" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=800726433]
 layout_mode = 2
+label_settings = ExtResource("7_gwfk2")
 
 [node name="StatusLabel" type="Label" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=663517589]
 layout_mode = 2
+label_settings = ExtResource("7_gwfk2")
 
 [node name="BackButton" type="Button" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=369432407]
 layout_mode = 2
+theme_override_font_sizes/font_size = 8
 text = "Return to Galaxy"
 
 [node name="ShipControlPanel" type="PanelContainer" parent="UI/MarginContainer" unique_id=1191656471]
@@ -72,8 +77,10 @@ theme_override_constants/separation = 0
 
 [node name="StartButton" type="Button" parent="UI/MarginContainer/ShipControlPanel/VBoxContainer" unique_id=947962822]
 layout_mode = 2
+theme_override_font_sizes/font_size = 8
 text = "Abdocken"
 
 [node name="DockButton" type="Button" parent="UI/MarginContainer/ShipControlPanel/VBoxContainer" unique_id=448324134]
 layout_mode = 2
+theme_override_font_sizes/font_size = 8
 text = "Andocken"

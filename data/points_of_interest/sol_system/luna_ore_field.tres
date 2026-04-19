@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PointOfInterestDefinition" format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/point_of_interest_definition.gd" id="1_poi"]
+
+[resource]
+script = ExtResource("1_poi")
+id = "luna_ore_field_a"
+display_name = "Luna Ore Field"
+poi_type = "asteroid_field"
+orbit_center_id = "earth"
+orbit_radius = 90.0
+orbit_speed = 0.95
+orbit_start_angle_degrees = 140.0
+poi_color = Color(0.72, 0.74, 0.78, 1)

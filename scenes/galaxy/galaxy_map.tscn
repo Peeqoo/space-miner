@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://57vt4pp8oxrp" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Sun/1.png" id="4_4q7h0"]
 [ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="4_5o4t4"]
 [ext_resource type="Texture2D" uid="uid://dju1ifeecd3nj" path="res://assets/sprites/planets/PlanetsFull/Suns/13.png" id="6_uta3y"]
+[ext_resource type="LabelSettings" uid="uid://m626j61arge7" path="res://scenes/ui/panels/system_scene_label_settings.tres" id="7_5o4t4"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_uta3y"]
 radius = 96.76776
@@ -49,9 +50,11 @@ shape = SubResource("CircleShape2D_5o4t4")
 
 [node name="Control" type="Control" parent="UI" unique_id=772177529]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchor_right = 0.125
+anchor_bottom = 0.1
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_use_anchors_ = true
 
 [node name="VBoxContainer" type="VBoxContainer" parent="UI/Control" unique_id=906792358]
 layout_mode = 0
@@ -60,7 +63,9 @@ offset_bottom = 40.0
 
 [node name="SystemName" type="Label" parent="UI/Control/VBoxContainer" unique_id=403772752]
 layout_mode = 2
+label_settings = ExtResource("7_5o4t4")
 
 [node name="EnterButton" type="Button" parent="UI/Control/VBoxContainer" unique_id=169199759]
 layout_mode = 2
+theme_override_font_sizes/font_size = 8
 text = "Enter"
