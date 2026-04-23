@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_a0nf3"]
 [ext_resource type="Script" uid="uid://chw5alb6hnolt" path="res://resources/definitions/point_of_interest_definition.gd" id="2_s0d8x"]
+[ext_resource type="Resource" uid="uid://cg4mgi0b86c3c" path="res://data/celestial_bodies/sol_system/venus.tres" id="2_vi0g5"]
 [ext_resource type="Resource" uid="uid://hbk5bvf4pssf" path="res://data/celestial_bodies/sol_system/earth.tres" id="2_wklrf"]
 [ext_resource type="Resource" uid="uid://b1emurvotk828" path="res://data/celestial_bodies/sol_system/jupiter.tres" id="3_vi0g5"]
 [ext_resource type="Script" uid="uid://f0syjee2xw2l" path="res://resources/definitions/system_definition.gd" id="3_vnau3"]
@@ -12,14 +13,22 @@
 [ext_resource type="Resource" uid="uid://cfr3siva2h0h8" path="res://data/celestial_bodies/sol_system/neptune.tres" id="7_uudfo"]
 [ext_resource type="Resource" uid="uid://ywtuh8kpgx0r" path="res://data/celestial_bodies/sol_system/saturn.tres" id="8_v5oln"]
 [ext_resource type="Resource" uid="uid://cf58e8ip0rmu5" path="res://data/celestial_bodies/sol_system/uranus.tres" id="9_ymn2c"]
-[ext_resource type="Resource" uid="uid://cg4mgi0b86c3c" path="res://data/celestial_bodies/sol_system/venus.tres" id="10_xw7b0"]
-[ext_resource type="Resource" path="res://data/points_of_interest/sol_system/luna_ore_field.tres" id="11_poi"]
 
 [resource]
 script = ExtResource("3_vnau3")
 id = "sol"
 display_name = "Sol-System"
 star_texture = ExtResource("4_s0d8x")
-bodies = Array[ExtResource("1_a0nf3")]([ExtResource("2_wklrf"), ExtResource("3_vi0g5"), ExtResource("4_47t22"), ExtResource("5_hjg5e"), ExtResource("6_s6k21"), ExtResource("7_uudfo"), ExtResource("8_v5oln"), ExtResource("9_ymn2c"), ExtResource("10_xw7b0")])
-pois = Array[ExtResource("2_s0d8x")]([ExtResource("11_poi")])
+star_visual_radius = 220.0
+earth_target_body_diameter_px = 28.0
+earth_target_orbit_offset_px = 180.0
+earth_orbit_angular_speed = 0.04
+size_curve_exponent = 0.5
+orbit_curve_exponent = 0.55
+speed_curve_exponent = 0.55
+minimum_body_diameter_px = 1.0
+selection_ring_padding_px = 10.0
+min_angular_speed = 0.02
+max_angular_speed = 2.5
+bodies = Array[ExtResource("1_a0nf3")]([ExtResource("2_vi0g5"), ExtResource("2_wklrf"), ExtResource("6_s6k21"), ExtResource("4_47t22"), ExtResource("8_v5oln"), ExtResource("9_ymn2c"), ExtResource("3_vi0g5"), ExtResource("5_hjg5e"), ExtResource("7_uudfo")])
 metadata/_custom_type_script = "uid://f0syjee2xw2l"

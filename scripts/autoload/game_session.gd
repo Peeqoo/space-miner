@@ -22,21 +22,24 @@ func _ready() -> void:
 	ensure_default_system_loaded()
 	
 func ensure_boot_state() -> void:
-	ensure_default_system_loaded()
-
 	if current_system_id.is_empty():
 		current_system_id = START_SYSTEM_ID
+
+	if current_system_definition == null:
+		current_system_definition = load("res://data/galaxy_systems/sol_system.tres") as SystemDefinition
 
 	var state: ShipRuntimeState = get_or_create_ship_state(current_system_id)
 	if state == null:
 		return
 
 	var is_uninitialized: bool = state.docked_body_id.is_empty() and state.free_position == Vector2.ZERO
+
 	if is_uninitialized:
 		state.is_docked = true
 		state.docked_body_id = START_DOCK_BODY_ID
 		state.last_selected_object_id = START_DOCK_BODY_ID
 		
+
 func ensure_default_system_loaded() -> void:
 	if current_system_definition != null:
 		return

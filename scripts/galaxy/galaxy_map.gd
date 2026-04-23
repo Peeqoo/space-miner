@@ -1,25 +1,23 @@
 extends Node2D
 
-@export var camera_speed: float = 800.0
-@export var zoom_min: float = 0.3
-@export var zoom_max: float = 2.5
-@export var zoom_step: float = 0.1
-@export var zoom_smooth_speed: float = 8.0
+@export var start_center_system_id: String = "sol_system"
+@export var start_zoom_world_size: Vector2 = Vector2(1600.0, 900.0)
 
-@onready var camera: Camera2D = $Camera2D
+@onready var camera: SystemCameraController = $CameraRoot/GalaxyCamera2D
 @onready var system_name_label: Label = $UI/Control/VBoxContainer/SystemName
 @onready var enter_button: Button = $UI/Control/VBoxContainer/EnterButton
 
 var selected_system: SystemDefinition = null
-var zoom_target: Vector2 = Vector2.ONE
 
 
 func _ready() -> void:
 	add_to_group("galaxy_map_root")
-	camera.make_current()
-	zoom_target = camera.zoom
 
-	enter_button.pressed.connect(_on_enter_pressed)
+	camera.make_current()
+
+	if not enter_button.pressed.is_connected(_on_enter_pressed):
+		enter_button.pressed.connect(_on_enter_pressed)
+
 	GameSession.ensure_default_system_loaded()
 
 	if GameSession.current_system_definition != null:
@@ -28,41 +26,7 @@ func _ready() -> void:
 		system_name_label.text = "Kein System ausgewählt"
 		enter_button.disabled = true
 
-
-func _process(delta: float) -> void:
-	_handle_camera_movement(delta)
-	camera.zoom = camera.zoom.lerp(zoom_target, zoom_smooth_speed * delta)
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_target(-zoom_step)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_target(zoom_step)
-
-
-func _handle_camera_movement(delta: float) -> void:
-	var input_vector := Vector2.ZERO
-
-	if Input.is_action_pressed("move_up"):
-		input_vector.y -= 1.0
-	if Input.is_action_pressed("move_down"):
-		input_vector.y += 1.0
-	if Input.is_action_pressed("move_left"):
-		input_vector.x -= 1.0
-	if Input.is_action_pressed("move_right"):
-		input_vector.x += 1.0
-
-	input_vector = input_vector.normalized()
-	camera.global_position += input_vector * camera_speed * delta
-
-
-func _zoom_target(amount: float) -> void:
-	var new_zoom := zoom_target + Vector2(amount, amount)
-	new_zoom.x = clamp(new_zoom.x, zoom_min, zoom_max)
-	new_zoom.y = clamp(new_zoom.y, zoom_min, zoom_max)
-	zoom_target = new_zoom
+	call_deferred("_center_camera_on_sol_system")
 
 
 func select_system(system_def: SystemDefinition) -> void:
@@ -84,7 +48,7 @@ func select_system(system_def: SystemDefinition) -> void:
 		label_text += " (gesperrt: erst abdocken)"
 
 	system_name_label.text = label_text
-	print("GalaxyMap selected_system -> ", system_def.id)
+
 
 func _on_enter_pressed() -> void:
 	if selected_system == null:
@@ -103,3 +67,44 @@ func _on_enter_pressed() -> void:
 		GameSession.set_current_system(selected_system)
 
 	SceneFlow.goto_system()
+
+
+func _center_camera_on_sol_system() -> void:
+	var sol_node: Node2D = _find_system_node_by_definition_id(start_center_system_id)
+
+	if sol_node != null:
+		camera.frame_rect(sol_node.global_position, start_zoom_world_size)
+		return
+
+	push_warning("Sol-System-Knoten nicht gefunden. Fallback auf aktuelle Auswahl.")
+	if selected_system != null:
+		var selected_node: Node2D = _find_system_node_by_definition_id(selected_system.id)
+		if selected_node != null:
+			camera.frame_rect(selected_node.global_position, start_zoom_world_size)
+
+
+func _find_system_node_by_definition_id(system_id: String) -> Node2D:
+	for child in get_children():
+		var found: Node2D = _find_system_node_in_branch(child, system_id)
+		if found != null:
+			return found
+	return null
+
+
+func _find_system_node_in_branch(node: Node, system_id: String) -> Node2D:
+	if node == null:
+		return null
+
+	if node.has_method("get"):
+		var maybe_definition: Variant = node.get("system_definition")
+		if maybe_definition is SystemDefinition:
+			var system_def: SystemDefinition = maybe_definition as SystemDefinition
+			if system_def != null and system_def.id == system_id and node is Node2D:
+				return node as Node2D
+
+	for child in node.get_children():
+		var found: Node2D = _find_system_node_in_branch(child, system_id)
+		if found != null:
+			return found
+
+	return null

@@ -8,7 +8,6 @@ var _current_scene: Node = null
 
 func register_main_root(root: Node) -> void:
 	_main_root = root
-	print("SceneFlow: Main root registered -> ", root.name)
 
 
 func goto_galaxy() -> void:
@@ -24,7 +23,6 @@ func goto_hub() -> void:
 
 
 func goto_scene(scene_path: String) -> void:
-	print("SceneFlow.goto_scene -> ", scene_path)
 
 	var scene_resource: PackedScene = load(scene_path) as PackedScene
 	if scene_resource == null:
@@ -49,9 +47,6 @@ func goto_scene(scene_path: String) -> void:
 	var next_scene: Node = scene_resource.instantiate()
 	slot.add_child(next_scene)
 	_current_scene = next_scene
-
-	print("SceneFlow: scene instantiated -> ", next_scene.name)
-
 
 func get_current_scene() -> Node:
 	return _current_scene
