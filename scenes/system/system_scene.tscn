@@ -4,9 +4,15 @@
 [ext_resource type="Script" uid="uid://df4vo2cmmqtud" path="res://scripts/system/system_scene.gd" id="1_f7o5m"]
 [ext_resource type="Script" uid="uid://ss3qyoy1r1ff" path="res://scripts/system/orbit_guides_renderer.gd" id="2_3j3kx"]
 [ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="2_gwfk2"]
-[ext_resource type="Script" uid="uid://cvjfsm5141352" path="res://scripts/ui/context_info_panel.gd" id="4_kukkp"]
+[ext_resource type="Texture2D" uid="uid://cmp8ysrannpyb" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_02-1024x1024.png" id="3_frd62"]
+[ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="4_e0kxw"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/system_camera_controller.gd" id="5_5mh7d"]
-[ext_resource type="LabelSettings" uid="uid://m626j61arge7" path="res://scenes/ui/panels/system_scene_label_settings.tres" id="7_gwfk2"]
+[ext_resource type="PackedScene" uid="uid://f113bm6d810f" path="res://scenes/ui/system/ship_hud.tscn" id="8_5uhx5"]
+[ext_resource type="PackedScene" uid="uid://mx2fije7qyug" path="res://scenes/ui/system/action_bar.tscn" id="9_frd62"]
+[ext_resource type="PackedScene" uid="uid://co4q0a2fhkcpy" path="res://scenes/ui/system/object_info_panel.tscn" id="10_e0kxw"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_e0kxw"]
+blend_mode = 1
 
 [node name="SystemScene" type="Node2D" unique_id=652065169]
 script = ExtResource("1_f7o5m")
@@ -14,7 +20,30 @@ system_definition = ExtResource("2_gwfk2")
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=185956986]
 
-[node name="StarBackdrop" type="Node2D" parent="BackgroundRoot" unique_id=1690168111]
+[node name="FarStarsParallax" type="Parallax2D" parent="BackgroundRoot" unique_id=1804456338]
+scroll_scale = Vector2(0.65, 0.65)
+
+[node name="FarStars" type="Sprite2D" parent="BackgroundRoot/FarStarsParallax" unique_id=520030357]
+texture_repeat = 2
+texture = ExtResource("3_frd62")
+region_enabled = true
+region_rect = Rect2(0, 0, 10000, 10000)
+
+[node name="NebulaParallax" type="Parallax2D" parent="BackgroundRoot" unique_id=1730007379]
+modulate = Color(1, 1, 1, 0.2)
+scroll_scale = Vector2(0.75, 0.75)
+
+[node name="NebulaLayer" type="Sprite2D" parent="BackgroundRoot/NebulaParallax" unique_id=811386603]
+
+[node name="MidStarsParallax" type="Parallax2D" parent="BackgroundRoot" unique_id=780055461]
+scroll_scale = Vector2(0.85, 0.85)
+
+[node name="MidStars" type="Sprite2D" parent="BackgroundRoot/MidStarsParallax" unique_id=348178512]
+texture_repeat = 2
+material = SubResource("CanvasItemMaterial_e0kxw")
+texture = ExtResource("4_e0kxw")
+region_enabled = true
+region_rect = Rect2(0, 0, 10000, 10000)
 
 [node name="OrbitGuidesLayer" type="Node2D" parent="BackgroundRoot" unique_id=1172912976]
 script = ExtResource("2_3j3kx")
@@ -40,54 +69,9 @@ overview_world_size = Vector2(2600, 1600)
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1790193946]
 
-[node name="MarginContainer" type="MarginContainer" parent="UI" unique_id=1838538555]
-offset_right = 138.0
-offset_bottom = 128.0
+[node name="ShipHud" parent="UI" unique_id=2059784922 instance=ExtResource("8_5uhx5")]
+anchors_preset = 0
 
-[node name="ContextInfoPanel" type="PanelContainer" parent="UI/MarginContainer" unique_id=642536890]
-layout_mode = 2
-size_flags_vertical = 0
-script = ExtResource("4_kukkp")
+[node name="ActionBar" parent="UI" unique_id=929547266 instance=ExtResource("9_frd62")]
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/MarginContainer/ContextInfoPanel" unique_id=203902712]
-layout_mode = 2
-
-[node name="TitleLabel" type="Label" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=1942741691]
-layout_mode = 2
-label_settings = ExtResource("7_gwfk2")
-
-[node name="TypeLabel" type="Label" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=800726433]
-layout_mode = 2
-label_settings = ExtResource("7_gwfk2")
-
-[node name="StatusLabel" type="Label" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=663517589]
-layout_mode = 2
-label_settings = ExtResource("7_gwfk2")
-
-[node name="BackButton" type="Button" parent="UI/MarginContainer/ContextInfoPanel/VBoxContainer" unique_id=369432407]
-layout_mode = 2
-theme_override_font_sizes/font_size = 8
-text = "Return to Galaxy"
-
-[node name="ShipControlPanel" type="PanelContainer" parent="UI/MarginContainer" unique_id=1191656471]
-layout_mode = 2
-size_flags_vertical = 8
-
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/MarginContainer/ShipControlPanel" unique_id=1598493810]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="StartButton" type="Button" parent="UI/MarginContainer/ShipControlPanel/VBoxContainer" unique_id=947962822]
-layout_mode = 2
-theme_override_font_sizes/font_size = 8
-text = "Abdocken"
-
-[node name="FlyToButton" type="Button" parent="UI/MarginContainer/ShipControlPanel/VBoxContainer" unique_id=930195563]
-layout_mode = 2
-theme_override_font_sizes/font_size = 8
-text = "Hierhin fliegen"
-
-[node name="DockButton" type="Button" parent="UI/MarginContainer/ShipControlPanel/VBoxContainer" unique_id=448324134]
-layout_mode = 2
-theme_override_font_sizes/font_size = 8
-text = "Andocken"
+[node name="ObjectInfoPanel" parent="UI" unique_id=987163130 instance=ExtResource("10_e0kxw")]

@@ -5,6 +5,7 @@ extends Resource
 @export_group("Core")
 @export var id: String = ""
 @export var display_name: String = ""
+@export_multiline var description: String = ""
 
 @export_group("Star")
 @export var star_texture: Texture2D

@@ -9,6 +9,7 @@ enum SizeAuthoringMode {
 
 @export var id: String = ""
 @export var display_name: String = ""
+@export_multiline var description: String = ""
 @export var body_type: String = ""
 @export var orbit_center_id: String = ""
 
@@ -39,3 +40,11 @@ enum SizeAuthoringMode {
 # Neu: optionaler harter Override
 @export var use_manual_scale_override: bool = false
 @export var manual_scale_override: float = 1.0
+
+# Sprint 4 Scan-Daten
+@export var scan_basic_reveal_name: bool = true
+@export var scan_basic_reveal_type: bool = true
+@export var scan_basic_resources: PackedStringArray = []
+@export var scan_deep_resources: PackedStringArray = []
+@export var scan_special_resources: PackedStringArray = []
+@export var scan_hidden_slots_after_special: int = 0

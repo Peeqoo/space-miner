@@ -7,6 +7,7 @@
 script = ExtResource("1_gyo2m")
 id = "moon"
 display_name = "Moon"
+description = "Karger Mond mit frühem Industriepotenzial und wichtigen Bauplätzen."
 body_type = "moon"
 orbit_center_id = "earth"
 orbit_radius = 25.0
@@ -18,4 +19,5 @@ reference_orbit_au = -1.0
 reference_period_days = -1.0
 size_authoring_mode = 1
 gameplay_size_bias = 0.23
+scan_hidden_slots_after_special = 1
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

@@ -14,38 +14,48 @@ func show_empty() -> void:
 func show_body_info(info: Dictionary) -> void:
 	title_label.text = str(info.get("display_name", "Unknown"))
 	type_label.text = "Typ: %s" % str(info.get("body_type", "unknown"))
-
-	if info.has("status_text"):
-		status_label.text = str(info["status_text"])
-		return
-
-	if info.get("can_dock", false):
-		status_label.text = "Aktion: Andocken oder Ziel anfliegen"
-	else:
-		status_label.text = _build_status_text(info)
+	status_label.text = _build_full_status_text(info)
 
 
 func show_poi_info(info: Dictionary) -> void:
 	title_label.text = str(info.get("display_name", "Unknown"))
 	type_label.text = "Typ: %s" % str(info.get("poi_type", "unknown"))
-
-	if info.has("status_text"):
-		status_label.text = str(info["status_text"])
-	else:
-		status_label.text = "Aktion: Ziel anfliegen"
+	status_label.text = _build_full_status_text(info)
 
 
-func _build_status_text(info: Dictionary) -> String:
-	if info.has("status_text"):
-		return str(info["status_text"])
+func _build_full_status_text(info: Dictionary) -> String:
+	var lines: PackedStringArray = []
 
 	var scan_state: String = str(info.get("scan_state", GameSession.SCAN_UNKNOWN))
+	lines.append("Scanstatus: %s" % _scan_state_to_text(scan_state))
+
+	var resources_visible: Array = info.get("resources_visible", [])
+	var resources_hidden_count: int = int(info.get("resources_hidden_count", 0))
+
+	lines.append("Ressourcen:")
+
+	if scan_state == GameSession.SCAN_UNKNOWN:
+		lines.append("- Unknown")
+	else:
+		for resource_name in resources_visible:
+			lines.append("- %s" % str(resource_name))
+
+		if resources_hidden_count > 0:
+			lines.append("- Unknown")
+
+	if info.has("status_text"):
+		lines.append("")
+		lines.append(str(info.get("status_text", "")))
+
+	return "\n".join(lines)
+
+func _scan_state_to_text(scan_state: String) -> String:
 	match scan_state:
 		GameSession.SCAN_BASIC:
-			return "Status: Basis-Scan abgeschlossen"
+			return "basic"
 		GameSession.SCAN_DEEP:
-			return "Status: Tiefscan abgeschlossen"
+			return "deep"
 		GameSession.SCAN_SPECIAL:
-			return "Status: Spezialscan abgeschlossen"
+			return "special"
 		_:
-			return "Status: Unbekannt / Scan ausstehend"
+			return "unknown"

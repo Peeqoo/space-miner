@@ -6,7 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://57vt4pp8oxrp" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Sun/1.png" id="4_4q7h0"]
 [ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="4_5o4t4"]
 [ext_resource type="Texture2D" uid="uid://dju1ifeecd3nj" path="res://assets/sprites/planets/PlanetsFull/Suns/13.png" id="6_uta3y"]
-[ext_resource type="LabelSettings" uid="uid://m626j61arge7" path="res://scenes/ui/panels/system_scene_label_settings.tres" id="7_5o4t4"]
+[ext_resource type="LabelSettings" uid="uid://m626j61arge7" path="res://scenes/ui/system_scene_label_settings.tres" id="7_5o4t4"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/system_camera_controller.gd" id="8_c6cuc"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_uta3y"]

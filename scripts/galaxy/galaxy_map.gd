@@ -1,7 +1,6 @@
 extends Node2D
 
 @export var start_center_system_id: String = "sol_system"
-@export var start_zoom_world_size: Vector2 = Vector2(1600.0, 900.0)
 
 @onready var camera: SystemCameraController = $CameraRoot/GalaxyCamera2D
 @onready var system_name_label: Label = $UI/Control/VBoxContainer/SystemName
@@ -12,8 +11,6 @@ var selected_system: SystemDefinition = null
 
 func _ready() -> void:
 	add_to_group("galaxy_map_root")
-
-	camera.make_current()
 
 	if not enter_button.pressed.is_connected(_on_enter_pressed):
 		enter_button.pressed.connect(_on_enter_pressed)
@@ -26,7 +23,7 @@ func _ready() -> void:
 		system_name_label.text = "Kein System ausgewählt"
 		enter_button.disabled = true
 
-	call_deferred("_center_camera_on_sol_system")
+	call_deferred("_apply_start_camera_target")
 
 
 func select_system(system_def: SystemDefinition) -> void:
@@ -56,7 +53,6 @@ func _on_enter_pressed() -> void:
 		return
 
 	var entering_current_system: bool = selected_system.id == GameSession.current_system_id
-
 	if not entering_current_system and not GameSession.can_leave_current_system():
 		push_warning("Systemwechsel blockiert: Schiff ist noch angedockt.")
 		return
@@ -69,18 +65,17 @@ func _on_enter_pressed() -> void:
 	SceneFlow.goto_system()
 
 
-func _center_camera_on_sol_system() -> void:
-	var sol_node: Node2D = _find_system_node_by_definition_id(start_center_system_id)
+func _apply_start_camera_target() -> void:
+	var target_node: Node2D = _find_system_node_by_definition_id(start_center_system_id)
 
-	if sol_node != null:
-		camera.frame_rect(sol_node.global_position, start_zoom_world_size)
+	if target_node == null and selected_system != null:
+		target_node = _find_system_node_by_definition_id(selected_system.id)
+
+	if target_node == null:
+		push_warning("Kein Start-Knoten für Galaxy-Kamera gefunden.")
 		return
 
-	push_warning("Sol-System-Knoten nicht gefunden. Fallback auf aktuelle Auswahl.")
-	if selected_system != null:
-		var selected_node: Node2D = _find_system_node_by_definition_id(selected_system.id)
-		if selected_node != null:
-			camera.frame_rect(selected_node.global_position, start_zoom_world_size)
+	camera.set_start_position(target_node.global_position)
 
 
 func _find_system_node_by_definition_id(system_id: String) -> Node2D:

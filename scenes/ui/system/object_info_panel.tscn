@@ -1,0 +1,117 @@
+[gd_scene format=3 uid="uid://co4q0a2fhkcpy"]
+
+[ext_resource type="Script" uid="uid://0umh4u1nx7fg" path="res://scripts/ui/system/object_info_panel.gd" id="1_c2q1o"]
+[ext_resource type="Texture2D" uid="uid://cyp5c64hdqm15" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Earth/Eurasia_Africa/Clouds/1.png" id="1_omcxk"]
+
+[node name="ObjectInfoPanel" type="PanelContainer" unique_id=987163130]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -135.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 213.0
+grow_horizontal = 0
+script = ExtResource("1_c2q1o")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=556540]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Root" type="VBoxContainer" parent="Margin" unique_id=1877917777]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=994376410]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Planeten-Info"
+
+[node name="MainRow" type="HBoxContainer" parent="Margin/Root" unique_id=394734506]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PreviewPanel" type="PanelContainer" parent="Margin/Root/MainRow" unique_id=1583092633]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+
+[node name="PreviewCenter" type="CenterContainer" parent="Margin/Root/MainRow/PreviewPanel" unique_id=1414299455]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+
+[node name="PreviewTexture" type="TextureRect" parent="Margin/Root/MainRow/PreviewPanel/PreviewCenter" unique_id=796156836]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+texture = ExtResource("1_omcxk")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="MetaColumn" type="VBoxContainer" parent="Margin/Root/MainRow" unique_id=101171211]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="NameLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=1875272523]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Name: Earth"
+
+[node name="TypeLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=764784357]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Typ: Planet"
+
+[node name="ScanStatusLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=586031701]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Scanstatus: Unknown"
+
+[node name="DistanceLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=476233926]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Distanz: 184 u"
+
+[node name="ResourceTitleLabel" type="Label" parent="Margin/Root" unique_id=214492717]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Sichtbare Ressourcen"
+
+[node name="ResourcePanel" type="PanelContainer" parent="Margin/Root" unique_id=1943916076]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+
+[node name="ResourceMargin" type="MarginContainer" parent="Margin/Root/ResourcePanel" unique_id=1033628948]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="ResourceScroll" type="ScrollContainer" parent="Margin/Root/ResourcePanel/ResourceMargin" unique_id=1228255458]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ResourceList" type="VBoxContainer" parent="Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll" unique_id=77380321]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HiddenResourcesLabel" type="Label" parent="Margin/Root" unique_id=660322474]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Tieferer Scan nötig"
+
+[node name="LoreTitleLabel" type="Label" parent="Margin/Root" unique_id=730334323]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Hinweis"
+
+[node name="LoreTextLabel" type="Label" parent="Margin/Root" unique_id=50513453]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Bewohnter Gesteinsplanet mit bekannter Infrastruktur."
+autowrap_mode = 3

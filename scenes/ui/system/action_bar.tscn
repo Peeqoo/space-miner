@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://mx2fije7qyug"]
+
+[ext_resource type="Script" uid="uid://btyiu3nxjfkam" path="res://scripts/ui/system/action_bar.gd" id="1_t38fj"]
+
+[node name="ActionBar" type="PanelContainer" unique_id=929547266]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -96.0
+offset_top = -133.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("1_t38fj")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=752795960]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Root" type="VBoxContainer" parent="Margin" unique_id=1302015416]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=1186541553]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Aktionen"
+
+[node name="ActionsGrid" type="GridContainer" parent="Margin/Root" unique_id=609052335]
+layout_mode = 2
+theme_override_constants/h_separation = 2
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="UndockButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=803936102]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "Abdocken"
+
+[node name="ApproachButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=986658517]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "Annähern"
+
+[node name="DockButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=229309711]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "Andocken"
+
+[node name="ScanButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=1463067725]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "Scannen"
+
+[node name="MiningButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=1632854678]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "Mining"
+
+[node name="StopMiningButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=54684128]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "StopMining"
+
+[node name="ActionStatusPanel" type="PanelContainer" parent="Margin/Root" unique_id=1554616743]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="ActionStatusMargin" type="MarginContainer" parent="Margin/Root/ActionStatusPanel" unique_id=291351392]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="ActionStatusLabel" type="Label" parent="Margin/Root/ActionStatusPanel/ActionStatusMargin" unique_id=1702229081]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_font_sizes/font_size = 6
+text = "Kein aktives Manöver"
+vertical_alignment = 1
+autowrap_mode = 3
