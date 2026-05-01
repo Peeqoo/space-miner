@@ -1,0 +1,144 @@
+[gd_scene format=3 uid="uid://uqkmyvdqw7f7"]
+
+[ext_resource type="Script" uid="uid://bc4fthjt74n78" path="res://scripts/ui/galaxy/galaxy_map_hud.gd" id="1_thtu1"]
+
+[node name="GalaxyMapHUD" type="Control" unique_id=198924309]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_thtu1")
+
+[node name="TopBar" type="PanelContainer" parent="." unique_id=1861677454]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 34.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="TopBar" unique_id=113383246]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 3
+
+[node name="Row" type="HBoxContainer" parent="TopBar/Margin" unique_id=1410567292]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="TopBar/Margin/Row" unique_id=109910877]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Galaxy Map"
+
+[node name="Spacer" type="Control" parent="TopBar/Margin/Row" unique_id=1581216165]
+layout_mode = 2
+
+[node name="CurrentSystemTitleLabel" type="Label" parent="TopBar/Margin/Row" unique_id=938342706]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Aktuelles System:"
+
+[node name="CurrentSystemValueLabel" type="Label" parent="TopBar/Margin/Row" unique_id=1655836973]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Sol-System"
+
+[node name="GalaxyInfoPanel" type="PanelContainer" parent="." unique_id=603520267]
+custom_minimum_size = Vector2(160, 150)
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -168.0
+offset_top = 42.0
+offset_right = -8.0
+grow_horizontal = 0
+
+[node name="Margin" type="MarginContainer" parent="GalaxyInfoPanel" unique_id=1232266166]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="Root" type="VBoxContainer" parent="GalaxyInfoPanel/Margin" unique_id=1925526562]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1587084086]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "System"
+
+[node name="SystemNameLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=749187470]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Kein System gewählt"
+
+[node name="DividerA" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1560207050]
+layout_mode = 2
+
+[node name="ScanTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1063242290]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Scandaten"
+
+[node name="StatsGrid" type="GridContainer" parent="GalaxyInfoPanel/Margin/Root" unique_id=901785336]
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="KnownPlanetsTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/StatsGrid" unique_id=1529333582]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Bekannte Planeten"
+
+[node name="KnownPlanetsValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/StatsGrid" unique_id=818791735]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "0"
+horizontal_alignment = 2
+
+[node name="KnownResourcesTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/StatsGrid" unique_id=528362028]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Bekannte Ressourcen"
+
+[node name="KnownResourcesValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/StatsGrid" unique_id=1579823603]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Unknown"
+horizontal_alignment = 2
+
+[node name="DividerB" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1645926760]
+layout_mode = 2
+
+[node name="InfoTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1692793820]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Info"
+
+[node name="InfoTextLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=909580677]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Kein System ausgewählt."
+autowrap_mode = 3
+
+[node name="FillSpace" type="Control" parent="GalaxyInfoPanel/Margin/Root" unique_id=893414396]
+layout_mode = 2
+
+[node name="EnterButton" type="Button" parent="GalaxyInfoPanel/Margin/Root" unique_id=131344656]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Enter"
