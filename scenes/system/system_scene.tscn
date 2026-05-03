@@ -23,16 +23,6 @@ blend_mode = 1
 [node name="SystemScene" type="Node2D" unique_id=652065169]
 script = ExtResource("1_f7o5m")
 system_definition = ExtResource("2_gwfk2")
-start_docked_body_id = null
-scan_range = null
-mining_range = null
-mining_tick_interval = null
-mining_session_duration = null
-mining_cooldown_duration = null
-scan_duration_seconds = null
-dock_approach_range = null
-approach_hold_range = null
-fuel_consumption_per_1000_units = null
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=185956986]
 

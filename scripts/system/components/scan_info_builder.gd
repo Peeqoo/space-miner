@@ -1,6 +1,12 @@
+## Builds public scan information dictionaries for system objects.
+## Keeps scan presentation logic shared between bodies and POIs.
 class_name ScanInfoBuilder
 extends RefCounted
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 static func build_scan_info(
 	definition: Resource,
@@ -22,15 +28,9 @@ static func build_scan_info(
 		if definition.scan_basic_reveal_type:
 			visible_type = object_type_value
 
-		visible_resources.append_array(
-			_filter_resources_for_scanner(scanner_tier, definition, definition.scan_basic_resources)
-		)
-		visible_resources.append_array(
-			_filter_resources_for_scanner(scanner_tier, definition, definition.scan_deep_resources)
-		)
-		visible_resources.append_array(
-			_filter_resources_for_scanner(scanner_tier, definition, definition.scan_special_resources)
-		)
+		visible_resources.append_array(_filter_resources_for_scanner(scanner_tier, definition, definition.scan_basic_resources))
+		visible_resources.append_array(_filter_resources_for_scanner(scanner_tier, definition, definition.scan_deep_resources))
+		visible_resources.append_array(_filter_resources_for_scanner(scanner_tier, definition, definition.scan_special_resources))
 
 	return {
 		"id": object_id,
@@ -43,11 +43,11 @@ static func build_scan_info(
 	}
 
 
-static func _filter_resources_for_scanner(
-	scanner_tier: String,
-	definition: Resource,
-	resources: PackedStringArray
-) -> Array[String]:
+# --------------------------------------------------
+# Helpers
+# --------------------------------------------------
+
+static func _filter_resources_for_scanner(scanner_tier: String, definition: Resource, resources: PackedStringArray) -> Array[String]:
 	var result: Array[String] = []
 
 	for resource_name in resources:

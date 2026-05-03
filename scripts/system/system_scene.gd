@@ -1,7 +1,19 @@
+## Main orchestrator for the system scene.
+## Wires controllers together and handles scene-level buttons.
 extends Node2D
+
+
+# --------------------------------------------------
+# Exports
+# --------------------------------------------------
 
 @export var system_definition: SystemDefinition
 @export var start_docked_body_id: String = "earth"
+
+
+# --------------------------------------------------
+# Node References
+# --------------------------------------------------
 
 @onready var player_ship: CharacterBody2D = $WorldRoot/PlayerShip
 @onready var camera: SystemCameraController = $CameraRoot/SystemCamera2D
@@ -13,12 +25,20 @@ extends Node2D
 @onready var selection: SystemSelectionController = $SystemSelectionController
 @onready var ship_ui: SystemShipUIController = $SystemShipUIController
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var entered_from_travel: bool = false
 
 
+# --------------------------------------------------
+# Lifecycle
+# --------------------------------------------------
+
 func _ready() -> void:
 	_resolve_active_system_definition()
-
 	entered_from_travel = GameSession.consume_travel_entry_flag()
 
 	if system_definition != null:
@@ -28,7 +48,6 @@ func _ready() -> void:
 
 	spawner.spawn_from_definition(system_definition)
 	orbit_guides.update_orbit_guides()
-
 
 	call_deferred("_finish_initial_setup")
 
@@ -40,6 +59,10 @@ func _process(_delta: float) -> void:
 	ship_state.sync_ship_position()
 	orbit_guides.update_orbit_guides()
 
+
+# --------------------------------------------------
+# Initial Setup
+# --------------------------------------------------
 
 func _finish_initial_setup() -> void:
 	await ship_state.restore_ship_state(entered_from_travel)
@@ -85,6 +108,7 @@ func _setup_controllers() -> void:
 	spawner.poi_spawned.connect(selection.register_poi)
 
 
+
 func _resolve_active_system_definition() -> void:
 	var staged_system := GameSession.consume_selected_system_definition()
 
@@ -99,6 +123,10 @@ func _resolve_active_system_definition() -> void:
 	GameSession.ensure_default_system_loaded()
 	system_definition = GameSession.current_system_definition
 
+
+# --------------------------------------------------
+# Button Callbacks
+# --------------------------------------------------
 
 func _on_start_pressed() -> void:
 	ship_state.launch_ship()

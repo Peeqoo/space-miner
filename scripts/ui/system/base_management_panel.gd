@@ -8,7 +8,6 @@ const DEFAULT_STORAGE_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/s
 @onready var dock_status_label: Label = $Margin/Root/DockStatusLabel
 @onready var storage_list: VBoxContainer = $Margin/Root/StoragePanel/StorageMargin/StorageScroll/StorageList
 @onready var empty_storage_label: Label = $Margin/Root/EmptyStorageLabel
-@onready var status_label: Label = $Margin/Root/StatusLabel
 
 var current_system_id: String = ""
 var current_body_id: String = ""
@@ -56,15 +55,6 @@ func set_docked_state(value: bool) -> void:
 	is_docked = value
 	_refresh_runtime_labels()
 
-
-func set_status_text(text: String) -> void:
-	if status_label != null:
-		status_label.text = text
-
-
-func clear_status_text() -> void:
-	if status_label != null:
-		status_label.text = ""
 
 
 func set_storage_from_dictionary(storage: Dictionary) -> void:

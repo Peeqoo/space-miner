@@ -1,5 +1,12 @@
+## Public navigation component attached to the player ship.
+## Delegates movement, target navigation and autopilot state.
 class_name ShipNavigationComponent
 extends Node
+
+
+# --------------------------------------------------
+# Exports
+# --------------------------------------------------
 
 @export var max_speed: float = 260.0
 @export var acceleration: float = 420.0
@@ -8,15 +15,28 @@ extends Node
 
 @export var arrival_radius: float = 10.0
 @export var slow_down_radius: float = 90.0
-
 @export var manual_cancel_action: StringName = &"clear_navigation_target"
+
+
+# --------------------------------------------------
+# Components
+# --------------------------------------------------
 
 var motor := ShipMovementMotor.new()
 var target_navigation := ShipTargetNavigation.new()
 var autopilot := ShipAutopilot.new()
 
+
+# --------------------------------------------------
+# Node References
+# --------------------------------------------------
+
 @onready var ship: CharacterBody2D = get_parent() as CharacterBody2D
 
+
+# --------------------------------------------------
+# Lifecycle
+# --------------------------------------------------
 
 func _ready() -> void:
 	_apply_exported_values()
@@ -46,6 +66,10 @@ func _physics_process(delta: float) -> void:
 	target_navigation.physics_process(ship, motor, delta)
 
 
+# --------------------------------------------------
+# Public Navigation API
+# --------------------------------------------------
+
 func set_target(position: Vector2) -> void:
 	target_navigation.set_target(position)
 
@@ -58,11 +82,11 @@ func has_target() -> bool:
 	return target_navigation.has_target
 
 
-func begin_interaction_approach(
-	target_node: Node2D,
-	action_name: StringName,
-	desired_range: float
-) -> void:
+# --------------------------------------------------
+# Autopilot API
+# --------------------------------------------------
+
+func begin_interaction_approach(target_node: Node2D, action_name: StringName, desired_range: float) -> void:
 	if target_node == null:
 		return
 
@@ -78,6 +102,10 @@ func is_autopilot_active() -> bool:
 	return autopilot.is_active()
 
 
+# --------------------------------------------------
+# Debug
+# --------------------------------------------------
+
 func get_debug_data() -> Dictionary:
 	var data := target_navigation.get_debug_data(ship)
 	data["autopilot_active"] = autopilot.is_active()
@@ -85,6 +113,10 @@ func get_debug_data() -> Dictionary:
 	data["autopilot_action"] = autopilot.action_name
 	return data
 
+
+# --------------------------------------------------
+# Internal Processing
+# --------------------------------------------------
 
 func _process_autopilot(delta: float) -> void:
 	if autopilot.target_node == null or not is_instance_valid(autopilot.target_node):

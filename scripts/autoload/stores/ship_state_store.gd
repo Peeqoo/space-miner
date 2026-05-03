@@ -1,8 +1,19 @@
+## Stores the player ship runtime state per star system.
+## Keeps docking and free-flight state out of GameSession.
 class_name ShipStateStore
 extends RefCounted
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var system_states: Dictionary = {}
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func get_or_create_ship_state(system_id: String) -> ShipRuntimeState:
 	if system_id.is_empty():

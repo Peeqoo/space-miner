@@ -1,14 +1,14 @@
+## Builds local interaction-orbit settings for ship autopilot actions.
+## Shared by system bodies and points of interest.
 class_name InteractionOrbitConfigBuilder
 extends RefCounted
 
 
-static func build_config(
-	action_name: String,
-	desired_range: float,
-	selection_ring_radius: float,
-	orbit_speed: float,
-	is_body: bool
-) -> Dictionary:
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
+
+static func build_config(action_name: String, desired_range: float, selection_ring_radius: float, orbit_speed: float, is_body: bool) -> Dictionary:
 	return {
 		"radius": get_interaction_radius(action_name, desired_range, selection_ring_radius, is_body),
 		"direction": 1.0 if orbit_speed >= 0.0 else -1.0,
@@ -16,12 +16,7 @@ static func build_config(
 	}
 
 
-static func get_interaction_radius(
-	action_name: String,
-	desired_range: float,
-	selection_ring_radius: float,
-	is_body: bool
-) -> float:
+static func get_interaction_radius(action_name: String, desired_range: float, selection_ring_radius: float, is_body: bool) -> float:
 	if is_body:
 		var body_base_radius: float = maxf(selection_ring_radius + 16.0, desired_range * 0.18)
 

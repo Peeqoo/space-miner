@@ -1,9 +1,20 @@
+## Stores temporary system-entry data while scenes are changing.
+## Keeps staged travel flags out of GameSession.
 class_name SystemEntryStore
 extends RefCounted
+
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
 
 var selected_system_definition: SystemDefinition = null
 var entering_system_from_travel: bool = false
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func stage_system_entry(system_definition: SystemDefinition, from_travel: bool) -> void:
 	selected_system_definition = system_definition

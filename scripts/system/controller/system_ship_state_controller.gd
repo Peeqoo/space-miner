@@ -1,17 +1,32 @@
+## Handles ship docking, launching, restoring and saving runtime state.
+## Keeps ship runtime state logic out of SystemScene.
 class_name SystemShipStateController
 extends Node
 
+
+# --------------------------------------------------
+# Dependencies
+# --------------------------------------------------
+
 var system_definition: SystemDefinition
 var start_docked_body_id: String
-
 var player_ship: CharacterBody2D
 var camera: SystemCameraController
 var spawner: SystemSpawner
 var ship_ui: SystemShipUIController
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var docked_body: SystemBody = null
 var is_docked: bool = true
 
+
+# --------------------------------------------------
+# Setup
+# --------------------------------------------------
 
 func setup(
 	p_system_definition: SystemDefinition,
@@ -29,6 +44,10 @@ func setup(
 	ship_ui = p_ship_ui
 
 
+# --------------------------------------------------
+# Process Sync
+# --------------------------------------------------
+
 func sync_ship_position() -> void:
 	if system_definition == null:
 		return
@@ -42,6 +61,10 @@ func sync_ship_position() -> void:
 	if state != null:
 		state.free_position = player_ship.global_position
 
+
+# --------------------------------------------------
+# Save / Restore
+# --------------------------------------------------
 
 func save_current_ship_state(selected_node: Node) -> void:
 	if system_definition == null:
@@ -109,6 +132,10 @@ func restore_camera_state() -> void:
 	camera.clear_follow()
 	camera.set_start_position(player_ship.global_position)
 
+
+# --------------------------------------------------
+# Docking
+# --------------------------------------------------
 
 func dock_to_start_body() -> void:
 	var body := spawner.get_spawned_object(start_docked_body_id) as SystemBody
@@ -187,6 +214,10 @@ func restore_undocked(spawn_position: Vector2) -> void:
 
 	ship_ui.update_ship_ui()
 
+
+# --------------------------------------------------
+# Helpers
+# --------------------------------------------------
 
 func get_ship_navigation() -> ShipNavigationComponent:
 	return player_ship.get_node_or_null("ShipNavigationComponent") as ShipNavigationComponent

@@ -1,12 +1,28 @@
+## Handles direct navigation toward a world position.
+## Uses ShipMovementMotor for the actual movement.
 class_name ShipTargetNavigation
 extends RefCounted
+
+
+# --------------------------------------------------
+# Settings
+# --------------------------------------------------
 
 var arrival_radius: float = 10.0
 var slow_down_radius: float = 90.0
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var target_position: Vector2 = Vector2.ZERO
 var has_target: bool = false
 
+
+# --------------------------------------------------
+# Target API
+# --------------------------------------------------
 
 func set_target(position: Vector2) -> void:
 	target_position = position
@@ -17,11 +33,11 @@ func clear_target() -> void:
 	has_target = false
 
 
-func physics_process(
-	ship: CharacterBody2D,
-	motor: ShipMovementMotor,
-	delta: float
-) -> void:
+# --------------------------------------------------
+# Physics
+# --------------------------------------------------
+
+func physics_process(ship: CharacterBody2D, motor: ShipMovementMotor, delta: float) -> void:
 	if not has_target:
 		motor.apply_idle_brake(ship, delta)
 		motor.move_ship(ship)
@@ -50,6 +66,10 @@ func physics_process(
 	motor.apply_desired_velocity(ship, desired_velocity, delta)
 	motor.move_ship(ship)
 
+
+# --------------------------------------------------
+# Debug
+# --------------------------------------------------
 
 func get_debug_data(ship: CharacterBody2D) -> Dictionary:
 	return {

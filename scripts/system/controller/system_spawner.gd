@@ -1,29 +1,55 @@
+## Spawns stars, system bodies and points of interest from a SystemDefinition.
+## Does not handle selection, docking, scanning or UI.
 class_name SystemSpawner
 extends Node
+
+
+# --------------------------------------------------
+# Signals
+# --------------------------------------------------
 
 signal body_spawned(body: SystemBody)
 signal poi_spawned(poi: PointOfInterest)
 
+
+# --------------------------------------------------
+# Constants
+# --------------------------------------------------
+
 const SYSTEM_BODY_SCENE: PackedScene = preload("res://scenes/system/objects/system_body.tscn")
 const POINT_OF_INTEREST_SCENE: PackedScene = preload("res://scenes/system/objects/point_of_interest.tscn")
+
+
+# --------------------------------------------------
+# Node References
+# --------------------------------------------------
 
 var star_root: Node2D
 var system_bodies_root: Node2D
 var poi_root: Node2D
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var spawned_lookup: Dictionary = {}
 var star_visual: Sprite2D = null
 
 
-func setup(
-	p_star_root: Node2D,
-	p_system_bodies_root: Node2D,
-	p_poi_root: Node2D
-) -> void:
+# --------------------------------------------------
+# Setup
+# --------------------------------------------------
+
+func setup(p_star_root: Node2D, p_system_bodies_root: Node2D, p_poi_root: Node2D) -> void:
 	star_root = p_star_root
 	system_bodies_root = p_system_bodies_root
 	poi_root = p_poi_root
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func spawn_from_definition(system_definition: SystemDefinition) -> void:
 	if system_definition == null:
@@ -48,6 +74,10 @@ func get_spawned_object(object_id: String) -> Node:
 func get_spawned_lookup() -> Dictionary:
 	return spawned_lookup
 
+
+# --------------------------------------------------
+# Internal Spawning
+# --------------------------------------------------
 
 func _clear_previous_spawned_objects() -> void:
 	if star_visual != null and is_instance_valid(star_visual):
@@ -82,7 +112,6 @@ func _spawn_bodies(system_definition: SystemDefinition) -> void:
 
 		system_bodies_root.add_child(body)
 		spawned_lookup[body_def.id] = body
-
 		body_spawned.emit(body)
 
 
@@ -97,7 +126,6 @@ func _spawn_pois(system_definition: SystemDefinition) -> void:
 
 		poi_root.add_child(poi)
 		spawned_lookup[poi_def.id] = poi
-
 		poi_spawned.emit(poi)
 
 

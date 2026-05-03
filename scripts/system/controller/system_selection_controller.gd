@@ -1,13 +1,29 @@
+## Handles selecting system bodies and points of interest.
+## Keeps object selection and navigation targeting out of SystemScene.
 class_name SystemSelectionController
 extends Node
+
+
+# --------------------------------------------------
+# Dependencies
+# --------------------------------------------------
 
 var system_definition: SystemDefinition
 var player_ship: CharacterBody2D
 var spawner: SystemSpawner
 var ship_state: SystemShipStateController
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var selected_node: Node = null
 
+
+# --------------------------------------------------
+# Setup
+# --------------------------------------------------
 
 func setup(
 	p_system_definition: SystemDefinition,
@@ -20,6 +36,10 @@ func setup(
 	spawner = p_spawner
 	ship_state = p_ship_state
 
+
+# --------------------------------------------------
+# Registration
+# --------------------------------------------------
 
 func register_body(body: SystemBody) -> void:
 	if body == null:
@@ -36,6 +56,10 @@ func register_poi(poi: PointOfInterest) -> void:
 	if not poi.selected.is_connected(_on_poi_selected):
 		poi.selected.connect(_on_poi_selected)
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func get_selected_node() -> Node:
 	return selected_node
@@ -63,6 +87,10 @@ func clear_selection() -> void:
 	selected_node = null
 
 
+# --------------------------------------------------
+# Selection Callbacks
+# --------------------------------------------------
+
 func _on_body_selected(body: SystemBody) -> void:
 	clear_selection()
 
@@ -82,6 +110,10 @@ func _on_poi_selected(poi: PointOfInterest) -> void:
 	if not ship_state.is_docked:
 		_send_ship_to_target(poi.global_position)
 
+
+# --------------------------------------------------
+# Navigation
+# --------------------------------------------------
 
 func _send_ship_to_target(target: Vector2) -> void:
 	var nav := player_ship.get_node_or_null("ShipNavigationComponent") as ShipNavigationComponent

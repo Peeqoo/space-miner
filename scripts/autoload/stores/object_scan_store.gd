@@ -1,13 +1,29 @@
+## Stores scan states per object and system.
+## Keeps object discovery progress out of GameSession.
 class_name ObjectScanStore
 extends RefCounted
+
+
+# --------------------------------------------------
+# Constants
+# --------------------------------------------------
 
 const SCAN_UNKNOWN := "unknown"
 const SCAN_BASIC := "basic"
 const SCAN_DEEP := "deep"
 const SCAN_SPECIAL := "special"
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var object_scan_states: Dictionary = {}
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func set_object_scan_state(system_id: String, object_id: String, scan_state: String) -> void:
 	if system_id.is_empty() or object_id.is_empty():

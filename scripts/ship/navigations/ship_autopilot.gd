@@ -1,5 +1,12 @@
+## Stores autopilot target state for interaction approaches.
+## Does not move the ship directly.
 class_name ShipAutopilot
 extends RefCounted
+
+
+# --------------------------------------------------
+# Types
+# --------------------------------------------------
 
 enum Mode {
 	NONE,
@@ -8,11 +15,20 @@ enum Mode {
 	ORBIT_APPROACH,
 }
 
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
+
 var mode: Mode = Mode.NONE
 var target_node: Node2D = null
 var desired_range: float = 0.0
 var action_name: StringName = &""
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func is_active() -> bool:
 	return mode != Mode.NONE
@@ -25,11 +41,7 @@ func clear() -> void:
 	action_name = &""
 
 
-func begin_interaction_approach(
-	p_target_node: Node2D,
-	p_action_name: StringName,
-	p_desired_range: float
-) -> void:
+func begin_interaction_approach(p_target_node: Node2D, p_action_name: StringName, p_desired_range: float) -> void:
 	target_node = p_target_node
 	action_name = p_action_name
 	desired_range = p_desired_range

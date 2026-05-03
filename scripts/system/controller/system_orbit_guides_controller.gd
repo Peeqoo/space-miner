@@ -1,20 +1,31 @@
+## Collects orbit data and forwards it to the orbit guides layer.
+## Does not spawn, move or select objects.
 class_name SystemOrbitGuidesController
 extends Node
+
+
+# --------------------------------------------------
+# Node References
+# --------------------------------------------------
 
 var orbit_guides_layer: Node2D
 var system_bodies_root: Node2D
 var poi_root: Node2D
 
 
-func setup(
-	p_orbit_guides_layer: Node2D,
-	p_system_bodies_root: Node2D,
-	p_poi_root: Node2D
-) -> void:
+# --------------------------------------------------
+# Setup
+# --------------------------------------------------
+
+func setup(p_orbit_guides_layer: Node2D, p_system_bodies_root: Node2D, p_poi_root: Node2D) -> void:
 	orbit_guides_layer = p_orbit_guides_layer
 	system_bodies_root = p_system_bodies_root
 	poi_root = p_poi_root
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func update_orbit_guides() -> void:
 	if orbit_guides_layer == null:

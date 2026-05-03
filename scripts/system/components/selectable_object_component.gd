@@ -1,15 +1,22 @@
+## Reusable selection behavior for clickable objects.
+## Handles selection ring visibility and click collision sizing.
 class_name SelectableObjectComponent
 extends RefCounted
+
+
+# --------------------------------------------------
+# State
+# --------------------------------------------------
 
 var is_selected: bool = false
 var selection_ring_radius: float = 28.0
 
 
-func setup_click_area(
-	click_area: Area2D,
-	click_collision: CollisionShape2D,
-	callable: Callable
-) -> void:
+# --------------------------------------------------
+# Click Area Setup
+# --------------------------------------------------
+
+func setup_click_area(click_area: Area2D, click_collision: CollisionShape2D, callable: Callable) -> void:
 	if click_area == null or click_collision == null:
 		return
 
@@ -20,6 +27,10 @@ func setup_click_area(
 
 	update_click_shape(click_collision)
 
+
+# --------------------------------------------------
+# Selection
+# --------------------------------------------------
 
 func set_selected(selection_ring: Node2D, value: bool) -> void:
 	is_selected = value
