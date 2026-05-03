@@ -8,11 +8,10 @@ atlas = ExtResource("1_plxmw")
 region = Rect2(0, 0, 52, 30)
 
 [node name="ShipHud" type="PanelContainer" unique_id=2059784922]
-anchors_preset = -1
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 90.0
-offset_bottom = 160.0
+offset_bottom = 165.0
 script = ExtResource("1_o5x64")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=2074039910]
@@ -24,7 +23,7 @@ theme_override_constants/margin_bottom = 4
 
 [node name="Root" type="VBoxContainer" parent="Margin" unique_id=971566219]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
 [node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=997119124]
 layout_mode = 2
@@ -68,6 +67,11 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Scanner: Basic"
 
+[node name="FuelLabel" type="Label" parent="Margin/Root/ShipRow/ShipMetaColumn" unique_id=1979614139]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Fuel: 100%"
+
 [node name="StatusLabel" type="Label" parent="Margin/Root/ShipRow/ShipMetaColumn" unique_id=266129616]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
@@ -95,7 +99,7 @@ horizontal_scroll_mode = 0
 
 [node name="CargoList" type="VBoxContainer" parent="Margin/Root/CargoPanel/CargoMargin/ScrollContainer" unique_id=1717314761]
 layout_mode = 2
-theme_override_constants/separation = -1
+theme_override_constants/separation = 0
 
 [node name="EmptyCargoLabel" type="Label" parent="Margin/Root" unique_id=1946181026]
 layout_mode = 2
@@ -104,7 +108,7 @@ text = "Leer"
 horizontal_alignment = 1
 
 [node name="GalaxyMapButton" type="Button" parent="Margin/Root" unique_id=1048434076]
-custom_minimum_size = Vector2(0, 26)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
-text = "Galaxymap"
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 6
+text = "GalaxyMap"

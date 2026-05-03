@@ -10,6 +10,7 @@ extends Node2D
 @export var scan_duration_seconds: float = 10.5
 @export var dock_approach_range: float = 100.0
 @export var approach_hold_range: float = 110.0
+@export var fuel_consumption_per_1000_units: float = 1.0
 
 @onready var orbit_guides_layer: Node2D = $BackgroundRoot/OrbitGuidesLayer
 @onready var star_root: Node2D = $WorldRoot/StarRoot
@@ -21,6 +22,7 @@ extends Node2D
 @onready var ship_hud: Node = $UI/ShipHud
 @onready var action_bar: Node = $UI/ActionBar
 @onready var object_info_panel: Node = $UI/ObjectInfoPanel
+@onready var base_management_panel: Node = $UI/BaseManagementPanel
 
 const SYSTEM_BODY_SCENE: PackedScene = preload("res://scenes/system/objects/system_body.tscn")
 const POINT_OF_INTEREST_SCENE: PackedScene = preload("res://scenes/system/objects/point_of_interest.tscn")
@@ -30,6 +32,7 @@ var spawned_lookup: Dictionary = {}
 var star_visual: Sprite2D = null
 var docked_body: SystemBody = null
 var is_docked: bool = true
+var is_ship_selected: bool = false
 var entered_from_travel: bool = false
 
 var mining_active: bool = false
@@ -44,6 +47,7 @@ var scan_timer_remaining: float = 0.0
 var pending_auto_action: String = ""
 var pending_action_target: Node2D = null
 var autopilot_status_text: String = ""
+var last_fuel_sample_position: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -54,6 +58,8 @@ func _ready() -> void:
 		GameSession.set_current_system(system_definition)
 
 	_connect_ui_signals()
+	if ship_hud != null:
+		ship_hud.visible = false
 
 	var nav: ShipNavigationComponent = _get_ship_navigation()
 	if nav != null:
@@ -69,6 +75,7 @@ func _ready() -> void:
 
 func _finish_initial_setup() -> void:
 	await _restore_ship_state()
+	last_fuel_sample_position = player_ship.global_position
 	await _restore_camera_state()
 	_update_ui()
 
@@ -79,7 +86,9 @@ func _process(delta: float) -> void:
 
 	if is_docked and docked_body != null:
 		player_ship.global_position = docked_body.global_position
+		last_fuel_sample_position = player_ship.global_position
 	else:
+		_consume_fuel_from_ship_movement()
 		var state: ShipRuntimeState = GameSession.get_or_create_ship_state(system_definition.id)
 		if state != null:
 			state.free_position = player_ship.global_position
@@ -98,11 +107,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 
 		var world_position: Vector2 = get_global_mouse_position()
+
+		if _is_click_on_ship(world_position):
+			_toggle_ship_selected()
+			return
+
 		if _is_click_on_interactable(world_position):
 			return
 
-		# Leerklick = Auswahl entfernen
+		# Leerklick = Auswahl und ShipHUD entfernen
 		_clear_selection()
+		is_ship_selected = false
+		_update_ui()
 
 		# Nur im freien Flug zusätzlich Aktion abbrechen und Schiff bewegen
 		if not is_docked:
@@ -132,6 +148,10 @@ func _connect_ui_signals() -> void:
 		action_bar.connect("mining_requested", Callable(self, "_on_action_bar_mining_requested"))
 	if action_bar.has_signal("stop_mining_requested") and not action_bar.is_connected("stop_mining_requested", Callable(self, "_on_action_bar_stop_mining_requested")):
 		action_bar.connect("stop_mining_requested", Callable(self, "_on_action_bar_stop_mining_requested"))
+	if action_bar.has_signal("unload_cargo_requested") and not action_bar.is_connected("unload_cargo_requested", Callable(self, "_on_action_bar_unload_cargo_requested")):
+		action_bar.connect("unload_cargo_requested", Callable(self, "_on_action_bar_unload_cargo_requested"))
+	if action_bar.has_signal("build_base_requested") and not action_bar.is_connected("build_base_requested", Callable(self, "_on_action_bar_build_base_requested")):
+		action_bar.connect("build_base_requested", Callable(self, "_on_action_bar_build_base_requested"))
 
 
 func _resolve_active_system_definition() -> void:
@@ -357,6 +377,7 @@ func _restore_undocked(spawn_position: Vector2) -> void:
 	is_docked = false
 	docked_body = null
 	player_ship.global_position = spawn_position
+	last_fuel_sample_position = player_ship.global_position
 
 	var nav: ShipNavigationComponent = _get_ship_navigation()
 	if nav != null:
@@ -385,6 +406,7 @@ func _dock_to_body(body: SystemBody) -> void:
 	docked_body = body
 	is_docked = true
 	player_ship.global_position = body.global_position
+	last_fuel_sample_position = player_ship.global_position
 
 	var nav: ShipNavigationComponent = _get_ship_navigation()
 	if nav != null:
@@ -410,6 +432,7 @@ func _launch_ship() -> void:
 	is_docked = false
 	docked_body = null
 	player_ship.global_position = launch_position
+	last_fuel_sample_position = player_ship.global_position
 
 	var nav: ShipNavigationComponent = _get_ship_navigation()
 	if nav != null:
@@ -431,9 +454,12 @@ func _launch_ship() -> void:
 func _update_ui() -> void:
 	_update_action_bar()
 	_update_object_info_panel()
+	_update_base_management_panel()
 
-	if ship_hud != null and ship_hud.has_method("refresh_from_game_session"):
-		ship_hud.call("refresh_from_game_session")
+	if ship_hud != null:
+		ship_hud.visible = is_ship_selected
+		if ship_hud.has_method("refresh_from_game_session"):
+			ship_hud.call("refresh_from_game_session")
 
 
 func _update_object_info_panel() -> void:
@@ -469,6 +495,76 @@ func _update_object_info_panel() -> void:
 		info["lore_text"] = _build_object_lore_text(selected_node)
 		if object_info_panel.has_method("show_poi_info"):
 			object_info_panel.call("show_poi_info", info)
+
+
+func _update_base_management_panel() -> void:
+	if base_management_panel == null:
+		return
+
+	var active_base_body: SystemBody = _get_active_selected_base_body()
+	if active_base_body == null:
+		if base_management_panel.has_method("hide_panel"):
+			base_management_panel.call("hide_panel")
+		else:
+			base_management_panel.visible = false
+		return
+
+	var base_name: String = GameSession.get_base_name(system_definition.id, active_base_body.body_id)
+	if base_name.is_empty():
+		base_name = "%s Base" % active_base_body.display_name
+
+	if base_management_panel.has_method("show_for_base"):
+		base_management_panel.call("show_for_base", system_definition.id, active_base_body.body_id, base_name, true)
+	elif base_management_panel.has_method("refresh_from_game_session"):
+		base_management_panel.visible = true
+		base_management_panel.call("refresh_from_game_session")
+
+
+func _get_active_selected_base_body() -> SystemBody:
+	if not is_docked:
+		return null
+	if docked_body == null:
+		return null
+	if not (selected_node is SystemBody):
+		return null
+
+	var body: SystemBody = selected_node as SystemBody
+	if body != docked_body:
+		return null
+	if not GameSession.has_base_on_body(system_definition.id, body.body_id):
+		return null
+
+	return body
+
+
+func _can_build_base_selected() -> bool:
+	if not is_docked:
+		return false
+	if not (selected_node is SystemBody):
+		return false
+	if docked_body == null:
+		return false
+
+	var body: SystemBody = selected_node as SystemBody
+	if body != docked_body:
+		return false
+	if GameSession.has_base_on_body(system_definition.id, body.body_id):
+		return false
+	if not _body_supports_base_building(body):
+		return false
+
+	return true
+
+
+func _body_supports_base_building(body: SystemBody) -> bool:
+	if body == null:
+		return false
+	if body.body_type.to_lower() == "star":
+		return false
+	if body.definition == null:
+		return true
+
+	return bool(body.definition.can_build_base)
 
 
 func _get_preview_texture_for_node(node: Node) -> Texture2D:
@@ -588,23 +684,27 @@ func _update_action_bar() -> void:
 	if action_bar == null:
 		return
 
-	action_bar.visible = selected_node != null
-	if selected_node == null:
-		return
+	action_bar.visible = true
 
 	var has_selection: bool = selected_node != null
-	var show_dock_button: bool = selected_node is SystemBody
+	var docked_base_body: SystemBody = docked_body if is_docked else null
+	var show_unload_cargo: bool = docked_base_body != null and GameSession.has_base_on_body(system_definition.id, docked_base_body.body_id)
+	var can_unload_cargo: bool = show_unload_cargo and GameSession.can_unload_ship_cargo_to_base(system_definition.id, docked_base_body.body_id)
+	var show_build_base: bool = _can_build_base_selected()
 	var state: Dictionary = {
 		"is_docked": is_docked,
 		"has_selection": has_selection,
 		"can_undock": is_docked,
 		"can_approach": has_selection and not is_docked and not scan_active and not mining_active,
-		"show_dock": show_dock_button,
 		"can_dock": _can_request_dock_selected(),
 		"can_scan": _can_scan_selected(),
 		"can_mine": _can_start_mining_selected(),
 		"mining_active": mining_active,
 		"scan_active": scan_active,
+		"show_unload_cargo": show_unload_cargo,
+		"can_unload_cargo": can_unload_cargo,
+		"show_build_base": show_build_base,
+		"can_build_base": show_build_base,
 	}
 
 	if action_bar.has_method("apply_state"):
@@ -617,6 +717,8 @@ func _can_request_dock_selected() -> bool:
 	if is_docked:
 		return false
 	if scan_active or mining_active:
+		return false
+	if not GameSession.has_fuel() and not _selected_body_is_dockable_without_fuel():
 		return false
 	return selected_node is SystemBody
 
@@ -681,6 +783,7 @@ func _on_body_selected(body: SystemBody) -> void:
 	_clear_selection()
 	selected_node = body
 	body.set_selected(true)
+	is_ship_selected = is_docked and docked_body == body
 	_update_ui()
 
 
@@ -695,6 +798,7 @@ func _on_poi_selected(poi: PointOfInterest) -> void:
 	_clear_selection()
 	selected_node = poi
 	poi.set_selected(true)
+	is_ship_selected = false
 	_update_ui()
 
 
@@ -726,6 +830,14 @@ func _build_action_status_text() -> String:
 	if nav != null and selected_target != null and nav.is_orbiting_target(selected_target):
 		return "Orbitposition gehalten"
 
+	if is_docked and docked_body != null and GameSession.has_base_on_body(system_definition.id, docked_body.body_id):
+		var base_name: String = GameSession.get_base_name(system_definition.id, docked_body.body_id)
+		if base_name.is_empty():
+			base_name = "%s Base" % docked_body.display_name
+		if GameSession.can_unload_ship_cargo_to_base(system_definition.id, docked_body.body_id):
+			return "%s bereit: Cargo kann entladen werden" % base_name
+		return "%s: Cargo leer" % base_name
+
 	if is_docked:
 		return "Angedockt"
 
@@ -742,6 +854,11 @@ func _get_selected_object_id() -> String:
 
 func _request_selected_action(action_name: String) -> void:
 	if selected_node == null:
+		return
+
+	if not GameSession.has_fuel() and not (action_name == "dock" and _selected_body_is_dockable_without_fuel()):
+		autopilot_status_text = "Kein Treibstoff"
+		_update_ui()
 		return
 
 	var target_node: Node2D = selected_node as Node2D
@@ -1075,10 +1192,58 @@ func _get_object_id_for_node(node: Node) -> String:
 
 
 func _send_ship_to_target(target: Vector2) -> void:
+	if not GameSession.has_fuel():
+		autopilot_status_text = "Kein Treibstoff"
+		_update_ui()
+		return
+
 	var nav: ShipNavigationComponent = _get_ship_navigation()
 	if nav != null:
 		nav.set_navigation_enabled(true)
 		nav.set_target(target)
+
+
+func _consume_fuel_from_ship_movement() -> void:
+	if player_ship == null:
+		return
+
+	var current_position: Vector2 = player_ship.global_position
+	var moved_distance: float = last_fuel_sample_position.distance_to(current_position)
+	last_fuel_sample_position = current_position
+
+	if moved_distance <= 0.01:
+		return
+
+	var consumed_amount: float = moved_distance / 1000.0 * fuel_consumption_per_1000_units
+	GameSession.consume_fuel(consumed_amount)
+
+	if GameSession.has_fuel():
+		return
+
+	_stop_scan()
+	_stop_mining()
+	_cancel_ship_interaction(true)
+
+	var nav: ShipNavigationComponent = _get_ship_navigation()
+	if nav != null:
+		nav.stop_immediately()
+
+	autopilot_status_text = "Kein Treibstoff"
+
+
+func _selected_body_is_dockable_without_fuel() -> bool:
+	if not (selected_node is SystemBody):
+		return false
+
+	var target_body: SystemBody = selected_node as SystemBody
+	var nav: ShipNavigationComponent = _get_ship_navigation()
+	if nav != null and nav.is_orbiting_target(target_body):
+		return true
+
+	if player_ship == null:
+		return false
+
+	return player_ship.global_position.distance_to(target_body.global_position) <= dock_approach_range
 
 
 func _clear_pending_action_only() -> void:
@@ -1107,6 +1272,44 @@ func _is_ship_interacting_with_other_target(new_target: Node2D) -> bool:
 		return false
 
 	return current_target != new_target
+
+
+func _is_docked_at_earth() -> bool:
+	if not is_docked:
+		return false
+	if docked_body == null:
+		return false
+
+	return docked_body.body_id == GameSession.START_DOCK_BODY_ID
+
+
+func _unload_cargo_to_current_base_storage() -> void:
+	if not is_docked or docked_body == null:
+		autopilot_status_text = "Zum Entladen musst du an einer Basis angedockt sein"
+		_update_ui()
+		return
+
+	if not GameSession.has_base_on_body(system_definition.id, docked_body.body_id):
+		autopilot_status_text = "Hier ist keine Basis vorhanden"
+		_update_ui()
+		return
+
+	if not GameSession.can_unload_ship_cargo_to_base(system_definition.id, docked_body.body_id):
+		autopilot_status_text = "Cargo ist leer"
+		_update_ui()
+		return
+
+	var unloaded_items: Dictionary = GameSession.unload_ship_cargo_to_base(system_definition.id, docked_body.body_id)
+	var base_name: String = GameSession.get_base_name(system_definition.id, docked_body.body_id)
+	if base_name.is_empty():
+		base_name = "%s Base" % docked_body.display_name
+
+	if unloaded_items.is_empty():
+		autopilot_status_text = "Cargo ist leer"
+	else:
+		autopilot_status_text = "Cargo nach %s entladen" % base_name
+
+	_update_ui()
 
 
 func _on_ship_hud_galaxy_map_requested() -> void:
@@ -1145,6 +1348,28 @@ func _on_action_bar_mining_requested() -> void:
 
 func _on_action_bar_stop_mining_requested() -> void:
 	_stop_mining()
+
+
+func _on_action_bar_unload_cargo_requested() -> void:
+	_unload_cargo_to_current_base_storage()
+	_update_ui()
+
+
+func _on_action_bar_build_base_requested() -> void:
+	if not _can_build_base_selected():
+		autopilot_status_text = "Hier kann derzeit keine Basis gebaut werden"
+		_update_ui()
+		return
+
+	var body: SystemBody = selected_node as SystemBody
+	if body == null:
+		return
+
+	if GameSession.build_base_on_body(system_definition.id, body.body_id, body.display_name):
+		autopilot_status_text = "%s Base errichtet" % body.display_name
+	else:
+		autopilot_status_text = "Basis konnte nicht errichtet werden"
+
 	_update_ui()
 
 
@@ -1155,6 +1380,54 @@ func _on_start_pressed() -> void:
 func _on_back_pressed() -> void:
 	_save_current_ship_state()
 	SceneFlow.goto_galaxy()
+
+
+func _toggle_ship_selected() -> void:
+	if selected_node != null and selected_node.has_method("set_selected"):
+		selected_node.set_selected(false)
+	selected_node = null
+	is_ship_selected = not is_ship_selected
+	_update_ui()
+
+
+func _is_click_on_ship(world_position: Vector2) -> bool:
+	var query: PhysicsPointQueryParameters2D = PhysicsPointQueryParameters2D.new()
+	query.position = world_position
+	query.collide_with_areas = true
+	query.collide_with_bodies = true
+
+	var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
+	var results: Array = space_state.intersect_point(query, 16)
+
+	var hit_ship: bool = false
+	var hit_other_interactable: bool = false
+
+	for hit in results:
+		var collider: Object = hit.get("collider", null)
+		if not (collider is Node):
+			continue
+
+		var collider_node: Node = collider as Node
+		if _node_belongs_to_ship(collider_node):
+			hit_ship = true
+		else:
+			hit_other_interactable = true
+
+	if not hit_ship:
+		return false
+
+	# Wenn das Schiff an einem Planeten angedockt ist und beide übereinander liegen,
+	# soll der Planetklick weiterhin den Planeten auswählen.
+	return not hit_other_interactable
+
+
+func _node_belongs_to_ship(node: Node) -> bool:
+	var current: Node = node
+	while current != null:
+		if current == player_ship:
+			return true
+		current = current.get_parent()
+	return false
 
 
 func _is_click_on_interactable(world_position: Vector2) -> bool:

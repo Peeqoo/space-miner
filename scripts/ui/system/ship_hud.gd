@@ -6,24 +6,22 @@ const CARGO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/cargo_row.t
 
 @export var auto_refresh_interval: float = 0.25
 
-@onready var header_label: Label = $Margin/Root/HeaderLabel
 @onready var ship_sprite: TextureRect = $Margin/Root/ShipRow/ShipPreviewPanel/ShipPreviewCenter/ShipSprite
 @onready var current_system_label: Label = $Margin/Root/ShipRow/ShipMetaColumn/CurrentSystemLabel
 @onready var cargo_capacity_label: Label = $Margin/Root/ShipRow/ShipMetaColumn/CargoCapacityLabel
+@onready var fuel_label: Label = $Margin/Root/ShipRow/ShipMetaColumn/FuelLabel
 @onready var scanner_tier_label: Label = $Margin/Root/ShipRow/ShipMetaColumn/ScannerTierLabel
 @onready var status_label: Label = $Margin/Root/ShipRow/ShipMetaColumn/StatusLabel
-@onready var cargo_title_label: Label = $Margin/Root/CargoTitleLabel
+
 @onready var cargo_list: VBoxContainer = $Margin/Root/CargoPanel/CargoMargin/ScrollContainer/CargoList
 @onready var empty_cargo_label: Label = $Margin/Root/EmptyCargoLabel
+
 @onready var galaxy_map_button: Button = $Margin/Root/GalaxyMapButton
 
 var _refresh_timer: float = 0.0
 
 
 func _ready() -> void:
-	header_label.text = "SCHIFF"
-	cargo_title_label.text = "CARGOINHALT"
-
 	if not galaxy_map_button.pressed.is_connected(_on_galaxy_map_button_pressed):
 		galaxy_map_button.pressed.connect(_on_galaxy_map_button_pressed)
 
@@ -42,6 +40,7 @@ func _process(delta: float) -> void:
 func refresh_from_game_session() -> void:
 	_update_system_text()
 	_update_cargo_summary()
+	_update_fuel_summary()
 	_update_scanner_tier()
 	_update_status_text()
 	_rebuild_cargo_list()
@@ -62,6 +61,17 @@ func _update_cargo_summary() -> void:
 	var used: int = GameSession.get_cargo_used()
 	var capacity: int = GameSession.get_cargo_capacity()
 	cargo_capacity_label.text = "Cargo: %d / %d" % [used, capacity]
+
+
+func _update_fuel_summary() -> void:
+	var max_fuel: float = GameSession.get_max_fuel()
+	var fuel_percent: int = 0
+
+	if max_fuel > 0.0:
+		fuel_percent = int(round((GameSession.get_fuel() / max_fuel) * 100.0))
+
+	fuel_percent = clampi(fuel_percent, 0, 100)
+	fuel_label.text = "Fuel: %d%%" % fuel_percent
 
 
 func _update_scanner_tier() -> void:
@@ -86,32 +96,45 @@ func _update_status_text() -> void:
 
 
 func _rebuild_cargo_list() -> void:
-	for child in cargo_list.get_children():
-		child.queue_free()
+	_clear_container(cargo_list)
 
 	var cargo_items: Dictionary = GameSession.get_cargo_items()
-	if cargo_items.is_empty():
-		empty_cargo_label.visible = true
+	var resource_ids: Array[String] = _get_sorted_positive_resource_ids(cargo_items)
+
+	empty_cargo_label.visible = resource_ids.is_empty()
+	if resource_ids.is_empty():
 		return
 
-	empty_cargo_label.visible = false
-
-	var resource_ids: Array[String] = []
-	for key in cargo_items.keys():
-		resource_ids.append(str(key))
-
-	resource_ids.sort()
-
-	for resource_id in resource_ids:
+	for resource_id: String in resource_ids:
 		var amount: int = int(cargo_items.get(resource_id, 0))
+		var row: Node = CARGO_ROW_SCENE.instantiate()
+		cargo_list.add_child(row)
+		_set_resource_row_data(row, resource_id, amount)
+
+
+func _clear_container(container: Container) -> void:
+	for child: Node in container.get_children():
+		child.queue_free()
+
+
+func _get_sorted_positive_resource_ids(items: Dictionary) -> Array[String]:
+	var resource_ids: Array[String] = []
+
+	for key: Variant in items.keys():
+		var resource_id: String = str(key)
+		var amount: int = int(items.get(resource_id, 0))
 		if amount <= 0:
 			continue
 
-		var row: HBoxContainer = CARGO_ROW_SCENE.instantiate() as HBoxContainer
-		cargo_list.add_child(row)
+		resource_ids.append(resource_id)
 
-		if row.has_method("set_row_data"):
-			row.call("set_row_data", _format_resource_name(resource_id), amount)
+	resource_ids.sort()
+	return resource_ids
+
+
+func _set_resource_row_data(row: Node, resource_id: String, amount: int) -> void:
+	if row.has_method("set_row_data"):
+		row.call("set_row_data", _format_resource_name(resource_id), amount)
 
 
 func _format_resource_name(resource_id: String) -> String:
@@ -122,10 +145,13 @@ func _format_resource_name(resource_id: String) -> String:
 	var words: PackedStringArray = cleaned.split(" ", false)
 	var formatted_words: PackedStringArray = []
 
-	for word in words:
+	for word: String in words:
 		if word.is_empty():
 			continue
-		formatted_words.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
+
+		var first_letter: String = word.substr(0, 1).to_upper()
+		var remaining_letters: String = word.substr(1).to_lower()
+		formatted_words.append(first_letter + remaining_letters)
 
 	return " ".join(formatted_words)
 

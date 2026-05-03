@@ -20,6 +20,7 @@ enum SizeAuthoringMode {
 @export var body_scale: float = 1.0
 @export var body_color: Color = Color.WHITE
 @export var texture: Texture2D
+@export var can_build_base: bool = true
 
 # Neu: kanonische Referenzdaten
 @export var reference_radius_earth: float = 1.0

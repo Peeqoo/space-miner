@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://cw0s5utrneclh"]
+
+[ext_resource type="Script" uid="uid://0a2kf782psjp" path="res://scripts/ui/system/base_management_panel.gd" id="1_wsd2i"]
+
+[node name="BaseManagementPanel" type="PanelContainer" unique_id=735265409]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -152.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 193.0
+grow_horizontal = 0
+script = ExtResource("1_wsd2i")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=901966765]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Root" type="VBoxContainer" parent="Margin" unique_id=873969374]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=122690385]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Docking Station"
+
+[node name="BaseNameLabel" type="Label" parent="Margin/Root" unique_id=1281816898]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Earth Base"
+
+[node name="DockStatusLabel" type="Label" parent="Margin/Root" unique_id=1450631312]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Status: Nicht angedockt"
+
+[node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=1003698480]
+layout_mode = 2
+
+[node name="StorageTitleLabel" type="Label" parent="Margin/Root" unique_id=670716012]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Storage"
+
+[node name="StoragePanel" type="PanelContainer" parent="Margin/Root" unique_id=1993042740]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+
+[node name="StorageMargin" type="MarginContainer" parent="Margin/Root/StoragePanel" unique_id=521672098]
+layout_mode = 2
+theme_override_constants/margin_left = 3
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 3
+theme_override_constants/margin_bottom = 3
+
+[node name="StorageScroll" type="ScrollContainer" parent="Margin/Root/StoragePanel/StorageMargin" unique_id=1133889311]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="StorageList" type="VBoxContainer" parent="Margin/Root/StoragePanel/StorageMargin/StorageScroll" unique_id=10334252]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="EmptyStorageLabel" type="Label" parent="Margin/Root" unique_id=1916634861]
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = "Leer"
+horizontal_alignment = 1

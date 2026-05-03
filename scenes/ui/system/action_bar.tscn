@@ -1,94 +1,115 @@
-[gd_scene format=3 uid="uid://mx2fije7qyug"]
+[gd_scene format=3 uid="uid://c8wi34ca2ikit"]
 
 [ext_resource type="Script" uid="uid://btyiu3nxjfkam" path="res://scripts/ui/system/action_bar.gd" id="1_t38fj"]
 
-[node name="ActionBar" type="PanelContainer" unique_id=929547266]
-anchors_preset = 3
-anchor_left = 1.0
+[node name="ActionBar" type="PanelContainer" unique_id=1026957761]
+anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -96.0
-offset_top = -133.0
+offset_left = 8.0
+offset_top = -33.0
 offset_right = -8.0
 offset_bottom = -8.0
-grow_horizontal = 0
+grow_horizontal = 2
 grow_vertical = 0
 script = ExtResource("1_t38fj")
 
-[node name="Margin" type="MarginContainer" parent="." unique_id=752795960]
+[node name="Margin" type="MarginContainer" parent="." unique_id=163944801]
 layout_mode = 2
 theme_override_constants/margin_left = 4
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 4
 theme_override_constants/margin_bottom = 4
 
-[node name="Root" type="VBoxContainer" parent="Margin" unique_id=1302015416]
+[node name="Root" type="HBoxContainer" parent="Margin" unique_id=1403176069]
 layout_mode = 2
-theme_override_constants/separation = 4
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
 
-[node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=1186541553]
+[node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=307767404]
+visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
 text = "Aktionen"
 
-[node name="ActionsGrid" type="GridContainer" parent="Margin/Root" unique_id=609052335]
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Root" unique_id=1014106575]
 layout_mode = 2
-theme_override_constants/h_separation = 2
-theme_override_constants/v_separation = 2
-columns = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
 
-[node name="UndockButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=803936102]
+[node name="UndockButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=2111286409]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 6
-disabled = true
 text = "Abdocken"
 
-[node name="ApproachButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=986658517]
+[node name="ApproachButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=1905060901]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 6
 disabled = true
 text = "Annähern"
 
-[node name="DockButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=229309711]
+[node name="DockButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=573413316]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 6
 disabled = true
 text = "Andocken"
 
-[node name="ScanButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=1463067725]
+[node name="ScanButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=28192996]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 6
 disabled = true
 text = "Scannen"
 
-[node name="MiningButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=1632854678]
+[node name="MiningButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=759391855]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 6
 disabled = true
 text = "Mining"
 
-[node name="StopMiningButton" type="Button" parent="Margin/Root/ActionsGrid" unique_id=54684128]
+[node name="StopMiningButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=1263070778]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 6
 disabled = true
-text = "StopMining"
+text = "Stop"
 
-[node name="ActionStatusPanel" type="PanelContainer" parent="Margin/Root" unique_id=1554616743]
-custom_minimum_size = Vector2(0, 42)
+[node name="UnloadCargoButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=663803995]
 layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "Entladen"
 
-[node name="ActionStatusMargin" type="MarginContainer" parent="Margin/Root/ActionStatusPanel" unique_id=291351392]
+[node name="BuildBaseButton" type="Button" parent="Margin/Root/ActionsRow" unique_id=941406531]
 layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 6
+text = "Build Base"
+
+[node name="ActionStatusPanel" type="PanelContainer" parent="Margin/Root" unique_id=312048816]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="ActionStatusMargin" type="MarginContainer" parent="Margin/Root/ActionStatusPanel" unique_id=1243080350]
+layout_mode = 2
+size_flags_vertical = 4
 theme_override_constants/margin_left = 4
-theme_override_constants/margin_top = 4
+theme_override_constants/margin_top = 3
 theme_override_constants/margin_right = 4
-theme_override_constants/margin_bottom = 4
+theme_override_constants/margin_bottom = 3
 
-[node name="ActionStatusLabel" type="Label" parent="Margin/Root/ActionStatusPanel/ActionStatusMargin" unique_id=1702229081]
-custom_minimum_size = Vector2(0, 34)
+[node name="ActionStatusLabel" type="Label" parent="Margin/Root/ActionStatusPanel/ActionStatusMargin" unique_id=70284999]
+custom_minimum_size = Vector2(212, 0)
 layout_mode = 2
-size_flags_vertical = 1
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 6
 text = "Kein aktives Manöver"
 vertical_alignment = 1
