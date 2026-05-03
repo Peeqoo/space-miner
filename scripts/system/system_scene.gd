@@ -23,7 +23,7 @@ extends Node2D
 @onready var orbit_guides: SystemOrbitGuidesController = $SystemOrbitGuidesController
 @onready var ship_state: SystemShipStateController = $SystemShipStateController
 @onready var selection: SystemSelectionController = $SystemSelectionController
-@onready var ship_ui: SystemShipUIController = $SystemShipUIController
+@onready var system_ui: SystemUIController = $SystemUIController
 
 
 # --------------------------------------------------
@@ -71,7 +71,7 @@ func _finish_initial_setup() -> void:
 	selection.restore_last_selection(state)
 
 	await ship_state.restore_camera_state()
-	ship_ui.update_ship_ui()
+	system_ui.update_all()
 
 
 func _setup_controllers() -> void:
@@ -94,7 +94,7 @@ func _setup_controllers() -> void:
 		player_ship,
 		camera,
 		spawner,
-		ship_ui
+		system_ui
 	)
 
 	selection.setup(
@@ -102,6 +102,17 @@ func _setup_controllers() -> void:
 		player_ship,
 		spawner,
 		ship_state
+	)
+
+	system_ui.setup(
+		system_definition,
+		player_ship,
+		ship_state,
+		selection,
+		$UI/ShipHud,
+		$UI/ActionBar,
+		$UI/ObjectInfoPanel,
+		$UI/BaseManagementPanel
 	)
 
 	spawner.body_spawned.connect(selection.register_body)

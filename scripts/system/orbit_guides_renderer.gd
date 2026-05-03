@@ -6,9 +6,11 @@ extends Node2D
 
 var orbit_entries: Array = []
 
+
 func set_orbits(entries: Array) -> void:
 	orbit_entries = entries
 	queue_redraw()
+
 
 func _draw() -> void:
 	for entry in orbit_entries:
@@ -17,4 +19,5 @@ func _draw() -> void:
 
 		var center: Vector2 = entry.get("center", Vector2.ZERO)
 		var radius: float = float(entry.get("radius", 100.0))
-		draw_arc(center, radius, 0.0, TAU, segments, orbit_color, orbit_width)
+
+		draw_arc(to_local(center), radius, 0.0, TAU, segments, orbit_color, orbit_width)

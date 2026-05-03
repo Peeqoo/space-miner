@@ -15,7 +15,7 @@
 [ext_resource type="Script" uid="uid://cc007cqlpbk5g" path="res://scripts/system/controller/system_ship_state_controller.gd" id="10_otvh7"]
 [ext_resource type="PackedScene" uid="uid://cw0s5utrneclh" path="res://scenes/ui/system/base_management_panel.tscn" id="11_8gesb"]
 [ext_resource type="Script" uid="uid://crdimga0gurol" path="res://scripts/system/controller/system_selection_controller.gd" id="11_owt6d"]
-[ext_resource type="Script" uid="uid://dns2gmj78ofra" path="res://scripts/system/controller/system_ship_ui_controller.gd" id="12_awtcc"]
+[ext_resource type="Script" uid="uid://bu4dla0dwkm34" path="res://scripts/system/controller/system_ui_controller.gd" id="12_dc3br"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_e0kxw"]
 blend_mode = 1
@@ -23,6 +23,7 @@ blend_mode = 1
 [node name="SystemScene" type="Node2D" unique_id=652065169]
 script = ExtResource("1_f7o5m")
 system_definition = ExtResource("2_gwfk2")
+start_docked_body_id = null
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=185956986]
 
@@ -85,8 +86,8 @@ script = ExtResource("10_otvh7")
 [node name="SystemSelectionController" type="Node2D" parent="." unique_id=485237485]
 script = ExtResource("11_owt6d")
 
-[node name="SystemShipUIController" type="Node2D" parent="." unique_id=1658508164]
-script = ExtResource("12_awtcc")
+[node name="SystemUIController" type="Node2D" parent="." unique_id=1658508164]
+script = ExtResource("12_dc3br")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1790193946]
 

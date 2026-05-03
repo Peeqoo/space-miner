@@ -13,7 +13,7 @@ var start_docked_body_id: String
 var player_ship: CharacterBody2D
 var camera: SystemCameraController
 var spawner: SystemSpawner
-var ship_ui: SystemShipUIController
+var ship_ui: SystemUIController
 
 
 # --------------------------------------------------
@@ -34,7 +34,7 @@ func setup(
 	p_player_ship: CharacterBody2D,
 	p_camera: SystemCameraController,
 	p_spawner: SystemSpawner,
-	p_ship_ui: SystemShipUIController
+	p_ship_ui: SystemUIController
 ) -> void:
 	system_definition = p_system_definition
 	start_docked_body_id = p_start_docked_body_id

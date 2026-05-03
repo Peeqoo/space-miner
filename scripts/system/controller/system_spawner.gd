@@ -104,14 +104,14 @@ func _setup_star(system_definition: SystemDefinition) -> void:
 func _spawn_bodies(system_definition: SystemDefinition) -> void:
 	for body_def in system_definition.bodies:
 		var body := SYSTEM_BODY_SCENE.instantiate() as SystemBody
+		var presentation := CelestialPresentationCalculator.build_presentation(body_def, system_definition)
 
 		body.set_definition(body_def)
-
-		if body_def.orbit_center_id == "star":
-			body.orbit_radius = system_definition.star_visual_radius + body_def.orbit_radius
+		body.set_presentation(presentation)
 
 		system_bodies_root.add_child(body)
 		spawned_lookup[body_def.id] = body
+
 		body_spawned.emit(body)
 
 
