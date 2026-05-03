@@ -6,11 +6,16 @@
 [ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="2_gwfk2"]
 [ext_resource type="Texture2D" uid="uid://cmp8ysrannpyb" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_02-1024x1024.png" id="3_frd62"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="4_e0kxw"]
-[ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/system_camera_controller.gd" id="5_5mh7d"]
+[ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/controller/system_camera_controller.gd" id="5_5mh7d"]
 [ext_resource type="PackedScene" uid="uid://f113bm6d810f" path="res://scenes/ui/system/ship_hud.tscn" id="8_5uhx5"]
+[ext_resource type="Script" uid="uid://bitfpb2llsdp7" path="res://scripts/system/controller/system_spawner.gd" id="8_dc3br"]
+[ext_resource type="Script" uid="uid://b54e05xmyiitf" path="res://scripts/system/controller/system_orbit_guides_controller.gd" id="9_06sa2"]
 [ext_resource type="PackedScene" uid="uid://c8wi34ca2ikit" path="res://scenes/ui/system/action_bar.tscn" id="10_8gesb"]
 [ext_resource type="PackedScene" uid="uid://co4q0a2fhkcpy" path="res://scenes/ui/system/object_info_panel.tscn" id="10_e0kxw"]
+[ext_resource type="Script" uid="uid://cc007cqlpbk5g" path="res://scripts/system/controller/system_ship_state_controller.gd" id="10_otvh7"]
 [ext_resource type="PackedScene" uid="uid://cw0s5utrneclh" path="res://scenes/ui/system/base_management_panel.tscn" id="11_8gesb"]
+[ext_resource type="Script" uid="uid://crdimga0gurol" path="res://scripts/system/controller/system_selection_controller.gd" id="11_owt6d"]
+[ext_resource type="Script" uid="uid://dns2gmj78ofra" path="res://scripts/system/controller/system_ship_ui_controller.gd" id="12_awtcc"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_e0kxw"]
 blend_mode = 1
@@ -18,6 +23,16 @@ blend_mode = 1
 [node name="SystemScene" type="Node2D" unique_id=652065169]
 script = ExtResource("1_f7o5m")
 system_definition = ExtResource("2_gwfk2")
+start_docked_body_id = null
+scan_range = null
+mining_range = null
+mining_tick_interval = null
+mining_session_duration = null
+mining_cooldown_duration = null
+scan_duration_seconds = null
+dock_approach_range = null
+approach_hold_range = null
+fuel_consumption_per_1000_units = null
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=185956986]
 
@@ -67,6 +82,21 @@ position_smoothing_speed = 6.0
 script = ExtResource("5_5mh7d")
 start_frame_mode = 1
 overview_world_size = Vector2(2600, 1600)
+
+[node name="SystemSpawner" type="Node2D" parent="." unique_id=965017483]
+script = ExtResource("8_dc3br")
+
+[node name="SystemOrbitGuidesController" type="Node2D" parent="." unique_id=2030945301]
+script = ExtResource("9_06sa2")
+
+[node name="SystemShipStateController" type="Node2D" parent="." unique_id=466989922]
+script = ExtResource("10_otvh7")
+
+[node name="SystemSelectionController" type="Node2D" parent="." unique_id=485237485]
+script = ExtResource("11_owt6d")
+
+[node name="SystemShipUIController" type="Node2D" parent="." unique_id=1658508164]
+script = ExtResource("12_awtcc")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1790193946]
 

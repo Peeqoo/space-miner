@@ -10,7 +10,7 @@
 [ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="4_5o4t4"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="5_vdcto"]
 [ext_resource type="Texture2D" uid="uid://dju1ifeecd3nj" path="res://assets/sprites/planets/PlanetsFull/Suns/13.png" id="6_uta3y"]
-[ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/system_camera_controller.gd" id="8_c6cuc"]
+[ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/controller/system_camera_controller.gd" id="8_c6cuc"]
 [ext_resource type="PackedScene" uid="uid://uqkmyvdqw7f7" path="res://scenes/ui/galaxy/galaxy_map_hud.tscn" id="12_qe3vx"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_qe3vx"]

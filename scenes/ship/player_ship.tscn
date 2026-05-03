@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://xvlhiy5lpey7"]
 
 [ext_resource type="Script" uid="uid://d0mt6gts3svhs" path="res://scripts/ship/player_ship.gd" id="1_itbyv"]
-[ext_resource type="Script" uid="uid://cvhmx8i8a4avt" path="res://scripts/ship/ship_navigation_component.gd" id="3_53lce"]
+[ext_resource type="Script" uid="uid://cvhmx8i8a4avt" path="res://scripts/ship/components/ship_navigation_component.gd" id="3_53lce"]
 [ext_resource type="Texture2D" uid="uid://diwsnwl1j6lr4" path="res://assets/sprites/ship/tiny-spaceships/tinyShip14.png" id="3_o1wxq"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61y12"]
