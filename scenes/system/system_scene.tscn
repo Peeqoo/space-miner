@@ -23,7 +23,6 @@ blend_mode = 1
 [node name="SystemScene" type="Node2D" unique_id=652065169]
 script = ExtResource("1_f7o5m")
 system_definition = ExtResource("2_gwfk2")
-start_docked_body_id = null
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=185956986]
 

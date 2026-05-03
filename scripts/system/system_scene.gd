@@ -1,23 +1,12 @@
 ## Main orchestrator for the system scene.
-## Wires controllers together and handles scene-level buttons.
+## Wires controllers together and handles scene-level flow.
 extends Node2D
-
-
-# --------------------------------------------------
-# Exports
-# --------------------------------------------------
 
 @export var system_definition: SystemDefinition
 @export var start_docked_body_id: String = "earth"
 
-
-# --------------------------------------------------
-# Node References
-# --------------------------------------------------
-
 @onready var player_ship: CharacterBody2D = $WorldRoot/PlayerShip
 @onready var camera: SystemCameraController = $CameraRoot/SystemCamera2D
-
 
 @onready var spawner: SystemSpawner = $SystemSpawner
 @onready var orbit_guides: SystemOrbitGuidesController = $SystemOrbitGuidesController
@@ -25,20 +14,12 @@ extends Node2D
 @onready var selection: SystemSelectionController = $SystemSelectionController
 @onready var system_ui: SystemUIController = $SystemUIController
 
-
-# --------------------------------------------------
-# State
-# --------------------------------------------------
-
 var entered_from_travel: bool = false
 
 
-# --------------------------------------------------
-# Lifecycle
-# --------------------------------------------------
-
 func _ready() -> void:
 	_resolve_active_system_definition()
+
 	entered_from_travel = GameSession.consume_travel_entry_flag()
 
 	if system_definition != null:
@@ -60,9 +41,10 @@ func _process(_delta: float) -> void:
 	orbit_guides.update_orbit_guides()
 
 
-# --------------------------------------------------
-# Initial Setup
-# --------------------------------------------------
+func _unhandled_input(event: InputEvent) -> void:
+	if selection != null:
+		selection.handle_empty_space_click(event)
+
 
 func _finish_initial_setup() -> void:
 	await ship_state.restore_ship_state(entered_from_travel)
@@ -86,7 +68,6 @@ func _setup_controllers() -> void:
 		$WorldRoot/SystemBodiesRoot,
 		$WorldRoot/PointOfInterestRoot
 	)
-
 
 	ship_state.setup(
 		system_definition,
@@ -119,7 +100,6 @@ func _setup_controllers() -> void:
 	spawner.poi_spawned.connect(selection.register_poi)
 
 
-
 func _resolve_active_system_definition() -> void:
 	var staged_system := GameSession.consume_selected_system_definition()
 
@@ -133,28 +113,3 @@ func _resolve_active_system_definition() -> void:
 
 	GameSession.ensure_default_system_loaded()
 	system_definition = GameSession.current_system_definition
-
-
-# --------------------------------------------------
-# Button Callbacks
-# --------------------------------------------------
-
-func _on_start_pressed() -> void:
-	ship_state.launch_ship()
-
-
-func _on_dock_pressed() -> void:
-	var selected := selection.get_selected_node()
-
-	if not selected is SystemBody:
-		return
-
-	var body := selected as SystemBody
-
-	if player_ship.global_position.distance_to(body.global_position) <= 100.0:
-		ship_state.dock_to_body(body)
-
-
-func _on_back_pressed() -> void:
-	ship_state.save_current_ship_state(selection.get_selected_node())
-	SceneFlow.goto_galaxy()

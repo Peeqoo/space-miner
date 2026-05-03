@@ -102,10 +102,11 @@ func _find_action_button(button_name: String) -> Button:
 	return null
 
 
-func _set_button_state(button: Button, is_visible: bool, is_enabled: bool) -> void:
+func _set_button_state(button: Button, should_show: bool, is_enabled: bool) -> void:
 	if button == null:
 		return
-	button.visible = is_visible
+
+	button.visible = should_show
 	button.disabled = not is_enabled
 
 

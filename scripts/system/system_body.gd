@@ -1,3 +1,5 @@
+## Runtime node for planets and other system bodies.
+## Delegates orbit, selection and scan info behavior to components.
 class_name SystemBody
 extends Node2D
 
@@ -31,14 +33,20 @@ var orbit_center: Node2D:
 	get:
 		return orbiting.orbit_center
 
+
 var orbit_angle: float:
 	get:
 		return orbiting.orbit_angle
+
 
 var is_selected: bool:
 	get:
 		return selectable.is_selected
 
+
+# --------------------------------------------------
+# Lifecycle
+# --------------------------------------------------
 
 func _ready() -> void:
 	if definition != null:
@@ -57,6 +65,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	orbiting.process_orbit(self, delta)
 
+
+# --------------------------------------------------
+# Public API
+# --------------------------------------------------
 
 func set_definition(def: SystemBodyDefinition) -> void:
 	definition = def
@@ -131,6 +143,10 @@ func get_interaction_orbit_config(
 	)
 
 
+# --------------------------------------------------
+# Definition / Presentation
+# --------------------------------------------------
+
 func _apply_definition() -> void:
 	if definition == null:
 		return
@@ -165,7 +181,7 @@ func _apply_presentation() -> void:
 
 	orbit_radius = float(presentation.get("orbit_radius", orbit_radius))
 	orbit_speed = float(presentation.get("orbit_speed", orbit_speed))
-	visual_scale = max(float(presentation.get("visual_scale", visual_scale)), 0.01)
+	visual_scale = maxf(float(presentation.get("visual_scale", visual_scale)), 0.01)
 	selection_ring_radius = float(presentation.get("selection_ring_radius", selection_ring_radius))
 
 	orbiting.orbit_radius = orbit_radius
@@ -186,13 +202,17 @@ func _update_selection_defaults() -> void:
 		texture_diameter = float(min(texture_width, texture_height))
 
 	if texture_diameter > 0.0:
-		selection_ring_radius = max(texture_diameter * visual_scale * 0.5 + 14.0, 18.0)
+		selection_ring_radius = maxf(texture_diameter * visual_scale * 0.5 + 14.0, 18.0)
 	else:
-		selection_ring_radius = max(28.0 * visual_scale, 18.0)
+		selection_ring_radius = maxf(28.0 * visual_scale, 18.0)
 
 	selectable.set_selection_ring_radius(selection_ring, selection_ring_radius)
 	selectable.update_click_shape(click_collision)
 
+
+# --------------------------------------------------
+# Input
+# --------------------------------------------------
 
 func _on_click_area_input_event(
 	_viewport: Node,
@@ -200,4 +220,5 @@ func _on_click_area_input_event(
 	_shape_idx: int
 ) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		get_viewport().set_input_as_handled()
 		selected.emit(self)

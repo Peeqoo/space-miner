@@ -1,5 +1,5 @@
 ## Controls the system scene UI.
-## Updates ShipHud, ActionBar, ObjectInfoPanel and BaseManagementPanel.
+## Toggles ShipHud and ObjectInfoPanel based on current selection.
 class_name SystemUIController
 extends Node
 
@@ -13,10 +13,11 @@ var action_bar: PanelContainer
 var object_info_panel: PanelContainer
 var base_management_panel: PanelContainer
 
+var scan_active: bool = false
+var scan_target: Node = null
+var scan_elapsed: float = 0.0
+var scan_duration: float = 2.5
 
-# --------------------------------------------------
-# Setup
-# --------------------------------------------------
 
 func setup(
 	p_system_definition: SystemDefinition,
@@ -38,13 +39,32 @@ func setup(
 	object_info_panel = p_object_info_panel
 	base_management_panel = p_base_management_panel
 
+	if ship_hud != null:
+		ship_hud.visible = false
+
+	if object_info_panel != null:
+		object_info_panel.visible = false
+
 	_connect_ui_signals()
 	update_all()
 
 
-# --------------------------------------------------
-# Public API
-# --------------------------------------------------
+func _process(delta: float) -> void:
+	if not scan_active:
+		return
+
+	if scan_target == null or not is_instance_valid(scan_target):
+		_cancel_scan("Scan abgebrochen.")
+		return
+
+	scan_elapsed += delta
+
+	var progress: float = clampf(scan_elapsed / scan_duration, 0.0, 1.0)
+	set_action_status("Scan läuft... %d%%" % int(progress * 100.0))
+
+	if scan_elapsed >= scan_duration:
+		_complete_scan()
+
 
 func update_all() -> void:
 	update_ship_hud()
@@ -58,7 +78,12 @@ func update_ship_ui() -> void:
 
 
 func update_ship_hud() -> void:
-	if ship_hud != null and ship_hud.has_method("refresh_from_game_session"):
+	if ship_hud == null:
+		return
+
+	ship_hud.visible = _should_show_ship_hud()
+
+	if ship_hud.visible and ship_hud.has_method("refresh_from_game_session"):
 		ship_hud.call("refresh_from_game_session")
 
 
@@ -68,12 +93,17 @@ func update_object_info() -> void:
 
 	var selected_node := selection.get_selected_node()
 
-	if selected_node == null:
+	if selected_node == null or selected_node == player_ship:
+		object_info_panel.visible = false
+
 		if object_info_panel.has_method("show_empty"):
 			object_info_panel.call("show_empty")
+
 		return
 
-	var info := _build_selected_object_info(selected_node)
+	object_info_panel.visible = true
+
+	var info: Dictionary = _build_selected_object_info(selected_node)
 
 	if selected_node is SystemBody:
 		if object_info_panel.has_method("show_body_info"):
@@ -124,11 +154,10 @@ func set_action_status(text: String) -> void:
 		action_bar.call("set_action_status", text)
 
 
-# --------------------------------------------------
-# Signal Connections
-# --------------------------------------------------
-
 func _connect_ui_signals() -> void:
+	if selection != null and not selection.selection_changed.is_connected(_on_selection_changed):
+		selection.selection_changed.connect(_on_selection_changed)
+
 	if ship_hud != null and ship_hud.has_signal("galaxy_map_requested"):
 		if not ship_hud.galaxy_map_requested.is_connected(_on_galaxy_map_requested):
 			ship_hud.galaxy_map_requested.connect(_on_galaxy_map_requested)
@@ -157,14 +186,11 @@ func _connect_action_signal(signal_name: StringName, callable_fn: Callable) -> v
 		action_bar.connect(signal_name, callable_fn)
 
 
-# --------------------------------------------------
-# Action Bar State
-# --------------------------------------------------
-
 func _build_action_bar_state() -> Dictionary:
 	var selected_node := selection.get_selected_node()
 	var selected_body := selected_node as SystemBody
 	var has_selection := selected_node != null
+	var is_ship_selected := selected_node == player_ship
 	var is_docked := ship_state.is_docked
 	var can_dock := false
 
@@ -173,22 +199,18 @@ func _build_action_bar_state() -> Dictionary:
 
 	return {
 		"is_docked": is_docked,
-		"can_undock": is_docked,
-		"can_approach": has_selection and not is_docked,
-		"can_dock": can_dock,
-		"can_scan": has_selection,
-		"can_mine": has_selection and not is_docked,
-		"mining_active": false,
-		"show_unload_cargo": selected_body != null and is_docked,
-		"can_unload_cargo": selected_body != null and is_docked and GameSession.get_cargo_used() > 0,
+		"can_undock": is_docked and (is_ship_selected or selected_body != null) and not scan_active,
+		"can_approach": has_selection and not is_ship_selected and not is_docked and not scan_active,
+		"can_dock": can_dock and not scan_active,
+		"can_scan": has_selection and not is_ship_selected and not scan_active,
+		"can_mine": has_selection and not is_ship_selected and not is_docked and not scan_active,
+		"mining_active": scan_active,
+		"show_unload_cargo": _should_show_ship_hud(),
+		"can_unload_cargo": _should_show_ship_hud() and GameSession.get_cargo_used() > 0,
 		"show_build_base": selected_body != null,
 		"can_build_base": selected_body != null and is_docked and not _selected_body_has_base(selected_body),
 	}
 
-
-# --------------------------------------------------
-# Object Info
-# --------------------------------------------------
 
 func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	var object_id := _get_object_id(selected_node)
@@ -246,9 +268,15 @@ func _get_object_id(node: Node) -> String:
 	return ""
 
 
-# --------------------------------------------------
-# Button Callbacks
-# --------------------------------------------------
+func _on_selection_changed(_selected_node: Node) -> void:
+	if scan_active:
+		_cancel_scan("Scan abgebrochen.")
+
+	update_ship_hud()
+	update_object_info()
+	update_action_bar()
+	update_base_panel()
+
 
 func _on_undock_requested() -> void:
 	ship_state.launch_ship()
@@ -260,6 +288,9 @@ func _on_approach_requested() -> void:
 	var selected_node := selection.get_selected_node()
 
 	if not selected_node is Node2D:
+		return
+
+	if selected_node == player_ship:
 		return
 
 	var nav := player_ship.get_node_or_null("ShipNavigationComponent") as ShipNavigationComponent
@@ -292,7 +323,10 @@ func _on_dock_requested() -> void:
 func _on_scan_requested() -> void:
 	var selected_node := selection.get_selected_node()
 
-	if selected_node == null:
+	if selected_node == null or selected_node == player_ship:
+		return
+
+	if scan_active:
 		return
 
 	var object_id := _get_object_id(selected_node)
@@ -300,9 +334,12 @@ func _on_scan_requested() -> void:
 	if object_id.is_empty():
 		return
 
-	GameSession.set_object_scan_state(system_definition.id, object_id, GameSession.SCAN_BASIC)
-	set_action_status("Scan abgeschlossen.")
-	update_all()
+	scan_target = selected_node
+	scan_elapsed = 0.0
+	scan_active = true
+
+	set_action_status("Scan gestartet...")
+	update_action_bar()
 
 
 func _on_mining_requested() -> void:
@@ -311,6 +348,11 @@ func _on_mining_requested() -> void:
 
 
 func _on_stop_mining_requested() -> void:
+	if scan_active:
+		_cancel_scan("Scan abgebrochen.")
+		update_all()
+		return
+
 	set_action_status("Mining gestoppt.")
 	update_all()
 
@@ -331,9 +373,46 @@ func _on_galaxy_map_requested() -> void:
 	SceneFlow.goto_galaxy()
 
 
-# --------------------------------------------------
-# Helpers
-# --------------------------------------------------
+func _complete_scan() -> void:
+	if scan_target == null or not is_instance_valid(scan_target):
+		_cancel_scan("Scan abgebrochen.")
+		return
+
+	var object_id := _get_object_id(scan_target)
+
+	if object_id.is_empty():
+		_cancel_scan("Scan abgebrochen.")
+		return
+
+	GameSession.set_object_scan_state(system_definition.id, object_id, GameSession.SCAN_BASIC)
+
+	scan_active = false
+	scan_target = null
+	scan_elapsed = 0.0
+
+	set_action_status("Scan abgeschlossen.")
+	update_all()
+
+
+func _cancel_scan(status_text: String) -> void:
+	scan_active = false
+	scan_target = null
+	scan_elapsed = 0.0
+	set_action_status(status_text)
+
+
+func _should_show_ship_hud() -> bool:
+	var selected_node := selection.get_selected_node()
+
+	if selected_node == player_ship:
+		return true
+
+	if selected_node is SystemBody:
+		var selected_body := selected_node as SystemBody
+		return ship_state.is_docked and ship_state.docked_body == selected_body
+
+	return false
+
 
 func _is_ship_in_range(target: Node2D, distance: float) -> bool:
 	return player_ship.global_position.distance_to(target.global_position) <= distance
