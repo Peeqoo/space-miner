@@ -66,6 +66,8 @@ var travel_control_position: Vector2 = Vector2.ZERO
 var travel_end_position: Vector2 = Vector2.ZERO
 var travel_progress: float = 0.0
 var travel_duration: float = 0.1
+# Stored at curve setup so the arc side stays consistent when the endpoint moves.
+var travel_curve_side_sign: float = 1.0
 
 
 func _ready() -> void:
@@ -114,6 +116,8 @@ func start_mission_to_node(p_target_node: Node2D) -> void:
 	if base_node != null and is_instance_valid(base_node):
 		base_position = base_node.global_position
 
+	# Generate orbit parameters sized for the TARGET planet, not Earth.
+	_generate_orbit_for_node(target_node)
 	_prepare_orbit_entry()
 	_move_to_free_flight_parent()
 	_setup_travel_curve(global_position, orbit_entry_position)
@@ -185,6 +189,19 @@ func _process_base_orbit(delta: float) -> void:
 
 
 func _process_travel_to_target(delta: float) -> void:
+	# Abort cleanly if the target node was destroyed.
+	if target_node == null or not is_instance_valid(target_node):
+		_move_to_free_flight_parent()
+		state = State.RETURNING
+		return
+
+	# Re-derive the orbit entry point from the planet's CURRENT position every
+	# frame so the Bezier endpoint tracks the moving planet.
+	target_position = target_node.global_position
+	_prepare_orbit_entry()
+	travel_end_position = orbit_entry_position
+	_recalculate_travel_control_point()
+
 	travel_progress = minf(travel_progress + (delta / maxf(travel_duration, 0.001)), 1.0)
 
 	var eased_progress := _ease_in_out_power(travel_progress, travel_accel_curve_power)
@@ -197,16 +214,17 @@ func _process_travel_to_target(delta: float) -> void:
 		_set_visual_rotation(direction.angle())
 
 	if travel_progress >= 1.0:
-		if target_node != null and is_instance_valid(target_node):
-			target_position = target_node.global_position
-			_prepare_orbit_entry()
 		state = State.APPROACH_ORBIT
 
 
 func _process_approach_orbit(delta: float) -> void:
-	if target_node != null and is_instance_valid(target_node):
-		target_position = target_node.global_position
-		_prepare_orbit_entry()
+	if target_node == null or not is_instance_valid(target_node):
+		_move_to_free_flight_parent()
+		state = State.RETURNING
+		return
+
+	target_position = target_node.global_position
+	_prepare_orbit_entry()
 
 	_move_towards(orbit_entry_position, approach_speed, delta)
 
@@ -291,7 +309,13 @@ func _adopt_current_position_as_orbit() -> void:
 
 
 func _generate_random_orbit() -> void:
-	var planet_radius := _get_base_visual_radius()
+	_generate_orbit_for_node(base_node)
+
+
+# Generates orbit parameters sized to the visual radius of the given node.
+# Call with target_node before a mission, with base_node for base orbit.
+func _generate_orbit_for_node(node: Node2D) -> void:
+	var planet_radius := _get_node_visual_radius(node)
 	var padding := randf_range(orbit_padding_min, orbit_padding_max)
 
 	orbit_radius_x = planet_radius + padding
@@ -317,8 +341,19 @@ func _setup_travel_curve(start_pos: Vector2, end_pos: Vector2) -> void:
 	travel_start_position = start_pos
 	travel_end_position = end_pos
 	travel_progress = 0.0
+	travel_curve_side_sign = -1.0 if randf() < 0.5 else 1.0
 
-	var travel_vector := end_pos - start_pos
+	var travel_distance := (end_pos - start_pos).length()
+	travel_duration = maxf(travel_distance / maxf(travel_speed, 1.0), 0.12)
+
+	_recalculate_travel_control_point()
+
+
+# Rebuilds the Bezier control point from the current start/end positions,
+# keeping the stored side sign so the arc shape stays visually stable even
+# when the endpoint moves every frame.
+func _recalculate_travel_control_point() -> void:
+	var travel_vector := travel_end_position - travel_start_position
 	var travel_distance := travel_vector.length()
 	var travel_direction := Vector2.RIGHT
 
@@ -326,12 +361,10 @@ func _setup_travel_curve(start_pos: Vector2, end_pos: Vector2) -> void:
 		travel_direction = travel_vector / travel_distance
 
 	var perpendicular := Vector2(-travel_direction.y, travel_direction.x)
-	var side_sign := -1.0 if randf() < 0.5 else 1.0
 	var curve_strength := minf(travel_curve_strength, travel_distance * 0.35)
-	var midpoint := (start_pos + end_pos) * 0.5
+	var midpoint := (travel_start_position + travel_end_position) * 0.5
 
-	travel_control_position = midpoint + perpendicular * curve_strength * side_sign
-	travel_duration = maxf(travel_distance / maxf(travel_speed, 1.0), 0.12)
+	travel_control_position = midpoint + perpendicular * curve_strength * travel_curve_side_sign
 
 
 func _quadratic_bezier(p0: Vector2, p1: Vector2, p2: Vector2, t: float) -> Vector2:

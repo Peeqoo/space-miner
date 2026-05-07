@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://snsdxefmfjdl"]
 
-[ext_resource type="PackedScene" uid="uid://xvlhiy5lpey7" path="res://scenes/ship/player_ship.tscn" id="1_1oact"]
 [ext_resource type="Script" uid="uid://df4vo2cmmqtud" path="res://scripts/system/system_scene.gd" id="1_f7o5m"]
 [ext_resource type="Script" uid="uid://ss3qyoy1r1ff" path="res://scripts/system/orbit_guides_renderer.gd" id="2_3j3kx"]
 [ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="2_gwfk2"]
@@ -12,7 +11,6 @@
 [ext_resource type="Script" uid="uid://b54e05xmyiitf" path="res://scripts/system/controller/system_orbit_guides_controller.gd" id="9_06sa2"]
 [ext_resource type="PackedScene" uid="uid://c8wi34ca2ikit" path="res://scenes/ui/system/action_bar.tscn" id="10_8gesb"]
 [ext_resource type="PackedScene" uid="uid://co4q0a2fhkcpy" path="res://scenes/ui/system/object_info_panel.tscn" id="10_e0kxw"]
-[ext_resource type="Script" uid="uid://cc007cqlpbk5g" path="res://scripts/system/controller/system_ship_state_controller.gd" id="10_otvh7"]
 [ext_resource type="PackedScene" uid="uid://cw0s5utrneclh" path="res://scenes/ui/system/base_management_panel.tscn" id="11_8gesb"]
 [ext_resource type="Script" uid="uid://crdimga0gurol" path="res://scripts/system/controller/system_selection_controller.gd" id="11_owt6d"]
 [ext_resource type="Script" uid="uid://bu4dla0dwkm34" path="res://scripts/system/controller/system_ui_controller.gd" id="12_dc3br"]
@@ -64,8 +62,6 @@ script = ExtResource("2_3j3kx")
 
 [node name="AutomationRoot" type="Node2D" parent="WorldRoot" unique_id=1407796080]
 
-[node name="PlayerShip" parent="WorldRoot" unique_id=909317427 instance=ExtResource("1_1oact")]
-
 [node name="CameraRoot" type="Node2D" parent="." unique_id=1347754730]
 
 [node name="SystemCamera2D" type="Camera2D" parent="CameraRoot" unique_id=616417330]
@@ -83,9 +79,6 @@ script = ExtResource("8_dc3br")
 
 [node name="SystemOrbitGuidesController" type="Node2D" parent="." unique_id=2030945301]
 script = ExtResource("9_06sa2")
-
-[node name="SystemShipStateController" type="Node2D" parent="." unique_id=466989922]
-script = ExtResource("10_otvh7")
 
 [node name="SystemSelectionController" type="Node2D" parent="." unique_id=485237485]
 script = ExtResource("11_owt6d")

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c7pgd62y2lfj4" path="res://scripts/system/system_body.gd" id="1_7k7re"]
 [ext_resource type="Script" uid="uid://b4fmjn20rrpa3" path="res://scripts/system/selection_ring.gd" id="2_4phf2"]
+
 [node name="SystemBody" type="Node2D" unique_id=1408650769]
 script = ExtResource("1_7k7re")
 
