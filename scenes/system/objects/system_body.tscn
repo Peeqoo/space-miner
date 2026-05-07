@@ -7,7 +7,11 @@ script = ExtResource("1_7k7re")
 
 [node name="OrbitPivot" type="Node2D" parent="." unique_id=214705234]
 
+[node name="BackOrbitUnits" type="Node2D" parent="OrbitPivot" unique_id=1965137402]
+
 [node name="BodyVisual" type="Sprite2D" parent="OrbitPivot" unique_id=2126353444]
+
+[node name="FrontOrbitUnits" type="Node2D" parent="OrbitPivot" unique_id=180467153]
 
 [node name="SelectionRing" type="Node2D" parent="OrbitPivot" unique_id=629646061]
 script = ExtResource("2_4phf2")

@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://cmp8ysrannpyb" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_02-1024x1024.png" id="3_frd62"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="4_e0kxw"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/controller/system_camera_controller.gd" id="5_5mh7d"]
-[ext_resource type="PackedScene" uid="uid://f113bm6d810f" path="res://scenes/ui/system/ship_hud.tscn" id="8_5uhx5"]
+[ext_resource type="Script" uid="uid://d10x3h0e3va32" path="res://scripts/system/controller/automation_controller.gd" id="7_oj33q"]
 [ext_resource type="Script" uid="uid://bitfpb2llsdp7" path="res://scripts/system/controller/system_spawner.gd" id="8_dc3br"]
 [ext_resource type="Script" uid="uid://b54e05xmyiitf" path="res://scripts/system/controller/system_orbit_guides_controller.gd" id="9_06sa2"]
 [ext_resource type="PackedScene" uid="uid://c8wi34ca2ikit" path="res://scenes/ui/system/action_bar.tscn" id="10_8gesb"]
@@ -62,6 +62,8 @@ script = ExtResource("2_3j3kx")
 
 [node name="PointOfInterestRoot" type="Node2D" parent="WorldRoot" unique_id=1993523218]
 
+[node name="AutomationRoot" type="Node2D" parent="WorldRoot" unique_id=1407796080]
+
 [node name="PlayerShip" parent="WorldRoot" unique_id=909317427 instance=ExtResource("1_1oact")]
 
 [node name="CameraRoot" type="Node2D" parent="." unique_id=1347754730]
@@ -72,6 +74,9 @@ position_smoothing_speed = 6.0
 script = ExtResource("5_5mh7d")
 start_frame_mode = 1
 overview_world_size = Vector2(2600, 1600)
+
+[node name="AutomationController" type="Node2D" parent="." unique_id=1333540846]
+script = ExtResource("7_oj33q")
 
 [node name="SystemSpawner" type="Node2D" parent="." unique_id=965017483]
 script = ExtResource("8_dc3br")
@@ -90,13 +95,8 @@ script = ExtResource("12_dc3br")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1790193946]
 
-[node name="ShipHud" parent="UI" unique_id=2059784922 instance=ExtResource("8_5uhx5")]
-
 [node name="ActionBar" parent="UI" unique_id=1026957761 instance=ExtResource("10_8gesb")]
 
 [node name="ObjectInfoPanel" parent="UI" unique_id=987163130 instance=ExtResource("10_e0kxw")]
 
-[node name="BaseManagementPanel" parent="UI" unique_id=735265409 instance=ExtResource("11_8gesb")]
-offset_left = -281.0
-offset_right = -137.0
-offset_bottom = 213.0
+[node name="BaseManagementPanel" parent="UI" unique_id=995273956 instance=ExtResource("11_8gesb")]

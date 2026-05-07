@@ -6,6 +6,8 @@ extends Node2D
 signal selected(body: SystemBody)
 
 @onready var body_visual: Sprite2D = $OrbitPivot/BodyVisual
+@onready var back_orbit_units: Node2D = $OrbitPivot/BackOrbitUnits
+@onready var front_orbit_units: Node2D = $OrbitPivot/FrontOrbitUnits
 @onready var selection_ring: Node2D = $OrbitPivot/SelectionRing
 @onready var click_area: Area2D = $OrbitPivot/ClickArea
 @onready var click_collision: CollisionShape2D = $OrbitPivot/ClickArea/CollisionShape2D
@@ -127,6 +129,14 @@ func get_orbit_tangent_direction() -> Vector2:
 
 func get_orbit_velocity_vector() -> Vector2:
 	return orbiting.get_velocity_vector(self)
+
+
+func get_back_orbit_units() -> Node2D:
+	return back_orbit_units
+
+
+func get_front_orbit_units() -> Node2D:
+	return front_orbit_units
 
 
 func get_interaction_orbit_config(

@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://be0aateivpnd3"]
+
+[ext_resource type="Script" uid="uid://kfdd5ni3277n" path="res://scripts/automation/automation_unit.gd" id="1_jasay"]
+[ext_resource type="Texture2D" uid="uid://clce3u01gdpya" path="res://assets/sprites/ship/tiny-spaceships/tinyShip12.png" id="1_ygaj1"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jasay"]
+atlas = ExtResource("1_ygaj1")
+region = Rect2(27, 0, 26, 25)
+
+[node name="MiningShip" type="Node2D" unique_id=818123353]
+script = ExtResource("1_jasay")
+
+[node name="VisualRoot" type="Node2D" parent="." unique_id=1107334371]
+
+[node name="MiningShipSprite" type="Sprite2D" parent="VisualRoot" unique_id=605779304]
+scale = Vector2(0.4, 0.4)
+texture = SubResource("AtlasTexture_jasay")

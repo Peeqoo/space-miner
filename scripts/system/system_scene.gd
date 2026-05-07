@@ -13,6 +13,8 @@ extends Node2D
 @onready var ship_state: SystemShipStateController = $SystemShipStateController
 @onready var selection: SystemSelectionController = $SystemSelectionController
 @onready var system_ui: SystemUIController = $SystemUIController
+@onready var automation_controller: AutomationController = $AutomationController
+
 
 var entered_from_travel: bool = false
 
@@ -94,6 +96,11 @@ func _setup_controllers() -> void:
 		$UI/ActionBar,
 		$UI/ObjectInfoPanel,
 		$UI/BaseManagementPanel
+	)
+	
+	automation_controller.setup(
+		$WorldRoot/AutomationRoot,
+		spawner
 	)
 
 	spawner.body_spawned.connect(selection.register_body)

@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://rwa37t33ikme"]
+
+[ext_resource type="Script" uid="uid://kfdd5ni3277n" path="res://scripts/automation/automation_unit.gd" id="1_jfh3j"]
+[ext_resource type="Texture2D" uid="uid://diwsnwl1j6lr4" path="res://assets/sprites/ship/tiny-spaceships/tinyShip14.png" id="2_7qd26"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v4hwl"]
+atlas = ExtResource("2_7qd26")
+region = Rect2(0, 0, 52, 31)
+
+[node name="Drone" type="Node2D" unique_id=511237723]
+script = ExtResource("1_jfh3j")
+min_orbit_speed = 0.6
+max_orbit_speed = 0.9
+orbit_y_scale_min = 0.9
+orbit_y_scale_max = 0.9
+
+[node name="VisualRoot" type="Node2D" parent="." unique_id=489994150]
+
+[node name="DroneSprite" type="Sprite2D" parent="VisualRoot" unique_id=1113844778]
+scale = Vector2(0.1, 0.1)
+texture = SubResource("AtlasTexture_v4hwl")

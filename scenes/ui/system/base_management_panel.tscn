@@ -1,73 +1,132 @@
 [gd_scene format=3 uid="uid://cw0s5utrneclh"]
 
-[ext_resource type="Script" uid="uid://0a2kf782psjp" path="res://scripts/ui/system/base_management_panel.gd" id="1_wsd2i"]
+[ext_resource type="Script" uid="uid://0a2kf782psjp" path="res://scripts/ui/system/base_management_panel.gd" id="1_base_panel"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/pixeloperator_hbsc_label_settings.tres" id="2_kq77j"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/pixeloperator8_label_settings.tres" id="3_4em1t"]
+[ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="4_3xxhb"]
 
-[node name="BaseManagementPanel" type="PanelContainer" unique_id=735265409]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -152.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = 193.0
-grow_horizontal = 0
-script = ExtResource("1_wsd2i")
+[node name="BaseManagementPanel" type="PanelContainer" unique_id=995273956]
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 158.0
+offset_bottom = 237.0
+script = ExtResource("1_base_panel")
 
-[node name="Margin" type="MarginContainer" parent="." unique_id=901966765]
+[node name="Margin" type="MarginContainer" parent="." unique_id=1006074701]
 layout_mode = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 6
 
-[node name="Root" type="VBoxContainer" parent="Margin" unique_id=873969374]
+[node name="Root" type="VBoxContainer" parent="Margin" unique_id=619935699]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
-[node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=122690385]
+[node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=660345921]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "EARTH BASE"
+label_settings = ExtResource("2_kq77j")
+
+[node name="BaseNameLabel" type="Label" parent="Margin/Root" unique_id=712064729]
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
-text = "Docking Station"
+text = "Earth"
+label_settings = ExtResource("3_4em1t")
 
-[node name="BaseNameLabel" type="Label" parent="Margin/Root" unique_id=1281816898]
+[node name="StatusLabel" type="Label" parent="Margin/Root" unique_id=2054663374]
 layout_mode = 2
 theme_override_font_sizes/font_size = 7
-text = "Earth Base"
+text = "Status: Heimatbasis"
+label_settings = ExtResource("3_4em1t")
 
-[node name="DockStatusLabel" type="Label" parent="Margin/Root" unique_id=1450631312]
+[node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=1435959339]
 layout_mode = 2
+
+[node name="ResourceTitleLabel" type="Label" parent="Margin/Root" unique_id=742250916]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "Ressourcen"
+label_settings = ExtResource("2_kq77j")
+
+[node name="OreLabel" type="Label" parent="Margin/Root" unique_id=1131575576]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Ore: 0"
+label_settings = ExtResource("3_4em1t")
+
+[node name="FuelLabel" type="Label" parent="Margin/Root" unique_id=434105751]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Fuel: 0"
+label_settings = ExtResource("3_4em1t")
+
+[node name="FoodLabel" type="Label" parent="Margin/Root" unique_id=751833493]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Food: 0"
+label_settings = ExtResource("3_4em1t")
+
+[node name="PopulationLabel" type="Label" parent="Margin/Root" unique_id=329933465]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Population: 1"
+label_settings = ExtResource("3_4em1t")
+
+[node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=904480517]
+layout_mode = 2
+
+[node name="ProductionTitleLabel" type="Label" parent="Margin/Root" unique_id=639869244]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "Produktion"
+label_settings = ExtResource("2_kq77j")
+
+[node name="BuildDroneButton" type="Button" parent="Margin/Root" unique_id=1853305213]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_3xxhb")
 theme_override_font_sizes/font_size = 6
-text = "Status: Nicht angedockt"
+text = "Drone bauen"
 
-[node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=1003698480]
+[node name="BuildMiningShipButton" type="Button" parent="Margin/Root" unique_id=1787575394]
 layout_mode = 2
-
-[node name="StorageTitleLabel" type="Label" parent="Margin/Root" unique_id=670716012]
-layout_mode = 2
-theme_override_font_sizes/font_size = 8
-text = "Storage"
-
-[node name="StoragePanel" type="PanelContainer" parent="Margin/Root" unique_id=1993042740]
-custom_minimum_size = Vector2(0, 54)
-layout_mode = 2
-
-[node name="StorageMargin" type="MarginContainer" parent="Margin/Root/StoragePanel" unique_id=521672098]
-layout_mode = 2
-theme_override_constants/margin_left = 3
-theme_override_constants/margin_top = 3
-theme_override_constants/margin_right = 3
-theme_override_constants/margin_bottom = 3
-
-[node name="StorageScroll" type="ScrollContainer" parent="Margin/Root/StoragePanel/StorageMargin" unique_id=1133889311]
-layout_mode = 2
-horizontal_scroll_mode = 0
-
-[node name="StorageList" type="VBoxContainer" parent="Margin/Root/StoragePanel/StorageMargin/StorageScroll" unique_id=10334252]
-layout_mode = 2
-theme_override_constants/separation = 1
-
-[node name="EmptyStorageLabel" type="Label" parent="Margin/Root" unique_id=1916634861]
-layout_mode = 2
+theme_override_fonts/font = ExtResource("4_3xxhb")
 theme_override_font_sizes/font_size = 6
-text = "Leer"
-horizontal_alignment = 1
+text = "Mining Ship bauen"
+
+[node name="BuildColonyShipButton" type="Button" parent="Margin/Root" unique_id=334115297]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_3xxhb")
+theme_override_font_sizes/font_size = 6
+disabled = true
+text = "Colony Ship bauen"
+
+[node name="DividerC" type="HSeparator" parent="Margin/Root" unique_id=1727888585]
+layout_mode = 2
+
+[node name="FleetTitleLabel" type="Label" parent="Margin/Root" unique_id=1976829119]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "Flotte"
+label_settings = ExtResource("2_kq77j")
+
+[node name="DroneCountLabel" type="Label" parent="Margin/Root" unique_id=1878817880]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Drones: 0"
+label_settings = ExtResource("3_4em1t")
+
+[node name="MiningShipCountLabel" type="Label" parent="Margin/Root" unique_id=843576791]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Mining Ships: 0"
+label_settings = ExtResource("3_4em1t")
+
+[node name="StatusTextLabel" type="Label" parent="Margin/Root" unique_id=171420340]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Bereit."
+label_settings = ExtResource("3_4em1t")
+autowrap_mode = 2

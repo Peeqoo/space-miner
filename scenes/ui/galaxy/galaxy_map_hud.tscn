@@ -1,6 +1,10 @@
 [gd_scene format=3 uid="uid://uqkmyvdqw7f7"]
 
 [ext_resource type="Script" uid="uid://bc4fthjt74n78" path="res://scripts/ui/galaxy/galaxy_map_hud.gd" id="1_thtu1"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/pixeloperator_hbsc_label_settings.tres" id="2_g1njk"]
+[ext_resource type="LabelSettings" uid="uid://4xgvxn82u0y7" path="res://scenes/ui/pixeloperator_label_settings.tres" id="3_0qajj"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/pixeloperator8_label_settings.tres" id="4_3tpsn"]
+[ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="5_0qajj"]
 
 [node name="GalaxyMapHUD" type="Control" unique_id=198924309]
 layout_mode = 3
@@ -38,6 +42,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
 text = "Galaxy Map"
+label_settings = ExtResource("2_g1njk")
 
 [node name="Spacer" type="Control" parent="TopBar/Margin/Row" unique_id=1581216165]
 layout_mode = 2
@@ -46,11 +51,13 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Aktuelles System:"
+label_settings = ExtResource("3_0qajj")
 
 [node name="CurrentSystemValueLabel" type="Label" parent="TopBar/Margin/Row" unique_id=1655836973]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Sol-System"
+label_settings = ExtResource("4_3tpsn")
 
 [node name="GalaxyInfoPanel" type="PanelContainer" parent="." unique_id=603520267]
 custom_minimum_size = Vector2(160, 150)
@@ -78,11 +85,13 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
 text = "System"
+label_settings = ExtResource("2_g1njk")
 
 [node name="SystemNameLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=749187470]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Kein System gewählt"
+label_settings = ExtResource("4_3tpsn")
 
 [node name="DividerA" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1560207050]
 layout_mode = 2
@@ -91,6 +100,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Scandaten"
+label_settings = ExtResource("2_g1njk")
 
 [node name="StatsGrid" type="GridContainer" parent="GalaxyInfoPanel/Margin/Root" unique_id=901785336]
 layout_mode = 2
@@ -102,22 +112,26 @@ columns = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Bekannte Planeten"
+label_settings = ExtResource("4_3tpsn")
 
 [node name="KnownPlanetsValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/StatsGrid" unique_id=818791735]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "0"
+label_settings = ExtResource("4_3tpsn")
 horizontal_alignment = 2
 
 [node name="KnownResourcesTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/StatsGrid" unique_id=528362028]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Bekannte Ressourcen"
+label_settings = ExtResource("4_3tpsn")
 
 [node name="KnownResourcesValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/StatsGrid" unique_id=1579823603]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Unknown"
+label_settings = ExtResource("4_3tpsn")
 horizontal_alignment = 2
 
 [node name="DividerB" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1645926760]
@@ -127,12 +141,14 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Info"
+label_settings = ExtResource("2_g1njk")
 
 [node name="InfoTextLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=909580677]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Kein System ausgewählt."
+label_settings = ExtResource("4_3tpsn")
 autowrap_mode = 3
 
 [node name="FillSpace" type="Control" parent="GalaxyInfoPanel/Margin/Root" unique_id=893414396]
@@ -140,5 +156,6 @@ layout_mode = 2
 
 [node name="EnterButton" type="Button" parent="GalaxyInfoPanel/Margin/Root" unique_id=131344656]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("5_0qajj")
 theme_override_font_sizes/font_size = 8
 text = "Enter"
