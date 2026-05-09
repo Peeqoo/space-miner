@@ -644,32 +644,23 @@ func _resolve_mining_resource_id(target_node: Node2D) -> String:
 		push_error("AutomationController: Kein Ziel-Node für Mining-Resource-Auflösung. Mining abgebrochen.")
 		return ""
 
-	# SystemBody: scan_basic/deep/special_resources sind Array[ScannedResourceEntry]
-	if target_node is SystemBody:
-		var body := target_node as SystemBody
-		if body.definition != null:
-			for prop: String in ["scan_basic_resources", "scan_deep_resources", "scan_special_resources"]:
-				var entries: Variant = body.definition.get(prop)
-				if entries == null:
-					continue
-				for entry: Variant in entries:
-					if entry is Resource:
-						var rid: Variant = entry.get("resource_id")
-						if rid != null and not String(rid).is_empty():
-							return String(rid)
+	var definition: Resource = null
 
-	# PointOfInterest: scan_basic/deep/special_resources sind PackedStringArray (Legacy)
-	if target_node is PointOfInterest:
-		var poi := target_node as PointOfInterest
-		if poi.definition != null:
-			for prop: String in ["scan_basic_resources", "scan_deep_resources", "scan_special_resources"]:
-				var entries: Variant = poi.definition.get(prop)
-				if entries == null:
-					continue
-				for entry: Variant in entries:
-					var entry_str := String(entry)
-					if not entry_str.is_empty():
-						return entry_str
+	if target_node is SystemBody:
+		definition = (target_node as SystemBody).definition
+	elif target_node is PointOfInterest:
+		definition = (target_node as PointOfInterest).definition
+
+	if definition != null:
+		for method: StringName in [&"get_basic_scan_resources", &"get_deep_scan_resources", &"get_special_scan_resources"]:
+			if not definition.has_method(method):
+				continue
+			var entries: Array = definition.call(method)
+			for entry: Variant in entries:
+				if entry is Resource:
+					var rid: Variant = entry.get("resource_id")
+					if rid != null and not String(rid).is_empty():
+						return String(rid)
 
 	push_error(
 		"AutomationController: Keine Mining-Resource für Ziel gefunden. Mining abgebrochen. Ziel: %s"

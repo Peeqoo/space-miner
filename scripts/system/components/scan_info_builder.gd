@@ -42,17 +42,17 @@ static func build_scan_info(
 		visible_resources.append_array(_filter_resources_for_scanner(
 			scanner_tier,
 			GameSession.SCANNER_BASIC,
-			_get_resource_entries(definition, "scan_basic_resources")
+			_get_layer_entries(definition, "get_basic_scan_resources")
 		))
 		visible_resources.append_array(_filter_resources_for_scanner(
 			scanner_tier,
 			GameSession.SCANNER_DEEP,
-			_get_resource_entries(definition, "scan_deep_resources")
+			_get_layer_entries(definition, "get_deep_scan_resources")
 		))
 		visible_resources.append_array(_filter_resources_for_scanner(
 			scanner_tier,
 			GameSession.SCANNER_SPECIAL,
-			_get_resource_entries(definition, "scan_special_resources")
+			_get_layer_entries(definition, "get_special_scan_resources")
 		))
 
 	return {
@@ -143,24 +143,11 @@ static func _entry_to_scan_resource(entry: Variant) -> Dictionary:
 	}
 
 
-static func _get_resource_entries(definition: Resource, property_name: StringName) -> Array:
-	if definition == null:
+static func _get_layer_entries(definition: Resource, method_name: StringName) -> Array:
+	if definition == null or not definition.has_method(method_name):
 		return []
 
-	var value: Variant = definition.get(property_name)
-	if value == null:
-		return []
-
-	if value is Array:
-		return value
-
-	if value is PackedStringArray:
-		var result: Array = []
-		for item: String in value:
-			result.append(item)
-		return result
-
-	return []
+	return definition.call(method_name)
 
 
 static func _count_hidden_resource_slots(scanner_tier: String, definition: Resource) -> int:
@@ -168,12 +155,12 @@ static func _count_hidden_resource_slots(scanner_tier: String, definition: Resou
 
 	match scanner_tier:
 		GameSession.SCANNER_BASIC:
-			hidden_count += _get_resource_entries(definition, "scan_deep_resources").size()
-			hidden_count += _get_resource_entries(definition, "scan_special_resources").size()
+			hidden_count += _get_layer_entries(definition, "get_deep_scan_resources").size()
+			hidden_count += _get_layer_entries(definition, "get_special_scan_resources").size()
 			hidden_count += _get_scan_hidden_slots_after_special(definition)
 
 		GameSession.SCANNER_DEEP:
-			hidden_count += _get_resource_entries(definition, "scan_special_resources").size()
+			hidden_count += _get_layer_entries(definition, "get_special_scan_resources").size()
 			hidden_count += _get_scan_hidden_slots_after_special(definition)
 
 		GameSession.SCANNER_SPECIAL:

@@ -6,4 +6,5 @@
 script = ExtResource("1_gs1b1")
 resource_id = &"Helium-3"
 richness_percent = 30
+layer = 2
 metadata/_custom_type_script = "uid://de5akqgbobdkp"

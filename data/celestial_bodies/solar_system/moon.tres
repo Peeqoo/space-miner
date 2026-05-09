@@ -10,6 +10,7 @@
 script = ExtResource("1_j1tw6")
 resource_id = &"Helium-3"
 richness_percent = 30
+layer = 2
 metadata/_custom_type_script = "uid://de5akqgbobdkp"
 
 [resource]
@@ -28,7 +29,5 @@ reference_orbit_au = -1.0
 reference_period_days = -1.0
 size_authoring_mode = 1
 gameplay_size_bias = 0.5
-scan_basic_resources = Array[ExtResource("1_j1tw6")]([ExtResource("2_2c68a")])
-scan_deep_resources = Array[ExtResource("1_j1tw6")]([ExtResource("3_ciqjq")])
-scan_special_resources = Array[ExtResource("1_j1tw6")]([SubResource("Resource_13sni")])
+scan_resources = Array[ExtResource("1_j1tw6")]([ExtResource("2_2c68a"), ExtResource("3_ciqjq"), SubResource("Resource_13sni")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

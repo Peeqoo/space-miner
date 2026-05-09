@@ -159,16 +159,16 @@ func _get_visible_resources_for_body(body_def: SystemBodyDefinition, scan_state:
 	if scan_state == GameSession.SCAN_UNKNOWN:
 		return resources
 
-	for resource_id in body_def.scan_basic_resources:
-		resources.append(str(resource_id))
+	for entry in body_def.get_basic_scan_resources():
+		resources.append(str(entry.resource_id))
 
 	if GameSession.scan_state_rank(scan_state) >= GameSession.scan_state_rank(GameSession.SCAN_DEEP):
-		for resource_id in body_def.scan_deep_resources:
-			resources.append(str(resource_id))
+		for entry in body_def.get_deep_scan_resources():
+			resources.append(str(entry.resource_id))
 
 	if GameSession.scan_state_rank(scan_state) >= GameSession.scan_state_rank(GameSession.SCAN_SPECIAL):
-		for resource_id in body_def.scan_special_resources:
-			resources.append(str(resource_id))
+		for entry in body_def.get_special_scan_resources():
+			resources.append(str(entry.resource_id))
 
 	return resources
 

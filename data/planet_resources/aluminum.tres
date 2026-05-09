@@ -6,4 +6,5 @@
 script = ExtResource("1_lvuuc")
 resource_id = &"Aluminum"
 richness_percent = 60
+layer = 1
 metadata/_custom_type_script = "uid://de5akqgbobdkp"

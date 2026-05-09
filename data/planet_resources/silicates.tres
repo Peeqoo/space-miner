@@ -6,4 +6,5 @@
 script = ExtResource("1_wfw8i")
 resource_id = &"Silicates"
 richness_percent = 90
+layer = 0
 metadata/_custom_type_script = "uid://de5akqgbobdkp"

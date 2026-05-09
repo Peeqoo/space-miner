@@ -3,9 +3,20 @@
 [ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_2q1uy"]
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_ak16d"]
 [ext_resource type="Texture2D" uid="uid://dmkyem5otemdk" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Saturn/With_rings/1.png" id="2_4ya0n"]
-[ext_resource type="Resource" uid="uid://mxwvb2e316xd" path="res://data/planet_resources/methane.tres" id="2_v6405"]
-[ext_resource type="Resource" uid="uid://cuiiypp2u6tuy" path="res://data/planet_resources/hydrogen.tres" id="3_uav8d"]
 [ext_resource type="Resource" uid="uid://cpd08qr45ie3a" path="res://data/planet_resources/helium-3.tres" id="4_8oknq"]
+
+[sub_resource type="Resource" id="Resource_2jg7d"]
+script = ExtResource("1_2q1uy")
+resource_id = &"Methane"
+richness_percent = 90
+metadata/_custom_type_script = "uid://de5akqgbobdkp"
+
+[sub_resource type="Resource" id="Resource_hy0ds"]
+script = ExtResource("1_2q1uy")
+resource_id = &"Hydrogen"
+richness_percent = 90
+layer = 1
+metadata/_custom_type_script = "uid://de5akqgbobdkp"
 
 [resource]
 script = ExtResource("1_ak16d")
@@ -22,7 +33,5 @@ reference_radius_earth = 9.45
 reference_orbit_au = 9.54
 reference_period_days = 10762.0
 size_authoring_mode = 1
-scan_basic_resources = Array[ExtResource("1_2q1uy")]([ExtResource("2_v6405")])
-scan_deep_resources = Array[ExtResource("1_2q1uy")]([ExtResource("3_uav8d")])
-scan_special_resources = Array[ExtResource("1_2q1uy")]([ExtResource("4_8oknq")])
+scan_resources = Array[ExtResource("1_2q1uy")]([SubResource("Resource_2jg7d"), SubResource("Resource_hy0ds"), ExtResource("4_8oknq")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

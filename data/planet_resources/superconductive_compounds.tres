@@ -6,4 +6,5 @@
 script = ExtResource("1_co2if")
 resource_id = &"Superconductive Compounds"
 richness_percent = 30
+layer = 2
 metadata/_custom_type_script = "uid://de5akqgbobdkp"

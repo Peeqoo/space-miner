@@ -12,10 +12,27 @@ extends Resource
 @export var poi_color: Color = Color.WHITE
 @export var texture: Texture2D
 
-# Sprint 4 Scan-Daten
 @export var scan_basic_reveal_name: bool = true
 @export var scan_basic_reveal_type: bool = true
-@export var scan_basic_resources: PackedStringArray = []
-@export var scan_deep_resources: PackedStringArray = []
-@export var scan_special_resources: PackedStringArray = []
+@export var scan_resources: Array[ScannedResourceEntry] = []
 @export var scan_hidden_slots_after_special: int = 0
+
+
+func get_scan_resources_by_layer(layer: ScannedResourceEntry.Layer) -> Array[ScannedResourceEntry]:
+	var result: Array[ScannedResourceEntry] = []
+	for entry in scan_resources:
+		if entry != null and entry.layer == layer:
+			result.append(entry)
+	return result
+
+
+func get_basic_scan_resources() -> Array[ScannedResourceEntry]:
+	return get_scan_resources_by_layer(ScannedResourceEntry.Layer.BASIC)
+
+
+func get_deep_scan_resources() -> Array[ScannedResourceEntry]:
+	return get_scan_resources_by_layer(ScannedResourceEntry.Layer.DEEP)
+
+
+func get_special_scan_resources() -> Array[ScannedResourceEntry]:
+	return get_scan_resources_by_layer(ScannedResourceEntry.Layer.SPECIAL)

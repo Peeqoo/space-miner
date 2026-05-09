@@ -6,4 +6,5 @@
 script = ExtResource("1_hf1pt")
 resource_id = &"Quantum Crystals"
 richness_percent = 30
+layer = 2
 metadata/_custom_type_script = "uid://de5akqgbobdkp"

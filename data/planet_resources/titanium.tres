@@ -6,4 +6,5 @@
 script = ExtResource("1_ythve")
 resource_id = &"Titanium"
 richness_percent = 60
+layer = 1
 metadata/_custom_type_script = "uid://de5akqgbobdkp"
