@@ -14,7 +14,7 @@ const DEFAULT_MINING_DURATION: float = 999999.0
 const DEFAULT_MINING_CARGO_CAPACITY: int = 20
 const DEFAULT_MINING_RATE_PER_SECOND: float = 2.0
 const DEFAULT_MINING_UNLOAD_DURATION: float = 2.0
-const DEFAULT_MINING_RESOURCE_ID: String = BaseStore.RESOURCE_ORE
+const DEFAULT_MINING_RESOURCE_ID: String = ""
 const DRONE_MINING_BONUS_PER_UNIT: float = 0.02
 
 var automation_root: Node2D
@@ -51,28 +51,39 @@ func ensure_starting_units() -> void:
 
 	starting_units_initialized = true
 
-	if idle_mining_ships.size() > 0:
-		return
-
 	var base_node := _get_target_node(BASE_ID_EARTH)
 
 	if base_node == null:
 		return
 
-	var unit := _spawn_unit(MINING_SHIP_SCENE)
+	# BaseStore is the source of truth for fleet counts.
+	# Spawn idle visual units to match — handles both first load and scene reloads.
+	var ships_to_spawn := GameSession.get_base_mining_ship_count(BASE_ID_EARTH) - idle_mining_ships.size()
 
-	if unit == null:
-		return
+	for i in ships_to_spawn:
+		var unit := _spawn_unit(MINING_SHIP_SCENE)
 
-	unit.work_duration = DEFAULT_MINING_DURATION
-	unit.start_orbiting_base(base_node)
-	idle_mining_ships.append(unit)
+		if unit == null:
+			continue
 
-	# Sync BaseStore — only if not already counted (safe on scene reload).
-	if GameSession.get_base_mining_ship_count(BASE_ID_EARTH) == 0:
-		GameSession.add_base_mining_ship(BASE_ID_EARTH)
+		unit.work_duration = DEFAULT_MINING_DURATION
+		unit.start_orbiting_base(base_node)
+		idle_mining_ships.append(unit)
 
-	automation_state_changed.emit()
+	var drones_to_spawn := GameSession.get_base_drone_count(BASE_ID_EARTH) - idle_drones.size()
+
+	for i in drones_to_spawn:
+		var unit := _spawn_unit(DRONE_SCENE)
+
+		if unit == null:
+			continue
+
+		unit.work_duration = DEFAULT_SCAN_DURATION
+		unit.start_orbiting_base(base_node)
+		idle_drones.append(unit)
+
+	if ships_to_spawn > 0 or drones_to_spawn > 0:
+		automation_state_changed.emit()
 
 
 func spawn_idle_drone_at_base(base_id: String = BASE_ID_EARTH) -> void:
@@ -161,10 +172,16 @@ func launch_mining_ship(target_id: String) -> void:
 	if not unit.returned_to_base.is_connected(_on_mining_ship_returned_to_base):
 		unit.returned_to_base.connect(_on_mining_ship_returned_to_base)
 
+	var resolved_resource_id := _resolve_mining_resource_id(target_node)
+	if resolved_resource_id.is_empty():
+		_disconnect_unit_signals(unit)
+		unit.return_to_base_orbit()
+		return
+
 	mining_ship_runtime_by_unit_id[unit.get_instance_id()] = {
 		"base_id": BASE_ID_EARTH,
 		"target_id": target_id,
-		"cargo_resource_id": DEFAULT_MINING_RESOURCE_ID,
+		"cargo_resource_id": resolved_resource_id,
 		"current_cargo": 0.0,
 		"cargo_capacity": DEFAULT_MINING_CARGO_CAPACITY,
 		"mining_rate_per_second": DEFAULT_MINING_RATE_PER_SECOND,
@@ -512,10 +529,10 @@ func _on_mining_ship_returned_to_base(unit: AutomationUnit) -> void:
 		return
 
 	var base_id := str(runtime.get("base_id", BASE_ID_EARTH))
-	var resource_id := str(runtime.get("cargo_resource_id", DEFAULT_MINING_RESOURCE_ID))
+	var resource_id := str(runtime.get("cargo_resource_id", ""))
 	var current_cargo := int(floor(float(runtime.get("current_cargo", 0.0))))
 
-	if current_cargo > 0:
+	if current_cargo > 0 and not resource_id.is_empty():
 		GameSession.add_base_resource(base_id, resource_id, current_cargo)
 
 	runtime["current_cargo"] = 0.0
@@ -620,3 +637,42 @@ func _get_target_node(target_id: String) -> Node2D:
 		return null
 
 	return spawner.get_spawned_object(target_id) as Node2D
+
+
+func _resolve_mining_resource_id(target_node: Node2D) -> String:
+	if target_node == null:
+		push_error("AutomationController: Kein Ziel-Node für Mining-Resource-Auflösung. Mining abgebrochen.")
+		return ""
+
+	# SystemBody: scan_basic/deep/special_resources sind Array[ScannedResourceEntry]
+	if target_node is SystemBody:
+		var body := target_node as SystemBody
+		if body.definition != null:
+			for prop: String in ["scan_basic_resources", "scan_deep_resources", "scan_special_resources"]:
+				var entries: Variant = body.definition.get(prop)
+				if entries == null:
+					continue
+				for entry: Variant in entries:
+					if entry is Resource:
+						var rid: Variant = entry.get("resource_id")
+						if rid != null and not String(rid).is_empty():
+							return String(rid)
+
+	# PointOfInterest: scan_basic/deep/special_resources sind PackedStringArray (Legacy)
+	if target_node is PointOfInterest:
+		var poi := target_node as PointOfInterest
+		if poi.definition != null:
+			for prop: String in ["scan_basic_resources", "scan_deep_resources", "scan_special_resources"]:
+				var entries: Variant = poi.definition.get(prop)
+				if entries == null:
+					continue
+				for entry: Variant in entries:
+					var entry_str := String(entry)
+					if not entry_str.is_empty():
+						return entry_str
+
+	push_error(
+		"AutomationController: Keine Mining-Resource für Ziel gefunden. Mining abgebrochen. Ziel: %s"
+		% str(target_node.name)
+	)
+	return ""

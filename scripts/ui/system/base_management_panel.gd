@@ -8,33 +8,18 @@ signal build_colony_ship_requested
 
 const STORAGE_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/storage_info_row.tscn")
 
-const DRONE_ORE_COST: int = 10
-const MINING_SHIP_ORE_COST: int = 25
-const COLONY_SHIP_ORE_COST: int = 200
-const COLONY_SHIP_FUEL_COST: int = 100
-const COLONY_SHIP_POPULATION_COST: int = 10
-
-const BASE_RESOURCE_ORDER: PackedStringArray = [
-	"ore",
-	"fuel",
-	"food",
-]
-
 const BUTTON_INFO: Dictionary = {
 	"BuildDroneButton": {
 		"title": "Drone bauen",
 		"desc": "Baut eine einfache Arbeitsdrohne für Basis- und Sammelaufgaben.",
-		"cost": "Kosten: 10 Ore",
 	},
 	"BuildMiningShipButton": {
 		"title": "Mining Ship bauen",
 		"desc": "Baut ein Mining-Schiff für automatisierten Ressourcenabbau.",
-		"cost": "Kosten: 25 Ore",
 	},
 	"BuildColonyShipButton": {
 		"title": "Colony Ship bauen",
 		"desc": "Bereitet ein Kolonieschiff für spätere Expansion vor.",
-		"cost": "Kosten: 200 Ore, 100 Fuel, 10 Population",
 	},
 }
 
@@ -97,8 +82,6 @@ func hide_panel() -> void:
 func refresh_from_game_session() -> void:
 	var base_id := _get_current_base_id()
 
-	var ore := _get_base_resource_amount(base_id, "ore")
-	var fuel := _get_base_resource_amount(base_id, "fuel")
 	var population := _get_base_population(base_id)
 	var drones := _get_base_drone_count(base_id)
 	var mining_ships := _get_base_mining_ship_count(base_id)
@@ -112,13 +95,9 @@ func refresh_from_game_session() -> void:
 	drone_count_label.text = "Drones: %d" % drones
 	mining_ship_count_label.text = "Mining Ships: %d" % mining_ships
 
-	build_drone_button.disabled = ore < DRONE_ORE_COST
-	build_mining_ship_button.disabled = ore < MINING_SHIP_ORE_COST
-	build_colony_ship_button.disabled = (
-		ore < COLONY_SHIP_ORE_COST
-		or fuel < COLONY_SHIP_FUEL_COST
-		or population < COLONY_SHIP_POPULATION_COST
-	)
+	build_drone_button.disabled = not GameSession.can_build_base_drone(base_id)
+	build_mining_ship_button.disabled = not GameSession.can_build_base_mining_ship(base_id)
+	build_colony_ship_button.disabled = not GameSession.can_build_base_colony_ship(base_id)
 
 
 func set_status_text(text: String) -> void:
@@ -131,11 +110,11 @@ func set_status_text(text: String) -> void:
 func _on_build_drone_pressed() -> void:
 	var base_id := _get_current_base_id()
 
-	if _build_base_drone(base_id):
+	if GameSession.build_base_drone(base_id):
 		set_status_text("Drone gebaut.")
 		build_drone_requested.emit()
 	else:
-		set_status_text("Nicht genug Ore für Drone.")
+		set_status_text("Nicht genug Ressourcen für Drone.")
 
 	refresh_from_game_session()
 
@@ -143,11 +122,11 @@ func _on_build_drone_pressed() -> void:
 func _on_build_mining_ship_pressed() -> void:
 	var base_id := _get_current_base_id()
 
-	if _build_base_mining_ship(base_id):
+	if GameSession.build_base_mining_ship(base_id):
 		set_status_text("Mining Ship gebaut.")
 		build_mining_ship_requested.emit()
 	else:
-		set_status_text("Nicht genug Ore für Mining Ship.")
+		set_status_text("Nicht genug Ressourcen für Mining Ship.")
 
 	refresh_from_game_session()
 
@@ -155,56 +134,36 @@ func _on_build_mining_ship_pressed() -> void:
 func _on_build_colony_ship_pressed() -> void:
 	var base_id := _get_current_base_id()
 
-	var ore := _get_base_resource_amount(base_id, "ore")
-	var fuel := _get_base_resource_amount(base_id, "fuel")
-	var population := _get_base_population(base_id)
+	if GameSession.build_base_colony_ship(base_id):
+		set_status_text("Colony Ship vorbereitet.")
+		build_colony_ship_requested.emit()
+	else:
+		set_status_text("Nicht genug Ressourcen für Colony Ship.")
 
-	if ore < COLONY_SHIP_ORE_COST:
-		set_status_text("Nicht genug Ore für Colony Ship.")
-		refresh_from_game_session()
-		return
-
-	if fuel < COLONY_SHIP_FUEL_COST:
-		set_status_text("Nicht genug Fuel für Colony Ship.")
-		refresh_from_game_session()
-		return
-
-	if population < COLONY_SHIP_POPULATION_COST:
-		set_status_text("Nicht genug Population für Colony Ship.")
-		refresh_from_game_session()
-		return
-
-	if not _spend_base_resource(base_id, "ore", COLONY_SHIP_ORE_COST):
-		set_status_text("Colony Ship konnte nicht gebaut werden.")
-		refresh_from_game_session()
-		return
-
-	if not _spend_base_resource(base_id, "fuel", COLONY_SHIP_FUEL_COST):
-		_add_base_resource(base_id, "ore", COLONY_SHIP_ORE_COST)
-		set_status_text("Colony Ship konnte nicht gebaut werden.")
-		refresh_from_game_session()
-		return
-
-	# Population wird hier bewusst noch nicht abgezogen, solange GameSession dafür keinen sicheren Spend-Call hat.
-	set_status_text("Colony Ship vorbereitet.")
-	build_colony_ship_requested.emit()
 	refresh_from_game_session()
 
 
 func _rebuild_resource_list(base_id: String) -> void:
 	_clear_resource_list()
 
-	for resource_id in BASE_RESOURCE_ORDER:
-		var amount := _get_base_resource_amount(base_id, resource_id)
-		_add_storage_row(_format_title(resource_id), amount)
+	var resources := GameSession.get_base_resources(base_id)
+
+	for resource_id in resources:
+		var amount := int(resources.get(resource_id, 0))
+		_add_storage_row(_format_title(str(resource_id)), amount)
 
 
 func _add_storage_row(resource_name: String, amount: int) -> void:
 	var row := STORAGE_ROW_SCENE.instantiate()
 	resource_list.add_child(row)
 
-	if row.has_method("set_row_data"):
-		row.call("set_row_data", resource_name, amount)
+	var name_label := row.get_node_or_null("ResourceNameLabel") as Label
+	var value_label := row.get_node_or_null("ResourceValueLabel") as Label
+
+	if name_label != null:
+		name_label.text = resource_name
+	if value_label != null:
+		value_label.text = str(amount)
 
 
 func _clear_resource_list() -> void:
@@ -241,28 +200,15 @@ func _on_action_button_mouse_exited(_button: Button) -> void:
 
 
 func _build_hover_cost_text(button: Button) -> String:
-	var base_id := _get_current_base_id()
-	var ore := _get_base_resource_amount(base_id, "ore")
-	var fuel := _get_base_resource_amount(base_id, "fuel")
-	var population := _get_base_population(base_id)
-
 	match button.name:
 		"BuildDroneButton":
-			return "Ore: %d / %d" % [ore, DRONE_ORE_COST]
+			return "Kosten: %s" % GameSession.get_build_cost_text("drone")
 		"BuildMiningShipButton":
-			return "Ore: %d / %d" % [ore, MINING_SHIP_ORE_COST]
+			return "Kosten: %s" % GameSession.get_build_cost_text("mining_ship")
 		"BuildColonyShipButton":
-			return "Ore: %d / %d | Fuel: %d / %d | Pop: %d / %d" % [
-				ore,
-				COLONY_SHIP_ORE_COST,
-				fuel,
-				COLONY_SHIP_FUEL_COST,
-				population,
-				COLONY_SHIP_POPULATION_COST,
-			]
+			return "Kosten: %s" % GameSession.get_build_cost_text("colony_ship")
 		_:
-			var info: Dictionary = BUTTON_INFO.get(button.name, {})
-			return str(info.get("cost", ""))
+			return ""
 
 
 func _get_current_base_id() -> String:
@@ -270,18 +216,6 @@ func _get_current_base_id() -> String:
 		return BaseStore.BASE_EARTH
 
 	return current_body_id
-
-
-func _get_base_resource_amount(base_id: String, resource_id: String) -> int:
-	return GameSession.get_base_resource_amount(base_id, resource_id)
-
-
-func _add_base_resource(base_id: String, resource_id: String, amount: int) -> void:
-	GameSession.add_base_resource(base_id, resource_id, amount)
-
-
-func _spend_base_resource(base_id: String, resource_id: String, amount: int) -> bool:
-	return GameSession.spend_base_resource(base_id, resource_id, amount)
 
 
 func _get_base_population(base_id: String) -> int:
@@ -294,14 +228,6 @@ func _get_base_drone_count(base_id: String) -> int:
 
 func _get_base_mining_ship_count(base_id: String) -> int:
 	return GameSession.get_base_mining_ship_count(base_id)
-
-
-func _build_base_drone(base_id: String) -> bool:
-	return GameSession.build_base_drone(base_id)
-
-
-func _build_base_mining_ship(base_id: String) -> bool:
-	return GameSession.build_base_mining_ship(base_id)
 
 
 func _format_title(value: String) -> String:

@@ -133,6 +133,10 @@ func get_base_resource_amount(base_id: String, resource_id: String) -> int:
 	return bases.get_resource_amount(base_id, resource_id)
 
 
+func get_base_resources(base_id: String) -> Dictionary:
+	return bases.get_resources(base_id)
+
+
 func add_base_resource(base_id: String, resource_id: String, amount: int) -> void:
 	bases.add_resource(base_id, resource_id, amount)
 
@@ -159,6 +163,34 @@ func build_base_drone(base_id: String) -> bool:
 
 func build_base_mining_ship(base_id: String) -> bool:
 	return bases.build_mining_ship(base_id)
+
+
+func build_base_colony_ship(base_id: String) -> bool:
+	return bases.build_colony_ship(base_id)
+
+
+func can_build_base_drone(base_id: String) -> bool:
+	return bases.can_afford(base_id, BaseStore.DRONE_COST)
+
+
+func can_build_base_mining_ship(base_id: String) -> bool:
+	return bases.can_afford(base_id, BaseStore.MINING_SHIP_COST)
+
+
+func can_build_base_colony_ship(base_id: String) -> bool:
+	return bases.can_afford(base_id, BaseStore.COLONY_SHIP_COST)
+
+
+func get_build_cost_text(unit_type: String) -> String:
+	match unit_type:
+		"drone":
+			return bases.format_cost(BaseStore.DRONE_COST)
+		"mining_ship":
+			return bases.format_cost(BaseStore.MINING_SHIP_COST)
+		"colony_ship":
+			return bases.format_cost(BaseStore.COLONY_SHIP_COST)
+		_:
+			return ""
 
 
 # Adds units without cost. Used for starting units and event grants.

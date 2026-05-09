@@ -1,0 +1,1158 @@
+{
+  "generated_at": "2026-05-09",
+  "godot_version": "4.6.1",
+  "project_name": "SpaceMining",
+  "main_scene": "res://scenes/core/main.tscn",
+
+  "autoloads": [
+	{
+	  "name": "GameSession",
+	  "path": "res://scripts/autoload/game_session.gd",
+	  "signals": [],
+	  "notes": "Fassade über BaseStore, AutomationStore, ObjectScanStore, ScannerStore, SystemEntryStore"
+	},
+	{
+	  "name": "SceneFlow",
+	  "path": "res://scripts/autoload/scene_flow.gd",
+	  "signals": []
+	}
+  ],
+
+  "scripts": [
+	{
+	  "path": "res://scripts/core/main.gd",
+	  "class_name": "",
+	  "extends": "Node",
+	  "autoloads_used": ["SceneFlow", "GameSession"],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": ["$SceneRoot/CurrentSceneSlot"]
+	},
+	{
+	  "path": "res://scripts/autoload/game_session.gd",
+	  "class_name": "",
+	  "extends": "Node",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [],
+	  "notes": "Instanziiert intern: ObjectScanStore, SystemEntryStore, BaseStore, AutomationStore, ScannerStore"
+	},
+	{
+	  "path": "res://scripts/autoload/scene_flow.gd",
+	  "class_name": "",
+	  "extends": "Node",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": ["SceneRoot/CurrentSceneSlot"]
+	},
+	{
+	  "path": "res://scripts/autoload/stores/base_store.gd",
+	  "class_name": "BaseStore",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/autoload/stores/automation_store.gd",
+	  "class_name": "AutomationStore",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/autoload/stores/object_scan_store.gd",
+	  "class_name": "ObjectScanStore",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/autoload/stores/scanner_store.gd",
+	  "class_name": "ScannerStore",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/autoload/stores/system_entry_store.gd",
+	  "class_name": "SystemEntryStore",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/system_scene.gd",
+	  "class_name": "",
+	  "extends": "Node2D",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [
+		"spawner.body_spawned -> selection.register_body",
+        "spawner.poi_spawned -> selection.register_poi"
+	  ],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$CameraRoot/SystemCamera2D",
+		"$SystemSpawner",
+		"$SystemOrbitGuidesController",
+		"$SystemSelectionController",
+		"$SystemUIController",
+		"$AutomationController",
+		"$WorldRoot/StarRoot",
+		"$WorldRoot/SystemBodiesRoot",
+		"$WorldRoot/PointOfInterestRoot",
+		"$WorldRoot/AutomationRoot",
+		"$BackgroundRoot/OrbitGuidesLayer",
+		"$UI/ObjectInfoPanel",
+        "$UI/BaseManagementPanel"
+	  ]
+	},
+	{
+	  "path": "res://scripts/system/system_body.gd",
+	  "class_name": "SystemBody",
+	  "extends": "Node2D",
+	  "autoloads_used": [],
+	  "signals_defined": ["selected(body: SystemBody)"],
+	  "signals_emitted": ["selected"],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$OrbitPivot/BodyVisual",
+		"$OrbitPivot/BackOrbitUnits",
+		"$OrbitPivot/FrontOrbitUnits",
+		"$OrbitPivot/SelectionRing",
+		"$OrbitPivot/ClickArea",
+        "$OrbitPivot/ClickArea/CollisionShape2D"
+	  ]
+	},
+	{
+	  "path": "res://scripts/system/point_of_interest.gd",
+	  "class_name": "PointOfInterest",
+	  "extends": "Node2D",
+	  "autoloads_used": [],
+	  "signals_defined": ["selected(poi: PointOfInterest)"],
+	  "signals_emitted": ["selected"],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$OrbitPivot/POIVisual",
+		"$OrbitPivot/SelectionRing",
+		"$OrbitPivot/ClickArea",
+        "$OrbitPivot/ClickArea/CollisionShape2D"
+	  ]
+	},
+	{
+	  "path": "res://scripts/system/orbit_guides_renderer.gd",
+	  "class_name": "",
+	  "extends": "Node2D",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/selection_ring.gd",
+	  "class_name": "",
+	  "extends": "Node2D",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/celestial_presentation_calculator.gd",
+	  "class_name": "CelestialPresentationCalculator",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/controller/automation_controller.gd",
+	  "class_name": "AutomationController",
+	  "extends": "Node",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": ["automation_state_changed"],
+	  "signals_emitted": ["automation_state_changed"],
+	  "signals_connected": [
+		"unit.arrived_at_target -> _on_scan_drone_arrived_at_target (dynamisch, per Mission)",
+		"unit.arrived_at_target -> _on_mining_ship_arrived_at_target (dynamisch)",
+        "unit.returned_to_base -> _on_mining_ship_returned_to_base (dynamisch)"
+	  ],
+	  "preloads": [
+		"res://scenes/automation/drone.tscn",
+        "res://scenes/automation/mining_ship.tscn"
+	  ],
+	  "risk_node_paths": [],
+	  "notes": "Interne Puffer-Keys: current_cargo, cargo_capacity, cargo_resource_id — KEIN eigenständiges Ship-Cargo-Objekt"
+	},
+	{
+	  "path": "res://scripts/system/controller/system_ui_controller.gd",
+	  "class_name": "SystemUIController",
+	  "extends": "Node",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [
+		"selection.selection_changed -> _on_selection_changed",
+		"automation_controller.automation_state_changed -> _on_automation_state_changed",
+		"object_info_panel.scan_requested -> _on_object_scan_requested",
+		"object_info_panel.mining_requested -> _on_object_mining_requested",
+		"object_info_panel.recall_drone_requested -> _on_recall_drone_requested",
+		"object_info_panel.recall_mining_ship_requested -> _on_recall_mining_ship_requested",
+		"base_management_panel.build_drone_requested -> _on_build_drone_requested",
+        "base_management_panel.build_mining_ship_requested -> _on_build_mining_ship_requested"
+	  ],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/controller/system_camera_controller.gd",
+	  "class_name": "SystemCameraController",
+	  "extends": "Camera2D",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/controller/system_selection_controller.gd",
+	  "class_name": "SystemSelectionController",
+	  "extends": "Node",
+	  "autoloads_used": [],
+	  "signals_defined": ["selection_changed(selected_node: Node)"],
+	  "signals_emitted": ["selection_changed"],
+	  "signals_connected": [
+		"body.selected -> _on_body_selected",
+        "poi.selected -> _on_poi_selected"
+	  ],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/controller/system_spawner.gd",
+	  "class_name": "SystemSpawner",
+	  "extends": "Node",
+	  "autoloads_used": [],
+	  "signals_defined": [
+		"body_spawned(body: SystemBody)",
+        "poi_spawned(poi: PointOfInterest)"
+	  ],
+	  "signals_emitted": ["body_spawned", "poi_spawned"],
+	  "signals_connected": [],
+	  "preloads": [
+		"res://scenes/system/objects/system_body.tscn",
+        "res://scenes/system/objects/point_of_interest.tscn"
+	  ],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/controller/system_orbit_guides_controller.gd",
+	  "class_name": "SystemOrbitGuidesController",
+	  "extends": "Node",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/components/scan_info_builder.gd",
+	  "class_name": "ScanInfoBuilder",
+	  "extends": "RefCounted",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [],
+	  "notes": "Enthält Kompatibilitäts-Fallback für PackedStringArray (POI-Definitionen, veraltet)"
+	},
+	{
+	  "path": "res://scripts/system/components/orbiting_object_component.gd",
+	  "class_name": "OrbitingObjectComponent",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/system/components/selectable_object_component.gd",
+	  "class_name": "SelectableObjectComponent",
+	  "extends": "RefCounted",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://scripts/ui/system/base_management_panel.gd",
+	  "class_name": "",
+	  "extends": "PanelContainer",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": [
+		"build_drone_requested",
+		"build_mining_ship_requested",
+        "build_colony_ship_requested"
+	  ],
+	  "signals_emitted": [
+		"build_drone_requested",
+		"build_mining_ship_requested",
+        "build_colony_ship_requested"
+	  ],
+	  "signals_connected": [],
+	  "preloads": [
+        "res://scenes/ui/system/storage_info_row.tscn"
+	  ],
+	  "risk_node_paths": [
+		"$Margin/Root/HeaderSection/BaseNameLabel",
+		"$Margin/Root/HeaderSection/StatusLabel",
+		"$Margin/Root/HeaderSection/PopulationLabel",
+		"$Margin/Root/StorageSection/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
+		"$Margin/Root/ProductionSection/ProductionGrid/BuildDroneButton",
+		"$Margin/Root/ProductionSection/ProductionGrid/BuildMiningShipButton",
+		"$Margin/Root/ProductionSection/ProductionGrid/BuildColonyShipButton",
+		"$Margin/Root/FleetSection/FleetGrid/DroneCountLabel",
+		"$Margin/Root/FleetSection/FleetGrid/MiningShipCountLabel",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel",
+        "Margin/Root/StatusTextLabel (get_node_or_null — Node FEHLT im tscn, Fallback aktiv)"
+	  ]
+	},
+	{
+	  "path": "res://scripts/ui/system/object_info_panel.gd",
+	  "class_name": "",
+	  "extends": "PanelContainer",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": [
+		"scan_requested(object_id: String)",
+		"mining_requested(object_id: String)",
+		"recall_drone_requested(object_id: String)",
+        "recall_mining_ship_requested(object_id: String)"
+	  ],
+	  "signals_emitted": [
+		"scan_requested",
+		"mining_requested",
+		"recall_drone_requested",
+        "recall_mining_ship_requested"
+	  ],
+	  "signals_connected": [],
+	  "preloads": [
+        "res://scenes/ui/system/resource_info_row.tscn"
+	  ],
+	  "risk_node_paths": [
+		"$Margin/Root/HeaderLabel",
+		"$Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture",
+		"$Margin/Root/MainRow/MetaColumn/NameLabel",
+		"$Margin/Root/MainRow/MetaColumn/TypeLabel",
+		"$Margin/Root/MainRow/MetaColumn/ScanStatusLabel",
+		"$Margin/Root/MainRow/MetaColumn/DistanceLabel",
+		"$Margin/Root/ResourceTitleLabel",
+		"$Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
+		"$Margin/Root/LoreTitleLabel",
+		"$Margin/Root/LoreTextLabel",
+		"$Margin/Root/VBoxContainer/DroneOrbitLabel",
+		"$Margin/Root/VBoxContainer/MineOrbitLabel",
+		"$Margin/Root/VBoxContainer/MiningBonusLabel",
+		"$Margin/Root/GridContainer/ScanWithDroneButton",
+		"$Margin/Root/GridContainer/SendMiningShipButton",
+		"$Margin/Root/GridContainer/RecallDroneButton",
+        "$Margin/Root/GridContainer/RecallMiningShipButton"
+	  ]
+	},
+	{
+	  "path": "res://scripts/ui/system/storage_row.gd",
+	  "class_name": "",
+	  "extends": "HBoxContainer",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$ResourceNameLabel",
+        "$ResourceAmountLabel (Nodename weicht von storage_info_row.tscn ab)"
+	  ],
+	  "notes": "VERWAIST — kein .tscn nutzt dieses Script; kann sicher gelöscht werden"
+	},
+	{
+	  "path": "res://scripts/ui/system/resource_info_row.gd",
+	  "class_name": "ResourceInfoRow",
+	  "extends": "HBoxContainer",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$ResourceNameLabel",
+        "$ResourceValueLabel"
+	  ]
+	},
+	{
+	  "path": "res://scripts/galaxy/galaxy_map.gd",
+	  "class_name": "",
+	  "extends": "Node2D",
+	  "autoloads_used": ["GameSession", "SceneFlow"],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [
+        "hud.enter_requested -> _on_enter_pressed"
+	  ],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$CameraRoot/GalaxyCamera2D",
+		"$SystemsRoot",
+        "UI/GalaxyMapHUD"
+	  ]
+	},
+	{
+	  "path": "res://scripts/galaxy/galaxy_system_node.gd",
+	  "class_name": "",
+	  "extends": "Node2D",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [
+        "area.input_event -> _on_click"
+	  ],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$Area2D",
+		"$Area2D/CollisionShape2D",
+        "SelectionRing (get_node_or_null)"
+	  ]
+	},
+	{
+	  "path": "res://scripts/ui/galaxy/galaxy_map_hud.gd",
+	  "class_name": "GalaxyMapHUD",
+	  "extends": "Control",
+	  "autoloads_used": [],
+	  "signals_defined": ["enter_requested"],
+	  "signals_emitted": ["enter_requested"],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$TopBar/Margin/Row/TitleLabel",
+		"$TopBar/Margin/Row/CurrentSystemTitleLabel",
+		"$TopBar/Margin/Row/CurrentSystemValueLabel",
+		"$GalaxyInfoPanel/Margin/Root/HeaderLabel",
+		"$GalaxyInfoPanel/Margin/Root/SystemNameLabel",
+		"$GalaxyInfoPanel/Margin/Root/ScanTitleLabel",
+		"$GalaxyInfoPanel/Margin/Root/StatsGrid/KnownPlanetsValueLabel",
+		"$GalaxyInfoPanel/Margin/Root/StatsGrid/KnownResourcesValueLabel",
+		"$GalaxyInfoPanel/Margin/Root/InfoTitleLabel",
+		"$GalaxyInfoPanel/Margin/Root/InfoTextLabel",
+        "$GalaxyInfoPanel/Margin/Root/EnterButton"
+	  ]
+	},
+	{
+	  "path": "res://scripts/automation/automation_unit.gd",
+	  "class_name": "AutomationUnit",
+	  "extends": "Node2D",
+	  "autoloads_used": [],
+	  "signals_defined": [
+		"arrived_at_target(unit: AutomationUnit)",
+        "returned_to_base(unit: AutomationUnit)"
+	  ],
+	  "signals_emitted": ["arrived_at_target", "returned_to_base"],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+        "$VisualRoot"
+	  ]
+	},
+	{
+	  "path": "res://resources/definitions/system_definition.gd",
+	  "class_name": "SystemDefinition",
+	  "extends": "Resource",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	},
+	{
+	  "path": "res://resources/definitions/system_body_definition.gd",
+	  "class_name": "SystemBodyDefinition",
+	  "extends": "Resource",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [],
+	  "notes": "scan_basic/deep/special_resources: Array[ScannedResourceEntry] (aktuelles Format)"
+	},
+	{
+	  "path": "res://resources/definitions/point_of_interest_definition.gd",
+	  "class_name": "PointOfInterestDefinition",
+	  "extends": "Resource",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [],
+	  "notes": "scan_basic/deep/special_resources: PackedStringArray (VERALTET — Kompatibilitäts-Fallback in scan_info_builder.gd aktiv)"
+	},
+	{
+	  "path": "res://resources/definitions/scanned_resource_entry.gd",
+	  "class_name": "ScannedResourceEntry",
+	  "extends": "Resource",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": []
+	}
+  ],
+
+  "scenes": [
+	{
+	  "path": "res://scenes/core/main.tscn",
+	  "root_node": "Node",
+	  "script": "res://scripts/core/main.gd",
+	  "child_nodes": ["SceneRoot", "SceneRoot/CurrentSceneSlot"],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/galaxy/galaxy_map.tscn",
+	  "root_node": "Node2D",
+	  "script": "res://scripts/galaxy/galaxy_map.gd",
+	  "child_nodes": ["CameraRoot/GalaxyCamera2D", "SystemsRoot", "UI/GalaxyMapHUD"],
+	  "instanced_scenes": ["res://scenes/ui/galaxy/galaxy_map_hud.tscn"]
+	},
+	{
+	  "path": "res://scenes/ui/galaxy/galaxy_map_hud.tscn",
+	  "root_node": "Control",
+	  "script": "res://scripts/ui/galaxy/galaxy_map_hud.gd",
+	  "child_nodes": ["TopBar", "GalaxyInfoPanel"],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/system/system_scene.tscn",
+	  "root_node": "Node2D",
+	  "script": "res://scripts/system/system_scene.gd",
+	  "child_nodes": [
+		"CameraRoot/SystemCamera2D",
+		"SystemSpawner",
+		"SystemOrbitGuidesController",
+		"SystemSelectionController",
+		"SystemUIController",
+		"AutomationController",
+		"WorldRoot/StarRoot",
+		"WorldRoot/SystemBodiesRoot",
+		"WorldRoot/PointOfInterestRoot",
+		"WorldRoot/AutomationRoot",
+		"BackgroundRoot/OrbitGuidesLayer",
+		"UI/ObjectInfoPanel",
+        "UI/BaseManagementPanel"
+	  ],
+	  "instanced_scenes": [
+		"res://scenes/ui/system/object_info_panel.tscn",
+        "res://scenes/ui/system/base_management_panel.tscn"
+	  ]
+	},
+	{
+	  "path": "res://scenes/system/objects/system_body.tscn",
+	  "root_node": "Node2D",
+	  "script": "res://scripts/system/system_body.gd",
+	  "child_nodes": [
+		"OrbitPivot/BodyVisual",
+		"OrbitPivot/BackOrbitUnits",
+		"OrbitPivot/FrontOrbitUnits",
+		"OrbitPivot/SelectionRing",
+		"OrbitPivot/ClickArea",
+        "OrbitPivot/ClickArea/CollisionShape2D"
+	  ],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/system/objects/point_of_interest.tscn",
+	  "root_node": "Node2D",
+	  "script": "res://scripts/system/point_of_interest.gd",
+	  "child_nodes": [
+		"OrbitPivot/POIVisual",
+		"OrbitPivot/SelectionRing",
+		"OrbitPivot/ClickArea",
+        "OrbitPivot/ClickArea/CollisionShape2D"
+	  ],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/ui/system/base_management_panel.tscn",
+	  "root_node": "PanelContainer",
+	  "script": "res://scripts/ui/system/base_management_panel.gd",
+	  "child_nodes": [
+		"Margin/Root/HeaderSection/BaseNameLabel",
+		"Margin/Root/HeaderSection/StatusLabel",
+		"Margin/Root/HeaderSection/PopulationLabel",
+		"Margin/Root/StorageSection/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
+		"Margin/Root/ProductionSection/ProductionGrid/BuildDroneButton",
+		"Margin/Root/ProductionSection/ProductionGrid/BuildMiningShipButton",
+		"Margin/Root/ProductionSection/ProductionGrid/BuildColonyShipButton",
+		"Margin/Root/FleetSection/FleetGrid/DroneCountLabel",
+		"Margin/Root/FleetSection/FleetGrid/MiningShipCountLabel",
+		"Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel",
+		"Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel",
+        "Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel"
+	  ],
+	  "instanced_scenes": ["res://scenes/ui/system/storage_info_row.tscn (dynamisch)"],
+	  "notes": "StatusTextLabel ist NICHT im tscn definiert — Fallback in Script aktiv"
+	},
+	{
+	  "path": "res://scenes/ui/system/object_info_panel.tscn",
+	  "root_node": "PanelContainer",
+	  "script": "res://scripts/ui/system/object_info_panel.gd",
+	  "child_nodes": [
+		"Margin/Root/HeaderLabel",
+		"Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture",
+		"Margin/Root/MainRow/MetaColumn/NameLabel",
+		"Margin/Root/MainRow/MetaColumn/TypeLabel",
+		"Margin/Root/MainRow/MetaColumn/ScanStatusLabel",
+		"Margin/Root/MainRow/MetaColumn/DistanceLabel",
+		"Margin/Root/ResourceTitleLabel",
+		"Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
+		"Margin/Root/LoreTitleLabel",
+		"Margin/Root/LoreTextLabel",
+		"Margin/Root/VBoxContainer/DroneOrbitLabel",
+		"Margin/Root/VBoxContainer/MineOrbitLabel",
+		"Margin/Root/VBoxContainer/MiningBonusLabel",
+		"Margin/Root/GridContainer/ScanWithDroneButton",
+		"Margin/Root/GridContainer/SendMiningShipButton",
+		"Margin/Root/GridContainer/RecallDroneButton",
+        "Margin/Root/GridContainer/RecallMiningShipButton"
+	  ],
+	  "instanced_scenes": ["res://scenes/ui/system/resource_info_row.tscn (dynamisch)"]
+	},
+	{
+	  "path": "res://scenes/ui/system/storage_info_row.tscn",
+	  "root_node": "HBoxContainer",
+	  "script": null,
+	  "child_nodes": ["ResourceNameLabel", "ResourceValueLabel"],
+	  "instanced_scenes": [],
+	  "notes": "Aktiv — wird von base_management_panel.gd dynamisch instanziiert; KEIN Script"
+	},
+	{
+	  "path": "res://scenes/ui/system/resource_info_row.tscn",
+	  "root_node": "HBoxContainer",
+	  "script": "res://scripts/ui/system/resource_info_row.gd",
+	  "child_nodes": ["ResourceNameLabel", "ResourceValueLabel"],
+	  "instanced_scenes": [],
+	  "notes": "Aktiv — wird von object_info_panel.gd dynamisch instanziiert"
+	},
+	{
+	  "path": "res://scenes/automation/drone.tscn",
+	  "root_node": "Node2D",
+	  "script": "res://scripts/automation/automation_unit.gd",
+	  "child_nodes": ["VisualRoot"],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/automation/mining_ship.tscn",
+	  "root_node": "Node2D",
+	  "script": "res://scripts/automation/automation_unit.gd",
+	  "child_nodes": ["VisualRoot"],
+	  "instanced_scenes": []
+	}
+  ],
+
+  "resources": [
+	{
+	  "path": "res://resources/definitions/system_definition.gd",
+	  "type": "Script (Resource-Definition)",
+	  "used_by": ["game_session.gd", "system_scene.gd", "galaxy_map.gd", "system_spawner.gd", "system_entry_store.gd"]
+	},
+	{
+	  "path": "res://resources/definitions/system_body_definition.gd",
+	  "type": "Script (Resource-Definition)",
+	  "used_by": ["system_body.gd", "system_spawner.gd", "scan_info_builder.gd", "celestial_presentation_calculator.gd", "galaxy_map.gd"]
+	},
+	{
+	  "path": "res://resources/definitions/point_of_interest_definition.gd",
+	  "type": "Script (Resource-Definition)",
+	  "used_by": ["point_of_interest.gd", "system_spawner.gd", "scan_info_builder.gd"]
+	},
+	{
+	  "path": "res://resources/definitions/scanned_resource_entry.gd",
+	  "type": "Script (Resource-Definition)",
+	  "used_by": ["system_body_definition.gd (als Typ)", "scan_info_builder.gd (als Instanz-Check)"]
+	},
+	{
+	  "path": "res://data/galaxy_systems/solar_system.tres",
+	  "type": "SystemDefinition",
+	  "used_by": ["game_session.gd (DEFAULT_SYSTEM_PATH)"]
+	},
+	{
+	  "path": "res://data/galaxy_systems/proxima_system.tres",
+	  "type": "SystemDefinition",
+	  "used_by": ["galaxy_map.tscn (SystemsRoot-Kind, implizit)"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/earth.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres (bodies-Array)"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/mercury.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/venus.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/moon.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/mars.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/jupiter.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/saturn.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/uranus.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/solar_system/neptune.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["solar_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/proxima_system/proxima_b.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["proxima_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/proxima_system/proxima_c.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["proxima_system.tres"]
+	},
+	{
+	  "path": "res://data/celestial_bodies/proxima_system/proxima_d.tres",
+	  "type": "SystemBodyDefinition",
+	  "used_by": ["proxima_system.tres"]
+	},
+	{
+	  "path": "res://data/planet_resources/iron.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien (als Array-Element in scan_*_resources)"]
+	},
+	{
+	  "path": "res://data/planet_resources/aluminum.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/carbon.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/copper.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/exotic_gas.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/heavy_metals.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/helium-3.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/hydrocarbons.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/hydrogen.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/methane.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/platinum_clusters.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/quantum_crystals.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/rare_earth_elements.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/silicates.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/solar_crystals.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/sulfur.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/superconductive_compounds.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/titanium.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/water.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://data/planet_resources/antimatter_precursors.tres",
+	  "type": "ScannedResourceEntry",
+	  "used_by": ["SystemBodyDefinition .tres-Dateien"]
+	},
+	{
+	  "path": "res://scenes/ui/pixeloperator_label_settings.tres",
+	  "type": "LabelSettings",
+	  "used_by": ["UI-Szenen (.tscn-Dateien)"]
+	},
+	{
+	  "path": "res://scenes/ui/pixeloperator_hbsc_label_settings.tres",
+	  "type": "LabelSettings",
+	  "used_by": ["base_management_panel.tscn"]
+	},
+	{
+	  "path": "res://scenes/ui/pixeloperator8_label_settings.tres",
+	  "type": "LabelSettings",
+	  "used_by": ["base_management_panel.tscn"]
+	},
+	{
+	  "path": "res://scenes/ui/m5x7_label_settings.tres",
+	  "type": "LabelSettings",
+	  "used_by": ["UI-Szenen"]
+	},
+	{
+	  "path": "res://scenes/ui/manaspace_label_settings.tres",
+	  "type": "LabelSettings",
+	  "used_by": ["UI-Szenen"]
+	}
+  ],
+
+  "dependencies": [
+	{
+	  "from": "res://scripts/core/main.gd",
+	  "to": "SceneFlow",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/core/main.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/system/system_scene.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/system/controller/automation_controller.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/system/controller/automation_controller.gd",
+	  "to": "res://scenes/automation/drone.tscn",
+	  "type": "preload"
+	},
+	{
+	  "from": "res://scripts/system/controller/automation_controller.gd",
+	  "to": "res://scenes/automation/mining_ship.tscn",
+	  "type": "preload"
+	},
+	{
+	  "from": "res://scripts/system/controller/automation_controller.gd",
+	  "to": "res://scripts/system/controller/system_ui_controller.gd",
+	  "type": "signal",
+	  "signal_name": "automation_state_changed"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "res://scripts/ui/system/base_management_panel.gd",
+	  "type": "node_path",
+	  "note": "Aufrufe via call() / has_method() auf PanelContainer-Referenz"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "res://scripts/ui/system/object_info_panel.gd",
+	  "type": "node_path"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "res://scripts/system/controller/system_selection_controller.gd",
+	  "type": "signal",
+	  "signal_name": "selection_changed"
+	},
+	{
+	  "from": "res://scripts/ui/system/base_management_panel.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/ui/system/base_management_panel.gd",
+	  "to": "res://scenes/ui/system/storage_info_row.tscn",
+	  "type": "preload"
+	},
+	{
+	  "from": "res://scripts/ui/system/object_info_panel.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/ui/system/object_info_panel.gd",
+	  "to": "res://scenes/ui/system/resource_info_row.tscn",
+	  "type": "preload"
+	},
+	{
+	  "from": "res://scripts/galaxy/galaxy_map.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/galaxy/galaxy_map.gd",
+	  "to": "SceneFlow",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/galaxy/galaxy_map.gd",
+	  "to": "res://scripts/ui/galaxy/galaxy_map_hud.gd",
+	  "type": "signal",
+	  "signal_name": "enter_requested"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_spawner.gd",
+	  "to": "res://scenes/system/objects/system_body.tscn",
+	  "type": "preload"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_spawner.gd",
+	  "to": "res://scenes/system/objects/point_of_interest.tscn",
+	  "type": "preload"
+	},
+	{
+	  "from": "res://scripts/system/components/scan_info_builder.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call",
+	  "note": "Nur für SCANNER_BASIC/DEEP/SPECIAL-Konstanten"
+	},
+	{
+	  "from": "res://scripts/autoload/game_session.gd",
+	  "to": "res://data/galaxy_systems/solar_system.tres",
+	  "type": "autoload_call",
+	  "note": "load(DEFAULT_SYSTEM_PATH)"
+	},
+	{
+	  "from": "res://scripts/autoload/scene_flow.gd",
+	  "to": "res://scenes/galaxy/galaxy_map.tscn",
+	  "type": "autoload_call",
+	  "note": "goto_galaxy()"
+	},
+	{
+	  "from": "res://scripts/autoload/scene_flow.gd",
+	  "to": "res://scenes/system/system_scene.tscn",
+	  "type": "autoload_call",
+	  "note": "goto_system()"
+	}
+  ],
+
+  "risks": [
+	{
+	  "type": "missing_node",
+	  "file": "res://scripts/ui/system/base_management_panel.gd",
+	  "description": "get_node_or_null('Margin/Root/StatusTextLabel') — dieser Node existiert nicht in base_management_panel.tscn. Script fällt stumm auf StatusLabel zurück.",
+	  "severity": "low"
+	},
+	{
+	  "type": "deprecated_format",
+	  "file": "res://resources/definitions/point_of_interest_definition.gd",
+	  "description": "scan_basic/deep/special_resources sind noch PackedStringArray (veraltet). SystemBodyDefinition nutzt bereits Array[ScannedResourceEntry]. Alle POI-Ressourcen zeigen '--' statt Prozentwert in der UI.",
+	  "severity": "medium"
+	},
+	{
+	  "type": "compatibility_fallback_active",
+	  "file": "res://scripts/system/components/scan_info_builder.gd",
+	  "description": "Zeile 133-142: Fallback für PackedStringArray-Einträge aktiv. Erzeugt richness_percent=-1 für POI-Ressourcen. Muss nach POI-Migration entfernt werden.",
+	  "severity": "medium"
+	},
+	{
+	  "type": "high_signal_frequency",
+	  "file": "res://scripts/system/controller/automation_controller.gd",
+	  "description": "automation_state_changed wird an 15+ Stellen emittiert, auch während _process(). Jeder Emit triggert vollständigen UI-Rebuild (resource_list clear + rebuild).",
+	  "severity": "medium"
+	},
+	{
+	  "type": "no_persistence",
+	  "file": "res://scripts/autoload/game_session.gd",
+	  "description": "Alle Store-Instanzen (BaseStore, AutomationStore, etc.) sind RefCounted ohne Save/Load-Anbindung. Spielzustand geht bei App-Ende verloren.",
+	  "severity": "high"
+	},
+	{
+	  "type": "unit_count_divergence",
+	  "file": "res://scripts/system/controller/automation_controller.gd",
+	  "description": "BaseStore-Zähler für Drones/Mining Ships und idle_drones/idle_mining_ships-Arrays können nach Reload divergieren. ensure_starting_units() prüft nur den BaseStore-Zähler.",
+	  "severity": "medium"
+	},
+	{
+	  "type": "unused_export_field",
+	  "file": "res://resources/definitions/system_body_definition.gd",
+	  "description": "can_build_base: bool = true wird in keinem Script ausgewertet. system_ui_controller._selected_body_has_base() prüft hart auf body_id == 'earth'.",
+	  "severity": "low"
+	},
+	{
+	  "type": "node_path_risk",
+	  "file": "res://scripts/ui/system/base_management_panel.gd",
+	  "description": "Sehr lange @onready-NodePaths (bis 8 Ebenen tief). Umbenennen jedes Nodes auf dem Pfad bricht das Script.",
+	  "severity": "medium"
+	},
+	{
+	  "type": "node_path_risk",
+	  "file": "res://scripts/ui/system/object_info_panel.gd",
+	  "description": "Sehr lange @onready-NodePaths. Umbenennen eines Nodes auf dem Pfad bricht das Script.",
+	  "severity": "medium"
+	}
+  ],
+
+  "old_systems": [
+	{
+	  "name": "storage_row.gd",
+	  "files": ["res://scripts/ui/system/storage_row.gd"],
+	  "reason": "Kein .tscn nutzt dieses Script. Aktiver Ersatz ist storage_info_row.tscn (ohne Script). Nodename ResourceAmountLabel weicht von storage_info_row.tscn (ResourceValueLabel) ab.",
+	  "safe_to_delete": "yes"
+	},
+	{
+	  "name": "cargo_row",
+	  "files": [],
+	  "reason": "cargo_row.gd und cargo_row.tscn existieren nicht mehr im Projekt. Bereits entfernt.",
+	  "safe_to_delete": "yes"
+	},
+	{
+	  "name": "OreLabel / FuelLabel / FoodLabel",
+	  "files": [],
+	  "reason": "Existieren in keiner Datei des Projekts. Vollständig entfernt.",
+	  "safe_to_delete": "yes"
+	},
+	{
+	  "name": "PointOfInterestDefinition PackedStringArray Scan-Daten",
+	  "files": ["res://resources/definitions/point_of_interest_definition.gd"],
+	  "reason": "scan_basic/deep/special_resources als PackedStringArray (veraltet). SystemBodyDefinition nutzt Array[ScannedResourceEntry]. Kompatibilitäts-Fallback in scan_info_builder.gd aktiv.",
+	  "safe_to_delete": "no"
+	},
+	{
+	  "name": "StatusTextLabel Referenz in BaseManagementPanel",
+	  "files": ["res://scripts/ui/system/base_management_panel.gd"],
+	  "reason": "get_node_or_null auf nicht-existenten Node. Script-Fallback funktioniert, aber ist unklean.",
+	  "safe_to_delete": "unsure"
+	},
+	{
+	  "name": "Legacy orbit_radius/orbit_speed in SystemBodyDefinition",
+	  "files": ["res://resources/definitions/system_body_definition.gd"],
+	  "reason": "Altbestand-Felder (Zeile 17-21). Werden durch reference_orbit_au + CelestialPresentationCalculator ersetzt. earth.tres nutzt noch orbit_radius=265.0.",
+	  "safe_to_delete": "no"
+	},
+	{
+	  "name": "PackedStringArray Kompatibilitäts-Fallback in ScanInfoBuilder",
+	  "files": ["res://scripts/system/components/scan_info_builder.gd"],
+	  "reason": "Zeile 133-142: Fallback für String-Einträge. Nur solange POI-Definitionen noch PackedStringArray nutzen.",
+	  "safe_to_delete": "no"
+	}
+  ]
+}

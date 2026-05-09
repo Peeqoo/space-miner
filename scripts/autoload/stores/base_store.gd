@@ -1,25 +1,41 @@
 class_name BaseStore
 extends RefCounted
 
-const RESOURCE_ORE := "ore"
-const RESOURCE_FUEL := "fuel"
-const RESOURCE_FOOD := "food"
+const RESOURCE_ORE := "ore"  # deprecated
+const RESOURCE_FUEL := "fuel"  # deprecated
+const RESOURCE_FOOD := "food"  # deprecated
 
 const BASE_EARTH := "earth"
 
-const DRONE_ORE_COST: int = 10
-const MINING_SHIP_ORE_COST: int = 25
+# deprecated — ersetzt durch DRONE_COST / MINING_SHIP_COST
+const DRONE_ORE_COST: int = 10  # deprecated
+const MINING_SHIP_ORE_COST: int = 25  # deprecated
+
+const DRONE_COST: Dictionary = {
+	"Iron": 10,
+	"Copper": 5,
+}
+
+const MINING_SHIP_COST: Dictionary = {
+	"Iron": 25,
+	"Aluminum": 10,
+	"Hydrogen": 5,
+}
+
+const COLONY_SHIP_COST: Dictionary = {
+	"Iron": 80,
+	"Aluminum": 40,
+	"Water": 30,
+	"Carbon": 20,
+	"Hydrogen": 20,
+}
 
 var bases: Dictionary = {
 	BASE_EARTH: {
-		"resources": {
-			RESOURCE_ORE: 50,
-			RESOURCE_FUEL: 0,
-			RESOURCE_FOOD: 0,
-		},
+		"resources": {},
 		"population": 1,
-		"drones": 0,
-		"mining_ships": 0,
+		"drones": 1,
+		"mining_ships": 1,
 	}
 }
 
@@ -68,6 +84,31 @@ func spend_resource(base_id: String, resource_id: String, amount: int) -> bool:
 	return true
 
 
+func can_afford(base_id: String, cost: Dictionary) -> bool:
+	for resource_id in cost:
+		var needed: int = int(cost[resource_id])
+		var available: int = get_resource_amount(base_id, resource_id)
+		if available < needed:
+			return false
+	return true
+
+
+func spend_cost(base_id: String, cost: Dictionary) -> bool:
+	if not can_afford(base_id, cost):
+		return false
+	for resource_id in cost:
+		var amount: int = int(cost[resource_id])
+		spend_resource(base_id, resource_id, amount)
+	return true
+
+
+func format_cost(cost: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	for resource_id in cost:
+		parts.append("%s: %d" % [str(resource_id), int(cost[resource_id])])
+	return ", ".join(parts)
+
+
 func get_population(base_id: String) -> int:
 	var base := get_base(base_id)
 	return int(base.get("population", 0))
@@ -84,11 +125,11 @@ func get_mining_ship_count(base_id: String) -> int:
 
 
 func can_build_drone(base_id: String) -> bool:
-	return get_resource_amount(base_id, RESOURCE_ORE) >= DRONE_ORE_COST
+	return can_afford(base_id, DRONE_COST)
 
 
 func build_drone(base_id: String) -> bool:
-	if not spend_resource(base_id, RESOURCE_ORE, DRONE_ORE_COST):
+	if not spend_cost(base_id, DRONE_COST):
 		return false
 
 	var base := get_base(base_id)
@@ -99,11 +140,11 @@ func build_drone(base_id: String) -> bool:
 
 
 func can_build_mining_ship(base_id: String) -> bool:
-	return get_resource_amount(base_id, RESOURCE_ORE) >= MINING_SHIP_ORE_COST
+	return can_afford(base_id, MINING_SHIP_COST)
 
 
 func build_mining_ship(base_id: String) -> bool:
-	if not spend_resource(base_id, RESOURCE_ORE, MINING_SHIP_ORE_COST):
+	if not spend_cost(base_id, MINING_SHIP_COST):
 		return false
 
 	var base := get_base(base_id)
@@ -113,7 +154,15 @@ func build_mining_ship(base_id: String) -> bool:
 	return true
 
 
-# Adds mining ships without any ore cost. Used for starting units and grants.
+func can_build_colony_ship(base_id: String) -> bool:
+	return can_afford(base_id, COLONY_SHIP_COST)
+
+
+func build_colony_ship(base_id: String) -> bool:
+	return spend_cost(base_id, COLONY_SHIP_COST)
+
+
+# Adds mining ships without any cost. Used for starting units and grants.
 func add_mining_ship(base_id: String, amount: int = 1) -> void:
 	if amount <= 0:
 		return
@@ -123,7 +172,7 @@ func add_mining_ship(base_id: String, amount: int = 1) -> void:
 	bases[base_id] = base
 
 
-# Adds drones without any ore cost. Used for starting units and grants.
+# Adds drones without any cost. Used for starting units and grants.
 func add_drone(base_id: String, amount: int = 1) -> void:
 	if amount <= 0:
 		return
@@ -133,13 +182,14 @@ func add_drone(base_id: String, amount: int = 1) -> void:
 	bases[base_id] = base
 
 
+func get_resources(base_id: String) -> Dictionary:
+	var base := get_base(base_id)
+	return (base.get("resources", {}) as Dictionary).duplicate(true)
+
+
 func _create_empty_base() -> Dictionary:
 	return {
-		"resources": {
-			RESOURCE_ORE: 0,
-			RESOURCE_FUEL: 0,
-			RESOURCE_FOOD: 0,
-		},
+		"resources": {},
 		"population": 0,
 		"drones": 0,
 		"mining_ships": 0,
