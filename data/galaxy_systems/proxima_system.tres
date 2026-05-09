@@ -12,6 +12,7 @@
 script = ExtResource("3_ojsok")
 id = "proxima"
 display_name = "Proxima Centauri-System"
+description = "Unsere engste stellare Nachbarschaft, in der eine kleine, rötliche Sonne von einer Handvoll rätselhafter Welten in ewiger Dämmerung umkreist wird."
 star_texture = ExtResource("4_mh2o4")
 star_visual_radius = 31.5
 earth_target_body_diameter_px = 28.0

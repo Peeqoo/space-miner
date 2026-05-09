@@ -46,32 +46,3 @@ func refresh_position(owner: Node2D) -> void:
 
 	owner.global_position = orbit_center.global_position + Vector2.RIGHT.rotated(orbit_angle) * orbit_radius
 
-
-# --------------------------------------------------
-# Orbit Data
-# --------------------------------------------------
-
-func get_tangent_direction(owner: Node2D) -> Vector2:
-	if orbit_center == null:
-		return Vector2.RIGHT
-
-	var radial_direction: Vector2 = owner.global_position - orbit_center.global_position
-
-	if radial_direction == Vector2.ZERO:
-		return Vector2.RIGHT
-
-	radial_direction = radial_direction.normalized()
-
-	var tangent_direction := Vector2(-radial_direction.y, radial_direction.x)
-
-	if orbit_speed < 0.0:
-		tangent_direction = -tangent_direction
-
-	return tangent_direction.normalized()
-
-
-func get_velocity_vector(owner: Node2D) -> Vector2:
-	if orbit_center == null:
-		return Vector2.ZERO
-
-	return get_tangent_direction(owner) * absf(orbit_speed) * orbit_radius

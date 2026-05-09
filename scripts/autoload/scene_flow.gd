@@ -19,10 +19,6 @@ func goto_system() -> void:
 	goto_scene("res://scenes/system/system_scene.tscn")
 
 
-func goto_hub() -> void:
-	goto_scene("res://scenes/hub/earth_hub.tscn")
-
-
 func goto_scene(scene_path: String) -> void:
 
 	var scene_resource: PackedScene = load(scene_path) as PackedScene

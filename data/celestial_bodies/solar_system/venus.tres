@@ -1,12 +1,17 @@
 [gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://py6wxoig88ds"]
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_kik37"]
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_mmcrg"]
 [ext_resource type="Texture2D" uid="uid://bohus4wvfvvg5" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Venus/1.png" id="2_4lux5"]
+[ext_resource type="Resource" uid="uid://in401dwu6eyv" path="res://data/planet_resources/sulfur.tres" id="2_er4f1"]
+[ext_resource type="Resource" uid="uid://bjrlxfcifnifm" path="res://data/planet_resources/carbon.tres" id="3_bp4gc"]
+[ext_resource type="Resource" uid="uid://k6k5ea7gw0rl" path="res://data/planet_resources/superconductive_compounds.tres" id="4_aj1pw"]
 
 [resource]
 script = ExtResource("1_kik37")
 id = "venus"
 display_name = "Venus"
+description = "Dichte und heiße Welt mit giftiger Atmosphäre und vulkanischer Oberfläche. Gewaltige Wolkenschichten und hoher Druck machen Expeditionen besonders gefährlich."
 body_type = "planet"
 orbit_center_id = "star"
 orbit_radius = 235.0
@@ -19,4 +24,7 @@ reference_period_days = 223.1
 authored_ratio_to_earth = -1.0
 size_authoring_mode = 1
 gameplay_orbit_bias = 0.98
+scan_basic_resources = Array[ExtResource("1_mmcrg")]([ExtResource("2_er4f1")])
+scan_deep_resources = Array[ExtResource("1_mmcrg")]([ExtResource("3_bp4gc")])
+scan_special_resources = Array[ExtResource("1_mmcrg")]([ExtResource("4_aj1pw")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

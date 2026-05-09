@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://df4vo2cmmqtud" path="res://scripts/system/system_scene.gd" id="1_f7o5m"]
 [ext_resource type="Script" uid="uid://ss3qyoy1r1ff" path="res://scripts/system/orbit_guides_renderer.gd" id="2_3j3kx"]
-[ext_resource type="Resource" path="res://data/galaxy_systems/solar_system.tres" id="2_hak25"]
+[ext_resource type="Resource" uid="uid://cam66sjyghlas" path="res://data/galaxy_systems/solar_system.tres" id="2_hak25"]
 [ext_resource type="Texture2D" uid="uid://cmp8ysrannpyb" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_02-1024x1024.png" id="3_frd62"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="4_e0kxw"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/controller/system_camera_controller.gd" id="5_5mh7d"]

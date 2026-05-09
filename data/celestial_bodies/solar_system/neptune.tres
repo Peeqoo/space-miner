@@ -1,12 +1,17 @@
 [gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://crcd4ntil4k75"]
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_onv7t"]
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_waq7n"]
+[ext_resource type="Resource" uid="uid://mxwvb2e316xd" path="res://data/planet_resources/methane.tres" id="2_5wnak"]
 [ext_resource type="Texture2D" uid="uid://4l8vep62kyq" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Neptune/1.png" id="2_123c8"]
+[ext_resource type="Resource" uid="uid://b0h7crji42388" path="res://data/planet_resources/exotic_gas.tres" id="3_2hyvg"]
+[ext_resource type="Resource" uid="uid://bilt1hotrn4ip" path="res://data/planet_resources/antimatter_precursors.tres" id="4_6kwjp"]
 
 [resource]
 script = ExtResource("1_onv7t")
 id = "neptune"
 display_name = "Neptune"
+description = "Dunkelblauer Eisriese mit heftigen Stürmen und den stärksten Winden im Sonnensystem. Die ferne und eisige Welt markiert die äußeren Grenzen des bekannten Systems."
 body_type = "planet"
 orbit_center_id = "star"
 orbit_radius = 1000.0
@@ -17,4 +22,7 @@ reference_radius_earth = 3.88
 reference_orbit_au = 30.07
 reference_period_days = 60196.0
 size_authoring_mode = 1
+scan_basic_resources = Array[ExtResource("1_waq7n")]([ExtResource("2_5wnak")])
+scan_deep_resources = Array[ExtResource("1_waq7n")]([ExtResource("3_2hyvg")])
+scan_special_resources = Array[ExtResource("1_waq7n")]([ExtResource("4_6kwjp")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

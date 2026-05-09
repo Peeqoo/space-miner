@@ -45,7 +45,8 @@ enum SizeAuthoringMode {
 # Sprint 4 Scan-Daten
 @export var scan_basic_reveal_name: bool = true
 @export var scan_basic_reveal_type: bool = true
-@export var scan_basic_resources: PackedStringArray = []
-@export var scan_deep_resources: PackedStringArray = []
-@export var scan_special_resources: PackedStringArray = []
+@export var scan_basic_resources: Array[ScannedResourceEntry] = []
+@export var scan_deep_resources: Array[ScannedResourceEntry] = []
+@export var scan_special_resources: Array[ScannedResourceEntry] = []
+
 @export var scan_hidden_slots_after_special: int = 0

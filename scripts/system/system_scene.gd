@@ -75,7 +75,9 @@ func _setup_controllers() -> void:
 		system_definition,
 		selection,
 		$UI/ObjectInfoPanel,
-		$UI/BaseManagementPanel
+		$UI/BaseManagementPanel,
+		automation_controller,
+		spawner
 	)
 
 	automation_controller.setup(

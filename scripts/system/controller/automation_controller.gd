@@ -15,7 +15,6 @@ const DEFAULT_MINING_CARGO_CAPACITY: int = 20
 const DEFAULT_MINING_RATE_PER_SECOND: float = 2.0
 const DEFAULT_MINING_UNLOAD_DURATION: float = 2.0
 const DEFAULT_MINING_RESOURCE_ID: String = BaseStore.RESOURCE_ORE
-const DEFAULT_MINING_ORE_REWARD: int = 5
 const DRONE_MINING_BONUS_PER_UNIT: float = 0.02
 
 var automation_root: Node2D
@@ -377,41 +376,6 @@ func _on_scan_drone_arrived_at_target(
 	automation_state_changed.emit()
 
 
-func _on_unit_returned_to_base(unit: AutomationUnit, mission_id: int) -> void:
-	var mission := GameSession.complete_automation_mission(mission_id)
-
-	if mission.is_empty():
-		_cleanup_unit(mission_id, unit)
-		automation_state_changed.emit()
-		return
-
-	var mission_type := int(mission.get("type", -1))
-	var base_id := str(mission.get("base_id", BASE_ID_EARTH))
-	var target_id := str(mission.get("target_id", ""))
-
-	match mission_type:
-		AutomationStore.MissionType.SCAN:
-			_complete_scan_mission(target_id)
-
-		AutomationStore.MissionType.MINE:
-			_complete_mining_mission(base_id, target_id)
-
-	active_units_by_mission_id.erase(mission_id)
-
-	if unit == null or not is_instance_valid(unit):
-		automation_state_changed.emit()
-		return
-
-	_disconnect_unit_signals(unit)
-
-	if unit.base_node != null and is_instance_valid(unit.base_node):
-		unit.transfer_orbit_to_base(unit.base_node)
-	else:
-		unit.return_to_base_orbit()
-
-	automation_state_changed.emit()
-
-
 func _on_mining_ship_arrived_at_target(unit: AutomationUnit) -> void:
 	if unit == null or not is_instance_valid(unit):
 		return
@@ -453,17 +417,6 @@ func _complete_scan_mission(target_id: String) -> void:
 		GameSession.current_system_id,
 		target_id,
 		GameSession.SCAN_BASIC
-	)
-
-
-func _complete_mining_mission(base_id: String, target_id: String) -> void:
-	var bonus := get_mining_bonus_for_target(target_id)
-	var reward := int(round(float(DEFAULT_MINING_ORE_REWARD) * (1.0 + bonus)))
-
-	GameSession.add_base_resource(
-		base_id,
-		BaseStore.RESOURCE_ORE,
-		maxi(reward, 1)
 	)
 
 

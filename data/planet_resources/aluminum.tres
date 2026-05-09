@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ScannedResourceEntry" format=3 uid="uid://d33dgdt7qewkl"]
+
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_lvuuc"]
+
+[resource]
+script = ExtResource("1_lvuuc")
+resource_id = &"Aluminum"
+richness_percent = 60
+metadata/_custom_type_script = "uid://de5akqgbobdkp"

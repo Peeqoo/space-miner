@@ -86,7 +86,6 @@ func _update_hud_for_selected_system(system_def: SystemDefinition) -> void:
 		known_resources_text,
 		info_text,
 		can_enter,
-		is_current
 	)
 
 

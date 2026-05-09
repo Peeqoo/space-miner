@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://dymfi7mybrags"]
+
+[ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="1_7n6qg"]
+
+[node name="StorageInfoRow" type="HBoxContainer" unique_id=1610997543]
+offset_right = 41.0
+offset_bottom = 9.0
+size_flags_vertical = 4
+theme_override_constants/separation = 8
+
+[node name="ResourceNameLabel" type="Label" parent="." unique_id=1425910364]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("1_7n6qg")
+theme_override_font_sizes/font_size = 6
+text = "Stone"
+
+[node name="ResourceValueLabel" type="Label" parent="." unique_id=1160927453]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+theme_override_fonts/font = ExtResource("1_7n6qg")
+theme_override_font_sizes/font_size = 6
+text = "50"
+horizontal_alignment = 2

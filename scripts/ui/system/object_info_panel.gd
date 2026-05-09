@@ -17,7 +17,6 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var distance_label: Label = $Margin/Root/MainRow/MetaColumn/DistanceLabel
 @onready var resource_title_label: Label = $Margin/Root/ResourceTitleLabel
 @onready var resource_list: VBoxContainer = $Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList
-@onready var hidden_resources_label: Label = $Margin/Root/HiddenResourcesLabel
 @onready var lore_title_label: Label = $Margin/Root/LoreTitleLabel
 @onready var lore_text_label: Label = $Margin/Root/LoreTextLabel
 
@@ -25,10 +24,10 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var mine_orbit_label: Label = $Margin/Root/VBoxContainer/MineOrbitLabel
 @onready var mining_bonus_label: Label = $Margin/Root/VBoxContainer/MiningBonusLabel
 
-@onready var scan_with_drone_button: Button = $Margin/Root/HBoxContainer/ScanWithDroneButton
-@onready var send_mining_ship_button: Button = $Margin/Root/HBoxContainer/SendMiningShipButton
-@onready var recall_drone_button: Button = $Margin/Root/HBoxContainer/RecallDroneButton
-@onready var recall_mining_ship_button: Button = $Margin/Root/HBoxContainer/RecallMiningShipButton
+@onready var scan_with_drone_button: Button = $Margin/Root/GridContainer/ScanWithDroneButton
+@onready var send_mining_ship_button: Button = $Margin/Root/GridContainer/SendMiningShipButton
+@onready var recall_drone_button: Button = $Margin/Root/GridContainer/RecallDroneButton
+@onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
 
 var current_object_id: String = ""
 
@@ -65,7 +64,6 @@ func show_empty() -> void:
 
 	_clear_resource_rows()
 
-	hidden_resources_label.visible = false
 	drone_orbit_label.visible = false
 	mine_orbit_label.visible = false
 	mining_bonus_label.visible = false
@@ -137,31 +135,39 @@ func _apply_automation_status(info: Dictionary) -> void:
 func _apply_resources(info: Dictionary) -> void:
 	_clear_resource_rows()
 
-	var visible_resources: Array = []
 	var visible_resources_variant: Variant = info.get("resources_visible", [])
-
 	if visible_resources_variant is Array:
-		visible_resources = visible_resources_variant
+		var visible_resources: Array = visible_resources_variant as Array
+		for entry: Variant in visible_resources:
+			var row: ResourceInfoRow = RESOURCE_INFO_ROW_SCENE.instantiate() as ResourceInfoRow
+			resource_list.add_child(row)
 
-	for entry in visible_resources:
-		var row: ResourceInfoRow = RESOURCE_INFO_ROW_SCENE.instantiate() as ResourceInfoRow
-		resource_list.add_child(row)
+			if entry is Dictionary:
+				_apply_resource_dict_to_row(row, entry as Dictionary)
+			else:
+				# Legacy fallback: old scan data was only a String/PackedString entry.
+				row.set_row_data(_format_title(str(entry)), "--")
 
-		if entry is Dictionary:
-			var entry_dict: Dictionary = entry as Dictionary
-			var resource_name: String = str(entry_dict.get("name", "Unknown"))
-			var percent_text: String = _build_percent_text(entry_dict)
-			row.set_row_data(_format_title(resource_name), percent_text)
-		else:
-			row.set_row_data(_format_title(str(entry)), "--")
 
-	var hidden_count: int = int(info.get("resources_hidden_count", 0))
+func _apply_resource_dict_to_row(row: ResourceInfoRow, resource_entry: Dictionary) -> void:
+	var resource_name: String = _get_resource_display_name(resource_entry)
+	var percent_text: String = _build_percent_text(resource_entry)
+	row.set_row_data(_format_title(resource_name), percent_text)
 
-	if hidden_count > 0:
-		hidden_resources_label.text = "Weitere: ?"
-		hidden_resources_label.visible = true
-	else:
-		hidden_resources_label.visible = false
+
+func _get_resource_display_name(resource_entry: Dictionary) -> String:
+	# New scan_info_builder format.
+	if resource_entry.has("id"):
+		return String(resource_entry.get("id", &""))
+
+	# Compatibility with older/local formats.
+	if resource_entry.has("resource_id"):
+		return String(resource_entry.get("resource_id", &""))
+
+	if resource_entry.has("name"):
+		return str(resource_entry.get("name", ""))
+
+	return "Unknown"
 
 
 func _apply_lore(info: Dictionary) -> void:
@@ -189,12 +195,21 @@ func _set_recall_buttons(can_recall_drone: bool, can_recall_mining_ship: bool) -
 	recall_mining_ship_button.disabled = not can_recall_mining_ship
 
 
+func set_distance_text(text: String) -> void:
+	distance_label.text = text
+
+
 func _clear_resource_rows() -> void:
 	for child in resource_list.get_children():
 		child.queue_free()
 
 
 func _build_percent_text(resource_entry: Dictionary) -> String:
+	# Preferred new scan_info_builder format from ScannedResourceEntry.
+	if resource_entry.has("richness_percent"):
+		return "%d%%" % int(resource_entry.get("richness_percent", 0))
+
+	# Compatibility with older/local formats.
 	if resource_entry.has("percent"):
 		return "%d%%" % int(resource_entry.get("percent", 0))
 

@@ -1,16 +1,18 @@
 [gd_scene format=3 uid="uid://63avcpa0qxnk"]
 
 [ext_resource type="Script" uid="uid://c4jkve6fq7nb2" path="res://scripts/ui/system/resource_info_row.gd" id="1_p6bc3"]
+[ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="2_btmxr"]
 
 [node name="ResourceInfoRow" type="HBoxContainer" unique_id=1000158520]
 offset_right = 45.0
 offset_bottom = 9.0
-size_flags_vertical = 0
+size_flags_vertical = 4
 theme_override_constants/separation = 8
 script = ExtResource("1_p6bc3")
 
 [node name="ResourceNameLabel" type="Label" parent="." unique_id=651016632]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_btmxr")
 theme_override_font_sizes/font_size = 6
 text = "Stone"
 
@@ -18,6 +20,7 @@ text = "Stone"
 custom_minimum_size = Vector2(20, 0)
 layout_mode = 2
 size_flags_horizontal = 8
+theme_override_fonts/font = ExtResource("2_btmxr")
 theme_override_font_sizes/font_size = 6
 text = "50%"
 horizontal_alignment = 2

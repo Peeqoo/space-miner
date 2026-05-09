@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://dpo1bedc8vmxo"]
 
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_41mm2"]
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_c2uki"]
 [ext_resource type="Texture2D" uid="uid://cyp5c64hdqm15" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Earth/Eurasia_Africa/Clouds/1.png" id="2_6t3dt"]
 
@@ -7,7 +8,7 @@
 script = ExtResource("1_c2uki")
 id = "earth"
 display_name = "Earth"
-description = "Bewohnter Heimatplanet der Menschheit und logistischer Hauptanker im Solar System."
+description = "Heimatplanet der Menschheit mit vielfältiger Flora und Fauna. Die Oberfläche besteht größtenteils aus Wasser und bietet ideale Bedingungen für Leben."
 body_type = "planet"
 orbit_center_id = "star"
 orbit_radius = 265.0

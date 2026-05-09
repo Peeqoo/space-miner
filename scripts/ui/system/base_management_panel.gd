@@ -1,10 +1,12 @@
 ## Base management UI.
-## Shows base resources and builds automated drones / mining ships.
+## Shows base resources through ResourceList row-scenes and builds automated drones / mining ships.
 extends PanelContainer
 
 signal build_drone_requested
 signal build_mining_ship_requested
 signal build_colony_ship_requested
+
+const STORAGE_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/storage_info_row.tscn")
 
 const DRONE_ORE_COST: int = 10
 const MINING_SHIP_ORE_COST: int = 25
@@ -12,21 +14,49 @@ const COLONY_SHIP_ORE_COST: int = 200
 const COLONY_SHIP_FUEL_COST: int = 100
 const COLONY_SHIP_POPULATION_COST: int = 10
 
-@onready var base_name_label: Label = $Margin/Root/BaseNameLabel
-@onready var status_label: Label = $Margin/Root/StatusLabel
+const BASE_RESOURCE_ORDER: PackedStringArray = [
+	"ore",
+	"fuel",
+	"food",
+]
 
-@onready var ore_label: Label = $Margin/Root/OreLabel
-@onready var fuel_label: Label = $Margin/Root/FuelLabel
-@onready var food_label: Label = $Margin/Root/FoodLabel
-@onready var population_label: Label = $Margin/Root/PopulationLabel
+const BUTTON_INFO: Dictionary = {
+	"BuildDroneButton": {
+		"title": "Drone bauen",
+		"desc": "Baut eine einfache Arbeitsdrohne für Basis- und Sammelaufgaben.",
+		"cost": "Kosten: 10 Ore",
+	},
+	"BuildMiningShipButton": {
+		"title": "Mining Ship bauen",
+		"desc": "Baut ein Mining-Schiff für automatisierten Ressourcenabbau.",
+		"cost": "Kosten: 25 Ore",
+	},
+	"BuildColonyShipButton": {
+		"title": "Colony Ship bauen",
+		"desc": "Bereitet ein Kolonieschiff für spätere Expansion vor.",
+		"cost": "Kosten: 200 Ore, 100 Fuel, 10 Population",
+	},
+}
 
-@onready var build_drone_button: Button = $Margin/Root/BuildDroneButton
-@onready var build_mining_ship_button: Button = $Margin/Root/BuildMiningShipButton
-@onready var build_colony_ship_button: Button = $Margin/Root/BuildColonyShipButton
+@onready var base_name_label: Label = $Margin/Root/HeaderSection/BaseNameLabel
+@onready var status_label: Label = $Margin/Root/HeaderSection/StatusLabel
+@onready var population_label: Label = $Margin/Root/HeaderSection/PopulationLabel
 
-@onready var drone_count_label: Label = $Margin/Root/DroneCountLabel
-@onready var mining_ship_count_label: Label = $Margin/Root/MiningShipCountLabel
-@onready var status_text_label: Label = $Margin/Root/StatusTextLabel
+@onready var resource_list: VBoxContainer = $Margin/Root/StorageSection/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList
+
+@onready var build_drone_button: Button = $Margin/Root/ProductionSection/ProductionGrid/BuildDroneButton
+@onready var build_mining_ship_button: Button = $Margin/Root/ProductionSection/ProductionGrid/BuildMiningShipButton
+@onready var build_colony_ship_button: Button = $Margin/Root/ProductionSection/ProductionGrid/BuildColonyShipButton
+
+@onready var drone_count_label: Label = $Margin/Root/FleetSection/FleetGrid/DroneCountLabel
+@onready var mining_ship_count_label: Label = $Margin/Root/FleetSection/FleetGrid/MiningShipCountLabel
+
+@onready var hover_info_panel: PanelContainer = $Margin/Root/HoverInfoPanel
+@onready var hover_title_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel
+@onready var hover_desc_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel
+@onready var hover_cost_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel
+
+@onready var status_text_label: Label = get_node_or_null("Margin/Root/StatusTextLabel") as Label
 
 var current_system_id: String = ""
 var current_body_id: String = ""
@@ -34,28 +64,20 @@ var current_base_name: String = "Earth"
 var is_docked: bool = false
 
 
-# --------------------------------------------------
-# Lifecycle
-# --------------------------------------------------
-
 func _ready() -> void:
 	visible = false
+	hover_info_panel.visible = false
 
-	if not build_drone_button.pressed.is_connected(_on_build_drone_pressed):
-		build_drone_button.pressed.connect(_on_build_drone_pressed)
+	_connect_button(build_drone_button, _on_build_drone_pressed)
+	_connect_button(build_mining_ship_button, _on_build_mining_ship_pressed)
+	_connect_button(build_colony_ship_button, _on_build_colony_ship_pressed)
 
-	if not build_mining_ship_button.pressed.is_connected(_on_build_mining_ship_pressed):
-		build_mining_ship_button.pressed.connect(_on_build_mining_ship_pressed)
-
-	if not build_colony_ship_button.pressed.is_connected(_on_build_colony_ship_pressed):
-		build_colony_ship_button.pressed.connect(_on_build_colony_ship_pressed)
+	_register_hover_button(build_drone_button)
+	_register_hover_button(build_mining_ship_button)
+	_register_hover_button(build_colony_ship_button)
 
 	refresh_from_game_session()
 
-
-# --------------------------------------------------
-# Public API
-# --------------------------------------------------
 
 func show_for_base(system_id: String, body_id: String, base_name: String, docked: bool) -> void:
 	current_system_id = system_id
@@ -69,6 +91,7 @@ func show_for_base(system_id: String, body_id: String, base_name: String, docked
 
 func hide_panel() -> void:
 	visible = false
+	hover_info_panel.visible = false
 
 
 func refresh_from_game_session() -> void:
@@ -76,18 +99,15 @@ func refresh_from_game_session() -> void:
 
 	var ore := _get_base_resource_amount(base_id, "ore")
 	var fuel := _get_base_resource_amount(base_id, "fuel")
-	var food := _get_base_resource_amount(base_id, "food")
 	var population := _get_base_population(base_id)
 	var drones := _get_base_drone_count(base_id)
 	var mining_ships := _get_base_mining_ship_count(base_id)
 
 	base_name_label.text = current_base_name
 	status_label.text = "Status: Heimatbasis" if base_id == BaseStore.BASE_EARTH else "Status: Basis"
-
-	ore_label.text = "Ore: %d" % ore
-	fuel_label.text = "Fuel: %d" % fuel
-	food_label.text = "Food: %d" % food
 	population_label.text = "Population: %d" % population
+
+	_rebuild_resource_list(base_id)
 
 	drone_count_label.text = "Drones: %d" % drones
 	mining_ship_count_label.text = "Mining Ships: %d" % mining_ships
@@ -102,12 +122,11 @@ func refresh_from_game_session() -> void:
 
 
 func set_status_text(text: String) -> void:
-	status_text_label.text = text
+	if status_text_label != null:
+		status_text_label.text = text
+	else:
+		status_label.text = text
 
-
-# --------------------------------------------------
-# Button Callbacks
-# --------------------------------------------------
 
 func _on_build_drone_pressed() -> void:
 	var base_id := _get_current_base_id()
@@ -166,14 +185,85 @@ func _on_build_colony_ship_pressed() -> void:
 		refresh_from_game_session()
 		return
 
+	# Population wird hier bewusst noch nicht abgezogen, solange GameSession dafür keinen sicheren Spend-Call hat.
 	set_status_text("Colony Ship vorbereitet.")
 	build_colony_ship_requested.emit()
 	refresh_from_game_session()
 
 
-# --------------------------------------------------
-# GameSession Access
-# --------------------------------------------------
+func _rebuild_resource_list(base_id: String) -> void:
+	_clear_resource_list()
+
+	for resource_id in BASE_RESOURCE_ORDER:
+		var amount := _get_base_resource_amount(base_id, resource_id)
+		_add_storage_row(_format_title(resource_id), amount)
+
+
+func _add_storage_row(resource_name: String, amount: int) -> void:
+	var row := STORAGE_ROW_SCENE.instantiate()
+	resource_list.add_child(row)
+
+	if row.has_method("set_row_data"):
+		row.call("set_row_data", resource_name, amount)
+
+
+func _clear_resource_list() -> void:
+	for child in resource_list.get_children():
+		child.queue_free()
+
+
+func _connect_button(button: Button, callback: Callable) -> void:
+	if not button.pressed.is_connected(callback):
+		button.pressed.connect(callback)
+
+
+func _register_hover_button(button: Button) -> void:
+	if not button.mouse_entered.is_connected(_on_action_button_mouse_entered.bind(button)):
+		button.mouse_entered.connect(_on_action_button_mouse_entered.bind(button))
+
+	if not button.mouse_exited.is_connected(_on_action_button_mouse_exited.bind(button)):
+		button.mouse_exited.connect(_on_action_button_mouse_exited.bind(button))
+
+
+func _on_action_button_mouse_entered(button: Button) -> void:
+	var info: Dictionary = BUTTON_INFO.get(button.name, {})
+	if info.is_empty():
+		return
+
+	hover_title_label.text = str(info.get("title", "Aktion"))
+	hover_desc_label.text = str(info.get("desc", ""))
+	hover_cost_label.text = _build_hover_cost_text(button)
+	hover_info_panel.visible = true
+
+
+func _on_action_button_mouse_exited(_button: Button) -> void:
+	hover_info_panel.visible = false
+
+
+func _build_hover_cost_text(button: Button) -> String:
+	var base_id := _get_current_base_id()
+	var ore := _get_base_resource_amount(base_id, "ore")
+	var fuel := _get_base_resource_amount(base_id, "fuel")
+	var population := _get_base_population(base_id)
+
+	match button.name:
+		"BuildDroneButton":
+			return "Ore: %d / %d" % [ore, DRONE_ORE_COST]
+		"BuildMiningShipButton":
+			return "Ore: %d / %d" % [ore, MINING_SHIP_ORE_COST]
+		"BuildColonyShipButton":
+			return "Ore: %d / %d | Fuel: %d / %d | Pop: %d / %d" % [
+				ore,
+				COLONY_SHIP_ORE_COST,
+				fuel,
+				COLONY_SHIP_FUEL_COST,
+				population,
+				COLONY_SHIP_POPULATION_COST,
+			]
+		_:
+			var info: Dictionary = BUTTON_INFO.get(button.name, {})
+			return str(info.get("cost", ""))
+
 
 func _get_current_base_id() -> String:
 	if current_body_id.is_empty():
@@ -212,3 +302,21 @@ func _build_base_drone(base_id: String) -> bool:
 
 func _build_base_mining_ship(base_id: String) -> bool:
 	return GameSession.build_base_mining_ship(base_id)
+
+
+func _format_title(value: String) -> String:
+	var cleaned: String = value.strip_edges().replace("_", " ")
+
+	if cleaned.is_empty():
+		return "-"
+
+	var words: PackedStringArray = cleaned.split(" ", false)
+	var result_words: PackedStringArray = []
+
+	for word in words:
+		if word.is_empty():
+			continue
+
+		result_words.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
+
+	return " ".join(result_words)

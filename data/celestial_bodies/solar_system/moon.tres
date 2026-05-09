@@ -1,13 +1,22 @@
 [gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://dw4cmq80dq4ao"]
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_gyo2m"]
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_j1tw6"]
+[ext_resource type="Resource" uid="uid://rxifw4diuj5a" path="res://data/planet_resources/silicates.tres" id="2_2c68a"]
 [ext_resource type="Texture2D" uid="uid://djkg5hjj0m2ae" path="res://assets/sprites/planets/PlanetsFull/Barren_or_Moon/1.png" id="2_qbke3"]
+[ext_resource type="Resource" uid="uid://d33dgdt7qewkl" path="res://data/planet_resources/aluminum.tres" id="3_ciqjq"]
+
+[sub_resource type="Resource" id="Resource_13sni"]
+script = ExtResource("1_j1tw6")
+resource_id = &"Helium-3"
+richness_percent = 30
+metadata/_custom_type_script = "uid://de5akqgbobdkp"
 
 [resource]
 script = ExtResource("1_gyo2m")
 id = "moon"
 display_name = "Moon"
-description = "Karger Mond mit frühem Industriepotenzial und wichtigen Bauplätzen."
+description = "Karger natürlicher Satellit der Erde mit staubiger Oberfläche und geringer Schwerkraft. Frühe Industrieanlagen und Außenposten nutzen ihn als wichtigen Bau- und Startstandort."
 body_type = "moon"
 orbit_center_id = "earth"
 orbit_radius = 35.0
@@ -19,5 +28,7 @@ reference_orbit_au = -1.0
 reference_period_days = -1.0
 size_authoring_mode = 1
 gameplay_size_bias = 0.5
-scan_hidden_slots_after_special = 1
+scan_basic_resources = Array[ExtResource("1_j1tw6")]([ExtResource("2_2c68a")])
+scan_deep_resources = Array[ExtResource("1_j1tw6")]([ExtResource("3_ciqjq")])
+scan_special_resources = Array[ExtResource("1_j1tw6")]([SubResource("Resource_13sni")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

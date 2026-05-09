@@ -123,34 +123,12 @@ func build_scan_info(scan_state: String, scanner_tier: String) -> Dictionary:
 	)
 
 
-func get_orbit_tangent_direction() -> Vector2:
-	return orbiting.get_tangent_direction(self)
-
-
-func get_orbit_velocity_vector() -> Vector2:
-	return orbiting.get_velocity_vector(self)
-
-
 func get_back_orbit_units() -> Node2D:
 	return back_orbit_units
 
 
 func get_front_orbit_units() -> Node2D:
 	return front_orbit_units
-
-
-func get_interaction_orbit_config(
-	action_name: String,
-	desired_range: float,
-	_reference_position: Vector2 = Vector2.ZERO
-) -> Dictionary:
-	return InteractionOrbitConfigBuilder.build_config(
-		action_name,
-		desired_range,
-		selection_ring_radius,
-		orbit_speed,
-		true
-	)
 
 
 # --------------------------------------------------

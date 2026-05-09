@@ -7,6 +7,7 @@
 script = ExtResource("1_y2s6n")
 id = "proxima_b"
 display_name = "Proxima Centauri B"
+description = "Felsiger Exoplanet mit starker Strahlung und rauem Klima. Gewaltige Stürme und eisige Regionen prägen die Oberfläche des Planeten."
 body_type = "planet"
 orbit_center_id = "star"
 orbit_radius = 140.0

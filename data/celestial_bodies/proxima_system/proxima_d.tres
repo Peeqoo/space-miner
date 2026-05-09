@@ -7,6 +7,7 @@
 script = ExtResource("1_qm6f4")
 id = "proxima_d"
 display_name = "Proxima Centauri D"
+description = "Kleiner Planet in enger Umlaufbahn um seinen Stern mit extremer Hitze und starker Strahlung. Die Oberfläche ist trocken, felsig und von harschen Bedingungen geprägt."
 body_type = "planet"
 orbit_center_id = "star"
 orbit_radius = 70.0

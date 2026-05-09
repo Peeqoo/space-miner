@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ScannedResourceEntry" format=3 uid="uid://3qvbm4ie3yva"]
+
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_hf1pt"]
+
+[resource]
+script = ExtResource("1_hf1pt")
+resource_id = &"Quantum Crystals"
+richness_percent = 30
+metadata/_custom_type_script = "uid://de5akqgbobdkp"

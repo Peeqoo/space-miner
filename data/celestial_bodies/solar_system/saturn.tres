@@ -1,12 +1,17 @@
 [gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://chneblkbh7ola"]
 
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_2q1uy"]
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_ak16d"]
 [ext_resource type="Texture2D" uid="uid://dmkyem5otemdk" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Saturn/With_rings/1.png" id="2_4ya0n"]
+[ext_resource type="Resource" uid="uid://mxwvb2e316xd" path="res://data/planet_resources/methane.tres" id="2_v6405"]
+[ext_resource type="Resource" uid="uid://cuiiypp2u6tuy" path="res://data/planet_resources/hydrogen.tres" id="3_uav8d"]
+[ext_resource type="Resource" uid="uid://cpd08qr45ie3a" path="res://data/planet_resources/helium-3.tres" id="4_8oknq"]
 
 [resource]
 script = ExtResource("1_ak16d")
 id = "saturn"
 display_name = "Saturn"
+description = "Großer Gasplanet mit riesigen Ringsystemen aus Eis und Gestein. Die eisigen Monde des Planeten beherbergen abgelegene Forschungs- und Förderstationen."
 body_type = "planet"
 orbit_center_id = "star"
 orbit_radius = 640.0
@@ -17,4 +22,7 @@ reference_radius_earth = 9.45
 reference_orbit_au = 9.54
 reference_period_days = 10762.0
 size_authoring_mode = 1
+scan_basic_resources = Array[ExtResource("1_2q1uy")]([ExtResource("2_v6405")])
+scan_deep_resources = Array[ExtResource("1_2q1uy")]([ExtResource("3_uav8d")])
+scan_special_resources = Array[ExtResource("1_2q1uy")]([ExtResource("4_8oknq")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

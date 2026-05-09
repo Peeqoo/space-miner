@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ScannedResourceEntry" format=3 uid="uid://b2m8pgmme2t5o"]
+
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_5lkj4"]
+
+[resource]
+script = ExtResource("1_5lkj4")
+resource_id = &"Platinum Clusters"
+richness_percent = 30
+metadata/_custom_type_script = "uid://de5akqgbobdkp"

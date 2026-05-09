@@ -49,11 +49,8 @@ func show_system_info(
 	known_resources_text: String,
 	info_text: String,
 	can_enter: bool,
-	is_current_system: bool
 ) -> void:
 	var display_text: String = system_name
-	if is_current_system:
-		display_text += " (aktuell)"
 
 	system_name_label.text = display_text
 	known_planets_value_label.text = str(max(known_planets_count, 0))

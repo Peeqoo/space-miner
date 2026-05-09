@@ -13,7 +13,7 @@ anchor_right = 1.0
 offset_left = -160.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = 315.0
+offset_bottom = 292.0
 grow_horizontal = 0
 script = ExtResource("1_c2q1o")
 
@@ -26,7 +26,6 @@ theme_override_constants/margin_bottom = 6
 
 [node name="Root" type="VBoxContainer" parent="Margin" unique_id=1877917777]
 layout_mode = 2
-theme_override_constants/separation = 4
 
 [node name="HeaderLabel" type="Label" parent="Margin/Root" unique_id=994376410]
 layout_mode = 2
@@ -36,13 +35,13 @@ label_settings = ExtResource("2_2h3fg")
 
 [node name="MainRow" type="HBoxContainer" parent="Margin/Root" unique_id=394734506]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="PreviewPanel" type="PanelContainer" parent="Margin/Root/MainRow" unique_id=1583092633]
 custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 0
+size_flags_vertical = 4
 
 [node name="PreviewCenter" type="CenterContainer" parent="Margin/Root/MainRow/PreviewPanel" unique_id=1414299455]
 custom_minimum_size = Vector2(32, 32)
@@ -83,6 +82,10 @@ theme_override_font_sizes/font_size = 6
 text = "Distanz: 184 u"
 label_settings = ExtResource("4_ckpwi")
 
+[node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=342453918]
+layout_mode = 2
+theme_override_constants/separation = 0
+
 [node name="ResourceTitleLabel" type="Label" parent="Margin/Root" unique_id=214492717]
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
@@ -108,11 +111,9 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="HiddenResourcesLabel" type="Label" parent="Margin/Root" unique_id=660322474]
+[node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=1506989608]
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
-text = "Tieferer Scan nötig"
-label_settings = ExtResource("4_ckpwi")
+theme_override_constants/separation = 0
 
 [node name="LoreTitleLabel" type="Label" parent="Margin/Root" unique_id=730334323]
 layout_mode = 2
@@ -147,27 +148,29 @@ layout_mode = 2
 text = "Mining Bonus: +0%"
 label_settings = ExtResource("4_ckpwi")
 
-[node name="HBoxContainer" type="VBoxContainer" parent="Margin/Root" unique_id=975320016]
+[node name="DividerC" type="HSeparator" parent="Margin/Root" unique_id=1788739762]
 layout_mode = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
-[node name="ScanWithDroneButton" type="Button" parent="Margin/Root/HBoxContainer" unique_id=973423112]
+[node name="GridContainer" type="GridContainer" parent="Margin/Root" unique_id=1253186436]
+layout_mode = 2
+columns = 2
+
+[node name="ScanWithDroneButton" type="Button" parent="Margin/Root/GridContainer" unique_id=973423112]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 8
 text = "Scan"
 
-[node name="SendMiningShipButton" type="Button" parent="Margin/Root/HBoxContainer" unique_id=1413547153]
+[node name="SendMiningShipButton" type="Button" parent="Margin/Root/GridContainer" unique_id=1413547153]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 8
 text = "Mine"
 
-[node name="RecallDroneButton" type="Button" parent="Margin/Root/HBoxContainer" unique_id=458234119]
+[node name="RecallDroneButton" type="Button" parent="Margin/Root/GridContainer" unique_id=458234119]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -175,7 +178,7 @@ theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 8
 text = "Drone zurück"
 
-[node name="RecallMiningShipButton" type="Button" parent="Margin/Root/HBoxContainer" unique_id=920113405]
+[node name="RecallMiningShipButton" type="Button" parent="Margin/Root/GridContainer" unique_id=920113405]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4

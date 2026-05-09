@@ -5,6 +5,7 @@ extends Node
 
 var system_definition: SystemDefinition
 var selection: SystemSelectionController
+var spawner: SystemSpawner = null
 
 var object_info_panel: PanelContainer
 var base_management_panel: PanelContainer
@@ -15,14 +16,17 @@ func setup(
 	p_system_definition: SystemDefinition,
 	p_selection: SystemSelectionController,
 	p_object_info_panel: PanelContainer,
-	p_base_management_panel: PanelContainer
+	p_base_management_panel: PanelContainer,
+	p_automation_controller: AutomationController = null,
+	p_spawner: SystemSpawner = null
 ) -> void:
 	system_definition = p_system_definition
 	selection = p_selection
+	spawner = p_spawner
 
 	object_info_panel = p_object_info_panel
 	base_management_panel = p_base_management_panel
-	automation_controller = _find_automation_controller()
+	automation_controller = p_automation_controller
 
 	if object_info_panel != null:
 		object_info_panel.visible = false
@@ -37,6 +41,25 @@ func setup(
 func update_all() -> void:
 	update_object_info()
 	update_base_panel()
+
+
+func _process(_delta: float) -> void:
+	if object_info_panel == null or not object_info_panel.visible:
+		return
+
+	var selected := selection.get_selected_node()
+	if selected == null or not (selected is Node2D):
+		return
+
+	if spawner == null:
+		return
+
+	var base_node := spawner.get_spawned_object(BaseStore.BASE_EARTH) as Node2D
+	if base_node == null:
+		return
+
+	var dist: float = base_node.global_position.distance_to((selected as Node2D).global_position)
+	object_info_panel.call("set_distance_text", "Distanz: %.0f u" % dist)
 
 
 func update_object_info() -> void:
@@ -149,8 +172,8 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 		info = selected_node.call("get_info")
 
 	info["scan_state"] = scan_state
-	info["distance_text"] = "-"
 	info["preview_texture"] = _get_preview_texture(selected_node)
+	info["distance_text"] = "-"  # Overwritten every frame by _process().
 
 	info["can_scan_with_drone"] = _can_scan_selected_object(selected_node, scan_state)
 	info["can_mine_with_ship"] = _can_mine_selected_object(selected_node, scan_state)
@@ -168,6 +191,16 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 		info["mining_bonus"] = _get_mining_bonus_for_object(object_id)
 		info["can_recall_drone"] = int(info["orbiting_drone_count"]) > 0
 		info["can_recall_mining_ship"] = _get_assigned_mining_ship_count(object_id) > 0
+
+	# Lore text comes directly from the definition — not scan-gated.
+	if selected_node is SystemBody:
+		var body := selected_node as SystemBody
+		if body.definition != null and not body.definition.description.is_empty():
+			info["lore_text"] = body.definition.description
+	elif selected_node is PointOfInterest:
+		var poi := selected_node as PointOfInterest
+		if poi.definition != null and not poi.definition.description.is_empty():
+			info["lore_text"] = poi.definition.description
 
 	if not info.has("lore_text"):
 		info["lore_text"] = "Keine Beschreibung verfügbar."
@@ -242,9 +275,6 @@ func _on_automation_state_changed() -> void:
 
 func _on_build_drone_requested() -> void:
 	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller == null:
 		return
 
 	automation_controller.spawn_idle_drone_at_base(BaseStore.BASE_EARTH)
@@ -252,9 +282,6 @@ func _on_build_drone_requested() -> void:
 
 
 func _on_build_mining_ship_requested() -> void:
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
 	if automation_controller == null:
 		return
 
@@ -265,9 +292,6 @@ func _on_build_mining_ship_requested() -> void:
 func _on_object_scan_requested(object_id: String) -> void:
 	if object_id.is_empty():
 		return
-
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
 		return
@@ -285,9 +309,6 @@ func _on_object_mining_requested(object_id: String) -> void:
 		return
 
 	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller == null:
 		return
 
 	if not _has_available_mining_ship():
@@ -303,9 +324,6 @@ func _on_recall_drone_requested(object_id: String) -> void:
 		return
 
 	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller == null:
 		return
 
 	automation_controller.recall_one_drone_from_target(object_id)
@@ -315,9 +333,6 @@ func _on_recall_drone_requested(object_id: String) -> void:
 func _on_recall_mining_ship_requested(object_id: String) -> void:
 	if object_id.is_empty():
 		return
-
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
 		return
@@ -334,54 +349,33 @@ func _selected_body_has_base(body: SystemBody) -> bool:
 
 
 func _has_available_drone() -> bool:
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller != null and automation_controller.has_method("has_idle_drone"):
-		return bool(automation_controller.call("has_idle_drone"))
+	if automation_controller != null:
+		return automation_controller.has_idle_drone()
 
 	return _get_base_drone_count() > 0
 
 
 func _has_available_mining_ship() -> bool:
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller != null and automation_controller.has_method("has_idle_mining_ship"):
-		return bool(automation_controller.call("has_idle_mining_ship"))
+	if automation_controller != null:
+		return automation_controller.has_idle_mining_ship()
 
 	return _get_base_mining_ship_count() > 0
 
 
 func _get_base_drone_count() -> int:
-	if GameSession.has_method("get_base_drone_count"):
-		return int(GameSession.call("get_base_drone_count", BaseStore.BASE_EARTH))
-
-	if GameSession.has_method("get_drone_count"):
-		return int(GameSession.call("get_drone_count"))
-
-	return 0
+	return GameSession.get_base_drone_count(BaseStore.BASE_EARTH)
 
 
 func _get_base_mining_ship_count() -> int:
-	if GameSession.has_method("get_base_mining_ship_count"):
-		return int(GameSession.call("get_base_mining_ship_count", BaseStore.BASE_EARTH))
-
-	if GameSession.has_method("get_mining_ship_count"):
-		return int(GameSession.call("get_mining_ship_count"))
-
-	return 0
+	return GameSession.get_base_mining_ship_count(BaseStore.BASE_EARTH)
 
 
 func _get_orbiting_drone_count(object_id: String) -> int:
 	if object_id.is_empty():
 		return 0
 
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller != null and automation_controller.has_method("get_orbiting_drone_count"):
-		return int(automation_controller.call("get_orbiting_drone_count", object_id))
+	if automation_controller != null:
+		return automation_controller.get_orbiting_drone_count(object_id)
 
 	return 0
 
@@ -390,11 +384,8 @@ func _get_orbiting_mining_ship_count(object_id: String) -> int:
 	if object_id.is_empty():
 		return 0
 
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller != null and automation_controller.has_method("get_orbiting_mining_ship_count"):
-		return int(automation_controller.call("get_orbiting_mining_ship_count", object_id))
+	if automation_controller != null:
+		return automation_controller.get_orbiting_mining_ship_count(object_id)
 
 	return 0
 
@@ -403,11 +394,8 @@ func _get_assigned_mining_ship_count(object_id: String) -> int:
 	if object_id.is_empty():
 		return 0
 
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller != null and automation_controller.has_method("get_assigned_mining_ship_count"):
-		return int(automation_controller.call("get_assigned_mining_ship_count", object_id))
+	if automation_controller != null:
+		return automation_controller.get_assigned_mining_ship_count(object_id)
 
 	return 0
 
@@ -416,19 +404,7 @@ func _get_mining_bonus_for_object(object_id: String) -> float:
 	if object_id.is_empty():
 		return 0.0
 
-	if automation_controller == null:
-		automation_controller = _find_automation_controller()
-
-	if automation_controller != null and automation_controller.has_method("get_mining_bonus_for_target"):
-		return float(automation_controller.call("get_mining_bonus_for_target", object_id))
+	if automation_controller != null:
+		return automation_controller.get_mining_bonus_for_target(object_id)
 
 	return 0.0
-
-
-func _find_automation_controller() -> AutomationController:
-	var parent_node := get_parent()
-
-	if parent_node == null:
-		return null
-
-	return parent_node.get_node_or_null("AutomationController") as AutomationController
