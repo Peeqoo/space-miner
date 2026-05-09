@@ -25,6 +25,8 @@ var active_units_by_mission_id: Dictionary = {}
 var idle_drones: Array[AutomationUnit] = []
 var idle_mining_ships: Array[AutomationUnit] = []
 
+var starting_units_initialized: bool = false
+
 enum MiningShipStatus {
 	TO_TARGET,
 	MINING,
@@ -42,6 +44,36 @@ func setup(
 	automation_root = p_automation_root
 	spawner = p_spawner
 	set_process(true)
+
+
+func ensure_starting_units() -> void:
+	if starting_units_initialized:
+		return
+
+	starting_units_initialized = true
+
+	if idle_mining_ships.size() > 0:
+		return
+
+	var base_node := _get_target_node(BASE_ID_EARTH)
+
+	if base_node == null:
+		return
+
+	var unit := _spawn_unit(MINING_SHIP_SCENE)
+
+	if unit == null:
+		return
+
+	unit.work_duration = DEFAULT_MINING_DURATION
+	unit.start_orbiting_base(base_node)
+	idle_mining_ships.append(unit)
+
+	# Sync BaseStore — only if not already counted (safe on scene reload).
+	if GameSession.get_base_mining_ship_count(BASE_ID_EARTH) == 0:
+		GameSession.add_base_mining_ship(BASE_ID_EARTH)
+
+	automation_state_changed.emit()
 
 
 func spawn_idle_drone_at_base(base_id: String = BASE_ID_EARTH) -> void:
@@ -283,8 +315,6 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 	mining_ship_runtime_by_unit_id[unit_id] = selected_runtime
 	automation_state_changed.emit()
 	return true
-
-	return false
 
 
 func get_mining_bonus_for_target(target_id: String) -> float:

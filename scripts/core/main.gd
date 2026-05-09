@@ -1,3 +1,4 @@
+## Entry point. Registers SceneFlow, boots GameSession, and loads the startup scene.
 extends Node
 
 @export_file("*.tscn") var startup_scene_path: String = "res://scenes/galaxy/galaxy_map.tscn"

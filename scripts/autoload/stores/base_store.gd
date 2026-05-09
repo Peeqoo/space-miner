@@ -113,6 +113,26 @@ func build_mining_ship(base_id: String) -> bool:
 	return true
 
 
+# Adds mining ships without any ore cost. Used for starting units and grants.
+func add_mining_ship(base_id: String, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+
+	var base := get_base(base_id)
+	base["mining_ships"] = int(base.get("mining_ships", 0)) + amount
+	bases[base_id] = base
+
+
+# Adds drones without any ore cost. Used for starting units and grants.
+func add_drone(base_id: String, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+
+	var base := get_base(base_id)
+	base["drones"] = int(base.get("drones", 0)) + amount
+	bases[base_id] = base
+
+
 func _create_empty_base() -> Dictionary:
 	return {
 		"resources": {

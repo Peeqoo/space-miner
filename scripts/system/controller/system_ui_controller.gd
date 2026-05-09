@@ -6,7 +6,6 @@ extends Node
 var system_definition: SystemDefinition
 var selection: SystemSelectionController
 
-var action_bar: PanelContainer
 var object_info_panel: PanelContainer
 var base_management_panel: PanelContainer
 var automation_controller: AutomationController = null
@@ -15,14 +14,12 @@ var automation_controller: AutomationController = null
 func setup(
 	p_system_definition: SystemDefinition,
 	p_selection: SystemSelectionController,
-	p_action_bar: PanelContainer,
 	p_object_info_panel: PanelContainer,
 	p_base_management_panel: PanelContainer
 ) -> void:
 	system_definition = p_system_definition
 	selection = p_selection
 
-	action_bar = p_action_bar
 	object_info_panel = p_object_info_panel
 	base_management_panel = p_base_management_panel
 	automation_controller = _find_automation_controller()
@@ -39,12 +36,7 @@ func setup(
 
 func update_all() -> void:
 	update_object_info()
-	update_action_bar()
 	update_base_panel()
-
-
-func update_ship_ui() -> void:
-	update_all()
 
 
 func update_object_info() -> void:
@@ -71,13 +63,6 @@ func update_object_info() -> void:
 	elif selected_node is PointOfInterest:
 		if object_info_panel.has_method("show_poi_info"):
 			object_info_panel.call("show_poi_info", info)
-
-
-func update_action_bar() -> void:
-	if action_bar == null or not action_bar.has_method("apply_state"):
-		return
-
-	action_bar.call("apply_state", _build_action_bar_state())
 
 
 func update_base_panel() -> void:
@@ -116,11 +101,6 @@ func update_base_panel() -> void:
 		base_management_panel.visible = true
 
 
-func set_action_status(text: String) -> void:
-	if action_bar != null and action_bar.has_method("set_action_status"):
-		action_bar.call("set_action_status", text)
-
-
 func _connect_ui_signals() -> void:
 	if selection != null and not selection.selection_changed.is_connected(_on_selection_changed):
 		selection.selection_changed.connect(_on_selection_changed)
@@ -154,22 +134,6 @@ func _connect_ui_signals() -> void:
 		if base_management_panel.has_signal("build_mining_ship_requested"):
 			if not base_management_panel.build_mining_ship_requested.is_connected(_on_build_mining_ship_requested):
 				base_management_panel.build_mining_ship_requested.connect(_on_build_mining_ship_requested)
-
-
-func _build_action_bar_state() -> Dictionary:
-	return {
-		"is_docked": false,
-		"can_undock": false,
-		"can_approach": false,
-		"can_dock": false,
-		"can_scan": false,
-		"can_mine": false,
-		"mining_active": false,
-		"show_unload_cargo": false,
-		"can_unload_cargo": false,
-		"show_build_base": false,
-		"can_build_base": false,
-	}
 
 
 func _build_selected_object_info(selected_node: Node) -> Dictionary:
@@ -268,7 +232,6 @@ func _get_object_id(node: Node) -> String:
 
 func _on_selection_changed(_selected_node: Node) -> void:
 	update_object_info()
-	update_action_bar()
 	update_base_panel()
 
 
@@ -282,11 +245,9 @@ func _on_build_drone_requested() -> void:
 		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
-		set_action_status("AutomationController fehlt.")
 		return
 
-	automation_controller.spawn_idle_drone_at_base("earth")
-	set_action_status("Drone gebaut.")
+	automation_controller.spawn_idle_drone_at_base(BaseStore.BASE_EARTH)
 	update_all()
 
 
@@ -295,11 +256,9 @@ func _on_build_mining_ship_requested() -> void:
 		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
-		set_action_status("AutomationController fehlt.")
 		return
 
-	automation_controller.spawn_idle_mining_ship_at_base("earth")
-	set_action_status("Mining Ship gebaut.")
+	automation_controller.spawn_idle_mining_ship_at_base(BaseStore.BASE_EARTH)
 	update_all()
 
 
@@ -311,16 +270,13 @@ func _on_object_scan_requested(object_id: String) -> void:
 		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
-		set_action_status("AutomationController fehlt.")
 		return
 
 	if not _has_available_drone():
-		set_action_status("Keine freie Drone verfügbar.")
 		update_object_info()
 		return
 
 	automation_controller.launch_scan_drone(object_id)
-	set_action_status("Scan-Drone gestartet: %s" % object_id)
 	update_object_info()
 
 
@@ -332,16 +288,13 @@ func _on_object_mining_requested(object_id: String) -> void:
 		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
-		set_action_status("AutomationController fehlt.")
 		return
 
 	if not _has_available_mining_ship():
-		set_action_status("Kein freies Mining Ship verfügbar.")
 		update_object_info()
 		return
 
 	automation_controller.launch_mining_ship(object_id)
-	set_action_status("Mining Ship gestartet: %s" % object_id)
 	update_object_info()
 
 
@@ -353,14 +306,9 @@ func _on_recall_drone_requested(object_id: String) -> void:
 		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
-		set_action_status("AutomationController fehlt.")
 		return
 
-	if not automation_controller.recall_one_drone_from_target(object_id):
-		set_action_status("Keine Drone im Orbit von %s." % object_id)
-	else:
-		set_action_status("Eine Drone kehrt zu Earth zurück.")
-
+	automation_controller.recall_one_drone_from_target(object_id)
 	update_object_info()
 
 
@@ -372,14 +320,9 @@ func _on_recall_mining_ship_requested(object_id: String) -> void:
 		automation_controller = _find_automation_controller()
 
 	if automation_controller == null:
-		set_action_status("AutomationController fehlt.")
 		return
 
-	if not automation_controller.recall_one_mining_ship_from_target(object_id):
-		set_action_status("Kein Mining Ship im Orbit von %s." % object_id)
-	else:
-		set_action_status("Ein Mining Ship kehrt zu Earth zurück.")
-
+	automation_controller.recall_one_mining_ship_from_target(object_id)
 	update_object_info()
 
 
@@ -387,7 +330,7 @@ func _selected_body_has_base(body: SystemBody) -> bool:
 	if body == null:
 		return false
 
-	return body.body_id == "earth"
+	return body.body_id == BaseStore.BASE_EARTH
 
 
 func _has_available_drone() -> bool:

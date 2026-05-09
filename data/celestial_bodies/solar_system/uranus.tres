@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://cf58e8ip0rmu5"]
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://cpecanxf50cw4"]
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_m3rh6"]
 [ext_resource type="Texture2D" uid="uid://bafmj7fpp78oc" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Uranus/With_rings/1.png" id="2_5xf3h"]

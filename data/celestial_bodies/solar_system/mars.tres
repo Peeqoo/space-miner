@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://c1e1263o343pg"]
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://80yyesnprqme"]
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_fodo3"]
 [ext_resource type="Texture2D" uid="uid://ckmthn4f332ki" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mars/1.png" id="2_puof5"]

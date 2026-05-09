@@ -43,8 +43,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _finish_initial_setup() -> void:
 	await get_tree().process_frame
 
-	var state := GameSession.get_or_create_ship_state(system_definition.id)
-	selection.restore_last_selection(state)
+	# Earth is spawned at this point — safe to ensure starting units.
+	automation_controller.ensure_starting_units()
 
 	var start_node := spawner.get_spawned_object(start_body_id) as Node2D
 	if start_node != null:
@@ -74,7 +74,6 @@ func _setup_controllers() -> void:
 	system_ui.setup(
 		system_definition,
 		selection,
-		$UI/ActionBar,
 		$UI/ObjectInfoPanel,
 		$UI/BaseManagementPanel
 	)

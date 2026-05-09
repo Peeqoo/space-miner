@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://teq1shx3il5t" path="res://scripts/galaxy/galaxy_system_node.gd" id="2_4q7h0"]
 [ext_resource type="Texture2D" uid="uid://cn81be8jcq534" path="res://assets/sprites/backgrounds/large 1024x1024/Blue Nebula/Blue_Nebula_06-1024x1024.png" id="2_ng86b"]
 [ext_resource type="Texture2D" uid="uid://cw2y76phvw6o8" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_07-1024x1024.png" id="3_ng86b"]
-[ext_resource type="Resource" uid="uid://lmrv7drdrtg6" path="res://data/galaxy_systems/sol_system.tres" id="3_uta3y"]
+[ext_resource type="Resource" path="res://data/galaxy_systems/solar_system.tres" id="3_uta3y"]
 [ext_resource type="Texture2D" uid="uid://57vt4pp8oxrp" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Sun/1.png" id="4_4q7h0"]
 [ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="4_5o4t4"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="5_vdcto"]
@@ -68,16 +68,16 @@ script = ExtResource("2_3keem")
 
 [node name="SystemsRoot" type="Node2D" parent="." unique_id=1622724227]
 
-[node name="SolSystem" type="Node2D" parent="SystemsRoot" unique_id=2132108268]
+[node name="SolarSystem" type="Node2D" parent="SystemsRoot" unique_id=2132108268]
 script = ExtResource("2_4q7h0")
 system_definition = ExtResource("3_uta3y")
 
-[node name="Sprite2D" type="Sprite2D" parent="SystemsRoot/SolSystem" unique_id=512826962]
+[node name="Sprite2D" type="Sprite2D" parent="SystemsRoot/SolarSystem" unique_id=512826962]
 texture = ExtResource("4_4q7h0")
 
-[node name="Area2D" type="Area2D" parent="SystemsRoot/SolSystem" unique_id=1623095258]
+[node name="Area2D" type="Area2D" parent="SystemsRoot/SolarSystem" unique_id=1623095258]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SystemsRoot/SolSystem/Area2D" unique_id=1727745553]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SystemsRoot/SolarSystem/Area2D" unique_id=1727745553]
 shape = SubResource("CircleShape2D_uta3y")
 
 [node name="ProximaSystem" type="Node2D" parent="SystemsRoot" unique_id=1253771322]
@@ -99,6 +99,7 @@ shape = SubResource("CircleShape2D_5o4t4")
 position_smoothing_enabled = true
 position_smoothing_speed = 6.0
 script = ExtResource("8_c6cuc")
+keyboard_pan_speed = 300.0
 start_frame_mode = 2
 overview_world_size = Vector2(2800, 1800)
 

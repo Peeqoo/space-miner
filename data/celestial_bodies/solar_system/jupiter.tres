@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://b1emurvotk828"]
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://doca64vo74wrc"]
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_pmgmc"]
 [ext_resource type="Texture2D" uid="uid://kxdhm6m76m1k" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Jupiter/1.png" id="2_8mx0p"]

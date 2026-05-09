@@ -82,7 +82,7 @@ func refresh_from_game_session() -> void:
 	var mining_ships := _get_base_mining_ship_count(base_id)
 
 	base_name_label.text = current_base_name
-	status_label.text = "Status: Heimatbasis" if base_id == "earth" else "Status: Basis"
+	status_label.text = "Status: Heimatbasis" if base_id == BaseStore.BASE_EARTH else "Status: Basis"
 
 	ore_label.text = "Ore: %d" % ore
 	fuel_label.text = "Fuel: %d" % fuel
@@ -177,85 +177,38 @@ func _on_build_colony_ship_pressed() -> void:
 
 func _get_current_base_id() -> String:
 	if current_body_id.is_empty():
-		return "earth"
+		return BaseStore.BASE_EARTH
 
 	return current_body_id
 
 
 func _get_base_resource_amount(base_id: String, resource_id: String) -> int:
-	if GameSession.has_method("get_base_resource_amount"):
-		return int(GameSession.call("get_base_resource_amount", base_id, resource_id))
-
-	if GameSession.has_method("get_earth_resource_amount"):
-		return int(GameSession.call("get_earth_resource_amount", resource_id))
-
-	return 0
+	return GameSession.get_base_resource_amount(base_id, resource_id)
 
 
 func _add_base_resource(base_id: String, resource_id: String, amount: int) -> void:
-	if GameSession.has_method("add_base_resource"):
-		GameSession.call("add_base_resource", base_id, resource_id, amount)
-		return
-
-	if GameSession.has_method("add_earth_resource"):
-		GameSession.call("add_earth_resource", resource_id, amount)
+	GameSession.add_base_resource(base_id, resource_id, amount)
 
 
 func _spend_base_resource(base_id: String, resource_id: String, amount: int) -> bool:
-	if GameSession.has_method("spend_base_resource"):
-		return bool(GameSession.call("spend_base_resource", base_id, resource_id, amount))
-
-	if GameSession.has_method("spend_earth_resource"):
-		return bool(GameSession.call("spend_earth_resource", resource_id, amount))
-
-	return false
+	return GameSession.spend_base_resource(base_id, resource_id, amount)
 
 
 func _get_base_population(base_id: String) -> int:
-	if GameSession.has_method("get_base_population"):
-		return int(GameSession.call("get_base_population", base_id))
-
-	if GameSession.has_method("get_earth_population"):
-		return int(GameSession.call("get_earth_population"))
-
-	return 0
+	return GameSession.get_base_population(base_id)
 
 
 func _get_base_drone_count(base_id: String) -> int:
-	if GameSession.has_method("get_base_drone_count"):
-		return int(GameSession.call("get_base_drone_count", base_id))
-
-	if GameSession.has_method("get_drone_count"):
-		return int(GameSession.call("get_drone_count"))
-
-	return 0
+	return GameSession.get_base_drone_count(base_id)
 
 
 func _get_base_mining_ship_count(base_id: String) -> int:
-	if GameSession.has_method("get_base_mining_ship_count"):
-		return int(GameSession.call("get_base_mining_ship_count", base_id))
-
-	if GameSession.has_method("get_mining_ship_count"):
-		return int(GameSession.call("get_mining_ship_count"))
-
-	return 0
+	return GameSession.get_base_mining_ship_count(base_id)
 
 
 func _build_base_drone(base_id: String) -> bool:
-	if GameSession.has_method("build_base_drone"):
-		return bool(GameSession.call("build_base_drone", base_id))
-
-	if GameSession.has_method("build_drone"):
-		return bool(GameSession.call("build_drone"))
-
-	return false
+	return GameSession.build_base_drone(base_id)
 
 
 func _build_base_mining_ship(base_id: String) -> bool:
-	if GameSession.has_method("build_base_mining_ship"):
-		return bool(GameSession.call("build_base_mining_ship", base_id))
-
-	if GameSession.has_method("build_mining_ship"):
-		return bool(GameSession.call("build_mining_ship"))
-
-	return false
+	return GameSession.build_base_mining_ship(base_id)

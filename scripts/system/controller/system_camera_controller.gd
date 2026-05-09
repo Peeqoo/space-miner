@@ -7,19 +7,43 @@ enum FrameMode {
 	MANUAL_OVERVIEW
 }
 
-@export var camera_speed: float = 600.0
+# --------------------------------------------------
+# Exports — Pan
+# --------------------------------------------------
+
+@export var keyboard_pan_speed: float = 600.0
+@export var mouse_drag_pan_speed: float = 1.0
+@export var acceleration: float = 8.0
+@export var deceleration: float = 12.0
+@export var max_pan_speed: float = 900.0
+@export var allow_keyboard_pan: bool = true
+
+# --------------------------------------------------
+# Exports — Zoom
+# --------------------------------------------------
+
 @export var zoom_min: float = 0.2
 @export var zoom_max: float = 2.0
 @export var zoom_step: float = 0.1
 @export var zoom_smooth_speed: float = 8.0
-@export var allow_keyboard_pan: bool = true
+
+# --------------------------------------------------
+# Exports — Framing
+# --------------------------------------------------
 
 @export var start_frame_mode: FrameMode = FrameMode.NONE
 @export var auto_frame_on_ready: bool = true
 @export var auto_frame_margin_pixels: float = 120.0
 @export var overview_world_size: Vector2 = Vector2(1600.0, 900.0)
 
+# --------------------------------------------------
+# Internal State
+# --------------------------------------------------
+
 var zoom_target: Vector2 = Vector2.ONE
+var _velocity: Vector2 = Vector2.ZERO
+var _drag_relative: Vector2 = Vector2.ZERO
+var _is_right_dragging: bool = false
 
 
 func _ready() -> void:
@@ -36,45 +60,108 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_target(zoom_step)
-		elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_target(-zoom_step)
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
 
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			_is_right_dragging = mb.pressed
+			# Consume right-press so it doesn't reach selection / UI.
+			get_viewport().set_input_as_handled()
+			return
+
+		if not mb.pressed:
+			return
+
+		if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_target(zoom_step)
+			get_viewport().set_input_as_handled()
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_target(-zoom_step)
+			get_viewport().set_input_as_handled()
+
+	elif event is InputEventMouseMotion and _is_right_dragging:
+		_drag_relative += (event as InputEventMouseMotion).relative
+		get_viewport().set_input_as_handled()
+
+
+# --------------------------------------------------
+# Movement
+# --------------------------------------------------
 
 func _handle_camera_movement(delta: float) -> void:
-	if not allow_keyboard_pan:
+	var current_zoom: float = maxf(zoom.x, 0.01)
+	var has_drag: bool = _drag_relative.length_squared() > 0.0 and delta > 0.0
+
+	# --- Mouse drag: convert screen-pixel displacement to world velocity.
+	# Dividing by delta turns "pixels this frame" into "pixels per second",
+	# which is then scaled to world space by the current zoom level.
+	# Result: the camera tracks the mouse 1:1 while dragging; the stored
+	# _velocity gives natural momentum when the button is released.
+	if has_drag:
+		var drag_vel: Vector2 = -_drag_relative / delta / current_zoom * mouse_drag_pan_speed
+		_velocity = drag_vel.limit_length(max_pan_speed)
+		_drag_relative = Vector2.ZERO
+
+		# Allow WASD to add on top of drag.
+		if allow_keyboard_pan:
+			var kb: Vector2 = _read_keyboard_input() * keyboard_pan_speed / current_zoom
+			if kb.length_squared() > 0.01:
+				_velocity = (_velocity + kb).limit_length(max_pan_speed)
+
+		global_position += _velocity * delta
 		return
 
-	var input_vector: Vector2 = Vector2.ZERO
+	_drag_relative = Vector2.ZERO
+
+	# --- Keyboard: smooth acceleration / deceleration via exponential lerp.
+	if allow_keyboard_pan:
+		var kb: Vector2 = _read_keyboard_input()
+
+		if kb.length_squared() > 0.01:
+			var desired: Vector2 = kb * keyboard_pan_speed / current_zoom
+			desired = desired.limit_length(max_pan_speed)
+			_velocity = _velocity.lerp(desired, 1.0 - exp(-acceleration * delta))
+		else:
+			_velocity = _velocity.lerp(Vector2.ZERO, 1.0 - exp(-deceleration * delta))
+	else:
+		_velocity = _velocity.lerp(Vector2.ZERO, 1.0 - exp(-deceleration * delta))
+
+	if _velocity.length_squared() > 0.01:
+		global_position += _velocity * delta
+
+
+func _read_keyboard_input() -> Vector2:
+	var v: Vector2 = Vector2.ZERO
 
 	if Input.is_action_pressed("move_up"):
-		input_vector.y -= 1.0
+		v.y -= 1.0
 	if Input.is_action_pressed("move_down"):
-		input_vector.y += 1.0
+		v.y += 1.0
 	if Input.is_action_pressed("move_left"):
-		input_vector.x -= 1.0
+		v.x -= 1.0
 	if Input.is_action_pressed("move_right"):
-		input_vector.x += 1.0
+		v.x += 1.0
 
-	input_vector = input_vector.normalized()
+	return v.normalized()
 
-	if input_vector != Vector2.ZERO:
-		global_position += input_vector * camera_speed * delta
 
+# --------------------------------------------------
+# Public API (kept identical for callers in system_scene.gd)
+# --------------------------------------------------
 
 func set_start_position(world_position: Vector2) -> void:
 	global_position = world_position
+	_velocity = Vector2.ZERO
 
 
 func focus_world_position(world_position: Vector2) -> void:
 	global_position = world_position
+	_velocity = Vector2.ZERO
 
 
 func snap_to_position(world_position: Vector2) -> void:
 	global_position = world_position
+	_velocity = Vector2.ZERO
 
 
 func clear_follow() -> void:
@@ -86,7 +173,12 @@ func set_follow_target(target: Node2D, _enable_follow: bool = true) -> void:
 		return
 
 	global_position = target.global_position
+	_velocity = Vector2.ZERO
 
+
+# --------------------------------------------------
+# Framing helpers
+# --------------------------------------------------
 
 func frame_nodes(nodes: Array[Node2D], margin_pixels: float = auto_frame_margin_pixels) -> void:
 	if nodes.is_empty():
@@ -101,6 +193,7 @@ func frame_nodes(nodes: Array[Node2D], margin_pixels: float = auto_frame_margin_
 			continue
 
 		var p: Vector2 = node.global_position
+
 		if not rect_initialized:
 			min_pos = p
 			max_pos = p
@@ -122,8 +215,10 @@ func frame_nodes(nodes: Array[Node2D], margin_pixels: float = auto_frame_margin_
 
 func frame_rect(center: Vector2, world_size: Vector2) -> void:
 	global_position = center
+	_velocity = Vector2.ZERO
 
 	var viewport_size: Vector2 = get_viewport_rect().size
+
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
 
@@ -140,10 +235,26 @@ func frame_rect(center: Vector2, world_size: Vector2) -> void:
 	zoom_target = zoom
 
 
+# --------------------------------------------------
+# Zoom
+# --------------------------------------------------
+
+func _zoom_target(amount: float) -> void:
+	var new_zoom: Vector2 = zoom_target + Vector2(amount, amount)
+	new_zoom.x = clampf(new_zoom.x, zoom_min, zoom_max)
+	new_zoom.y = clampf(new_zoom.y, zoom_min, zoom_max)
+	zoom_target = new_zoom
+
+
+# --------------------------------------------------
+# Start framing
+# --------------------------------------------------
+
 func _apply_start_frame() -> void:
 	match start_frame_mode:
 		FrameMode.SYSTEM_FULL:
 			var scene_root: Node = get_tree().current_scene
+
 			if scene_root == null:
 				return
 
@@ -178,10 +289,3 @@ func _collect_frame_nodes(root: Node) -> Array[Node2D]:
 		result.append_array(_collect_frame_nodes(child))
 
 	return result
-
-
-func _zoom_target(amount: float) -> void:
-	var new_zoom: Vector2 = zoom_target + Vector2(amount, amount)
-	new_zoom.x = clampf(new_zoom.x, zoom_min, zoom_max)
-	new_zoom.y = clampf(new_zoom.y, zoom_min, zoom_max)
-	zoom_target = new_zoom

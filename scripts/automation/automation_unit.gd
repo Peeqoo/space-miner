@@ -71,7 +71,6 @@ var travel_curve_side_sign: float = 1.0
 
 
 func _ready() -> void:
-	randomize()
 	z_as_relative = false
 	free_flight_parent = get_parent()
 	_generate_random_orbit()

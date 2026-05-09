@@ -39,28 +39,13 @@ func get_selected_node() -> Node:
 	return selected_node
 
 
-func restore_last_selection(state: ShipRuntimeState) -> void:
-	if state == null or state.last_selected_object_id.is_empty():
-		return
-
-	var candidate: Node = spawner.get_spawned_object(state.last_selected_object_id)
-
-	if candidate == null:
-		return
-
-	if candidate is SystemBody:
-		_on_body_selected(candidate)
-	elif candidate is PointOfInterest:
-		_on_poi_selected(candidate)
-
-
-func clear_selection(emit_signal: bool = true) -> void:
+func clear_selection(should_emit: bool = true) -> void:
 	if selected_node != null and selected_node.has_method("set_selected"):
 		selected_node.set_selected(false)
 
 	selected_node = null
 
-	if emit_signal:
+	if should_emit:
 		selection_changed.emit(null)
 
 

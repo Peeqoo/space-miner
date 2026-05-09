@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://bl10qgk27s6m7"]
+[gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://dw4cmq80dq4ao"]
 
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_gyo2m"]
 [ext_resource type="Texture2D" uid="uid://djkg5hjj0m2ae" path="res://assets/sprites/planets/PlanetsFull/Barren_or_Moon/1.png" id="2_qbke3"]

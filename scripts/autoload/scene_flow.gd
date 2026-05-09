@@ -1,3 +1,4 @@
+## Manages scene transitions via a scene slot node under the registered main root.
 extends Node
 
 const DEFAULT_SLOT_PATH: NodePath = NodePath("SceneRoot/CurrentSceneSlot")
@@ -47,6 +48,7 @@ func goto_scene(scene_path: String) -> void:
 	var next_scene: Node = scene_resource.instantiate()
 	slot.add_child(next_scene)
 	_current_scene = next_scene
+
 
 func get_current_scene() -> Node:
 	return _current_scene

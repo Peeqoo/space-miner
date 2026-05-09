@@ -1,7 +1,7 @@
 extends Node2D
 
 const HUD_SCENE_PATH: String = "UI/GalaxyMapHUD"
-@export var start_center_system_id: String = "sol"
+@export var start_center_system_id: String = "solar-system"
 
 @onready var camera: SystemCameraController = $CameraRoot/GalaxyCamera2D
 @onready var hud: GalaxyMapHUD = get_node_or_null(HUD_SCENE_PATH) as GalaxyMapHUD
@@ -62,10 +62,6 @@ func _on_enter_pressed() -> void:
 		return
 
 	var entering_current_system: bool = selected_system.id == GameSession.current_system_id
-	if not entering_current_system and not GameSession.can_leave_current_system():
-		push_warning("Systemwechsel blockiert: Schiff ist noch angedockt.")
-		return
-
 	GameSession.stage_system_entry(selected_system, not entering_current_system)
 
 	if entering_current_system:
@@ -79,7 +75,7 @@ func _update_hud_for_selected_system(system_def: SystemDefinition) -> void:
 		return
 
 	var is_current: bool = system_def.id == GameSession.current_system_id
-	var can_enter: bool = is_current or GameSession.can_leave_current_system()
+	var can_enter: bool = true
 	var known_planets_count: int = _count_known_bodies(system_def)
 	var known_resources_text: String = _build_known_resources_summary(system_def)
 	var info_text: String = system_def.description.strip_edges()
@@ -167,11 +163,11 @@ func _get_visible_resources_for_body(body_def: SystemBodyDefinition, scan_state:
 	for resource_id in body_def.scan_basic_resources:
 		resources.append(str(resource_id))
 
-	if GameSession._scan_state_rank(scan_state) >= GameSession._scan_state_rank(GameSession.SCAN_DEEP):
+	if GameSession.scan_state_rank(scan_state) >= GameSession.scan_state_rank(GameSession.SCAN_DEEP):
 		for resource_id in body_def.scan_deep_resources:
 			resources.append(str(resource_id))
 
-	if GameSession._scan_state_rank(scan_state) >= GameSession._scan_state_rank(GameSession.SCAN_SPECIAL):
+	if GameSession.scan_state_rank(scan_state) >= GameSession.scan_state_rank(GameSession.SCAN_SPECIAL):
 		for resource_id in body_def.scan_special_resources:
 			resources.append(str(resource_id))
 
@@ -185,10 +181,20 @@ func _format_resource_name(resource_id: String) -> String:
 
 
 func _apply_start_camera_target() -> void:
+	# Rebuild index here in case resources finished loading after _ready().
+	_build_system_node_index()
+
 	var target_node: Node2D = _find_system_node_by_definition_id(start_center_system_id)
 
 	if target_node == null and GameSession.current_system_definition != null:
 		target_node = _find_system_node_by_definition_id(GameSession.current_system_definition.id)
+
+	# Fallback: use the first child of SystemsRoot that is a Node2D.
+	if target_node == null:
+		for child in systems_root.get_children():
+			if child is Node2D:
+				target_node = child as Node2D
+				break
 
 	if target_node == null:
 		push_warning("Kein Start-Knoten für Galaxy-Kamera gefunden.")

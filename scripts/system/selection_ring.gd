@@ -1,3 +1,4 @@
+## Draws a circular selection ring around a selected system object.
 extends Node2D
 
 @export var radius: float = 28.0
