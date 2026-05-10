@@ -10,6 +10,7 @@ display_name = "Proxima Centauri B"
 description = "Felsiger Exoplanet mit starker Strahlung und rauem Klima. Gewaltige Stürme und eisige Regionen prägen die Oberfläche des Planeten."
 body_type = "planet"
 orbit_center_id = "star"
+can_build_base = false
 orbit_radius = 140.0
 orbit_speed = 0.32
 orbit_start_angle_degrees = 120.0

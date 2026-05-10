@@ -24,6 +24,7 @@ orbit_radius = 35.0
 orbit_speed = 1.35
 orbit_start_angle_degrees = 210.0
 texture = ExtResource("2_qbke3")
+can_build_base = false
 reference_radius_earth = 0.273
 reference_orbit_au = -1.0
 reference_period_days = -1.0

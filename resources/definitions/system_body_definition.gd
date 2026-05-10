@@ -13,7 +13,7 @@ enum SizeAuthoringMode {
 @export var body_type: String = ""
 @export var orbit_center_id: String = ""
 
-# Altbestand
+# Legacy orbit/visual tuning — still read by CelestialPresentationCalculator and SystemBody.apply_* fallbacks.
 @export var orbit_radius: float = 100.0
 @export var orbit_speed: float = 1.0
 @export var orbit_start_angle_degrees: float = 0.0

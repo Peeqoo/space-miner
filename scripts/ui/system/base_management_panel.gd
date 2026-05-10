@@ -18,8 +18,8 @@ const BUTTON_INFO: Dictionary = {
 		"desc": "Baut ein Mining-Schiff für automatisierten Ressourcenabbau.",
 	},
 	"BuildColonyShipButton": {
-		"title": "Colony Ship bauen",
-		"desc": "Bereitet ein Kolonieschiff für spätere Expansion vor.",
+		"title": "Colony Ship (Locked)",
+		"desc": "Noch nicht spielbar — Fokus liegt auf Mining- und Drohnen-Loop.",
 	},
 }
 
@@ -41,8 +41,6 @@ const BUTTON_INFO: Dictionary = {
 @onready var hover_desc_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel
 @onready var hover_cost_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel
 
-@onready var status_text_label: Label = get_node_or_null("Margin/Root/StatusTextLabel") as Label
-
 var current_system_id: String = ""
 var current_body_id: String = ""
 var current_base_name: String = "Earth"
@@ -55,11 +53,15 @@ func _ready() -> void:
 
 	_connect_button(build_drone_button, _on_build_drone_pressed)
 	_connect_button(build_mining_ship_button, _on_build_mining_ship_pressed)
-	_connect_button(build_colony_ship_button, _on_build_colony_ship_pressed)
 
 	_register_hover_button(build_drone_button)
 	_register_hover_button(build_mining_ship_button)
 	_register_hover_button(build_colony_ship_button)
+
+	_apply_colony_ship_button_locked_state()
+
+	if not GameSession.base_resources_changed.is_connected(_on_game_session_base_resources_changed):
+		GameSession.base_resources_changed.connect(_on_game_session_base_resources_changed)
 
 	refresh_from_game_session()
 
@@ -77,6 +79,11 @@ func show_for_base(system_id: String, body_id: String, base_name: String, docked
 func hide_panel() -> void:
 	visible = false
 	hover_info_panel.visible = false
+
+
+func _exit_tree() -> void:
+	if GameSession.base_resources_changed.is_connected(_on_game_session_base_resources_changed):
+		GameSession.base_resources_changed.disconnect(_on_game_session_base_resources_changed)
 
 
 func refresh_from_game_session() -> void:
@@ -97,14 +104,11 @@ func refresh_from_game_session() -> void:
 
 	build_drone_button.disabled = not GameSession.can_build_base_drone(base_id)
 	build_mining_ship_button.disabled = not GameSession.can_build_base_mining_ship(base_id)
-	build_colony_ship_button.disabled = not GameSession.can_build_base_colony_ship(base_id)
+	_apply_colony_ship_button_locked_state()
 
 
 func set_status_text(text: String) -> void:
-	if status_text_label != null:
-		status_text_label.text = text
-	else:
-		status_label.text = text
+	status_label.text = text
 
 
 func _on_build_drone_pressed() -> void:
@@ -127,18 +131,6 @@ func _on_build_mining_ship_pressed() -> void:
 		build_mining_ship_requested.emit()
 	else:
 		set_status_text("Nicht genug Ressourcen für Mining Ship.")
-
-	refresh_from_game_session()
-
-
-func _on_build_colony_ship_pressed() -> void:
-	var base_id := _get_current_base_id()
-
-	if GameSession.build_base_colony_ship(base_id):
-		set_status_text("Colony Ship vorbereitet.")
-		build_colony_ship_requested.emit()
-	else:
-		set_status_text("Nicht genug Ressourcen für Colony Ship.")
 
 	refresh_from_game_session()
 
@@ -176,6 +168,15 @@ func _connect_button(button: Button, callback: Callable) -> void:
 		button.pressed.connect(callback)
 
 
+func _apply_colony_ship_button_locked_state() -> void:
+	const COLONY_BUTTON_TEXT: String = "Colony Ship — Coming Soon"
+	const COLONY_HINT: String = "Unlocks after stable Phase 4 loop."
+
+	build_colony_ship_button.disabled = true
+	build_colony_ship_button.text = COLONY_BUTTON_TEXT
+	build_colony_ship_button.tooltip_text = COLONY_HINT
+
+
 func _register_hover_button(button: Button) -> void:
 	if not button.mouse_entered.is_connected(_on_action_button_mouse_entered.bind(button)):
 		button.mouse_entered.connect(_on_action_button_mouse_entered.bind(button))
@@ -206,28 +207,9 @@ func _build_hover_cost_text(button: Button) -> String:
 		"BuildMiningShipButton":
 			return "Kosten: %s" % GameSession.get_build_cost_text("mining_ship")
 		"BuildColonyShipButton":
-			return "Kosten: %s" % GameSession.get_build_cost_text("colony_ship")
+			return "Unlocks after stable Phase 4 loop."
 		_:
 			return ""
-
-
-func _get_current_base_id() -> String:
-	if current_body_id.is_empty():
-		return BaseStore.BASE_EARTH
-
-	return current_body_id
-
-
-func _get_base_population(base_id: String) -> int:
-	return GameSession.get_base_population(base_id)
-
-
-func _get_base_drone_count(base_id: String) -> int:
-	return GameSession.get_base_drone_count(base_id)
-
-
-func _get_base_mining_ship_count(base_id: String) -> int:
-	return GameSession.get_base_mining_ship_count(base_id)
 
 
 func _format_title(value: String) -> String:
@@ -246,3 +228,37 @@ func _format_title(value: String) -> String:
 		result_words.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
 
 	return " ".join(result_words)
+
+
+func _get_current_base_id() -> String:
+	if current_body_id.is_empty():
+		return BaseStore.BASE_EARTH
+
+	return current_body_id
+
+
+func _on_game_session_base_resources_changed(changed_base_id: String) -> void:
+	if not visible:
+		return
+
+	var base_id_panel: String = _get_current_base_id()
+
+	if base_id_panel.is_empty():
+		return
+
+	if changed_base_id != base_id_panel:
+		return
+
+	refresh_from_game_session()
+
+
+func _get_base_population(base_id: String) -> int:
+	return GameSession.get_base_population(base_id)
+
+
+func _get_base_drone_count(base_id: String) -> int:
+	return GameSession.get_base_drone_count(base_id)
+
+
+func _get_base_mining_ship_count(base_id: String) -> int:
+	return GameSession.get_base_mining_ship_count(base_id)

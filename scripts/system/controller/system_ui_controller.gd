@@ -345,7 +345,10 @@ func _selected_body_has_base(body: SystemBody) -> bool:
 	if body == null:
 		return false
 
-	return body.body_id == BaseStore.BASE_EARTH
+	if body.definition != null:
+		return body.definition.can_build_base
+
+	return false
 
 
 func _has_available_drone() -> bool:

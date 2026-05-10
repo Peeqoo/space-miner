@@ -74,7 +74,6 @@ func _update_hud_for_selected_system(system_def: SystemDefinition) -> void:
 	if hud == null:
 		return
 
-	var is_current: bool = system_def.id == GameSession.current_system_id
 	var can_enter: bool = true
 	var known_planets_count: int = _count_known_bodies(system_def)
 	var known_resources_text: String = _build_known_resources_summary(system_def)
@@ -146,11 +145,11 @@ func _build_known_resources_summary(system_def: SystemDefinition) -> String:
 	)
 
 	var top_count: int = min(resource_ids.size(), 3)
-	var display_parts: Array[String] = []
+	var display_parts := PackedStringArray()
 	for i in range(top_count):
 		display_parts.append(_format_resource_name(resource_ids[i]))
 
-	return ", ".join(PackedStringArray(display_parts))
+	return ", ".join(display_parts)
 
 
 func _get_visible_resources_for_body(body_def: SystemBodyDefinition, scan_state: String) -> Array[String]:

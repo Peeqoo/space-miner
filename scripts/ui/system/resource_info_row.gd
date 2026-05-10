@@ -1,6 +1,7 @@
 class_name ResourceInfoRow
 extends HBoxContainer
 
+## Right column: scan richness (e.g. "42%"), finite store amount ("18 remaining"), or "depleted".
 @onready var resource_name_label: Label = $ResourceNameLabel
 @onready var resource_value_label: Label = $ResourceValueLabel
 

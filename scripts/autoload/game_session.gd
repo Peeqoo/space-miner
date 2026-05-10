@@ -24,6 +24,9 @@ var automation := AutomationStore.new()
 
 var scanner := ScannerStore.new()
 
+signal object_remaining_resources_changed(system_id: String, object_id: String)
+signal base_resources_changed(base_id: String)
+
 
 # --------------------------------------------------
 # Lifecycle
@@ -96,6 +99,41 @@ func can_leave_current_system() -> bool:
 func set_object_scan_state(system_id: String, object_id: String, scan_state: String) -> void:
 	object_scans.set_object_scan_state(system_id, object_id, scan_state)
 
+func ensure_object_resources_initialized(system_id: String, object_id: String, visible_resources: Array) -> void:
+	object_scans.ensure_object_resources_initialized(system_id, object_id, visible_resources)
+
+
+func has_object_resources(system_id: String, object_id: String) -> bool:
+	return object_scans.has_object_resources(system_id, object_id)
+
+
+func get_object_remaining_resources(system_id: String, object_id: String) -> Dictionary:
+	return object_scans.get_object_remaining_resources(system_id, object_id)
+
+
+func get_remaining_resource_amount(system_id: String, object_id: String, resource_id: String) -> int:
+	return object_scans.get_remaining_resource_amount(system_id, object_id, resource_id)
+
+
+func extract_resource_amount(system_id: String, object_id: String, resource_id: String, requested_amount: int) -> int:
+	var extracted: int = object_scans.extract_resource_amount(
+		system_id,
+		object_id,
+		resource_id,
+		requested_amount
+	)
+	if extracted > 0:
+		object_remaining_resources_changed.emit(system_id, object_id)
+	return extracted
+
+
+func is_resource_depleted(system_id: String, object_id: String, resource_id: String) -> bool:
+	return object_scans.is_resource_depleted(system_id, object_id, resource_id)
+
+
+func is_object_depleted(system_id: String, object_id: String) -> bool:
+	return object_scans.is_object_depleted(system_id, object_id)
+	
 
 func get_object_scan_state(system_id: String, object_id: String) -> String:
 	return object_scans.get_object_scan_state(system_id, object_id)
@@ -139,10 +177,15 @@ func get_base_resources(base_id: String) -> Dictionary:
 
 func add_base_resource(base_id: String, resource_id: String, amount: int) -> void:
 	bases.add_resource(base_id, resource_id, amount)
+	if amount > 0:
+		base_resources_changed.emit(base_id)
 
 
 func spend_base_resource(base_id: String, resource_id: String, amount: int) -> bool:
-	return bases.spend_resource(base_id, resource_id, amount)
+	var spent_ok: bool = bases.spend_resource(base_id, resource_id, amount)
+	if spent_ok:
+		base_resources_changed.emit(base_id)
+	return spent_ok
 
 
 func get_base_population(base_id: String) -> int:

@@ -3,13 +3,31 @@
 [ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_e30or"]
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_ke4rx"]
 [ext_resource type="Texture2D" uid="uid://b2qpbiuh4cq3u" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mercury/1.png" id="2_dnc3y"]
-[ext_resource type="Resource" uid="uid://cms4dej8j6p22" path="res://data/planet_resources/titanium.tres" id="3_2jtnk"]
-[ext_resource type="Resource" uid="uid://b4u227whvlhaa" path="res://data/planet_resources/solar_crystals.tres" id="4_8awlg"]
 
-[sub_resource type="Resource" id="Resource_ir0ba"]
+[sub_resource type="Resource" id="Resource_e30or"]
 script = ExtResource("1_e30or")
 resource_id = &"Iron"
 richness_percent = 90
+metadata/_custom_type_script = "uid://de5akqgbobdkp"
+
+[sub_resource type="Resource" id="Resource_f8nue"]
+script = ExtResource("1_e30or")
+resource_id = &"Titanium"
+richness_percent = 60
+layer = 1
+metadata/_custom_type_script = "uid://de5akqgbobdkp"
+
+[sub_resource type="Resource" id="Resource_fvy4b"]
+script = ExtResource("1_e30or")
+resource_id = &"Solar Crystals"
+richness_percent = 30
+layer = 2
+metadata/_custom_type_script = "uid://de5akqgbobdkp"
+
+[sub_resource type="Resource" id="Resource_2dfrw"]
+script = ExtResource("1_e30or")
+resource_id = &"Aluminum"
+richness_percent = 60
 metadata/_custom_type_script = "uid://de5akqgbobdkp"
 
 [resource]
@@ -23,10 +41,11 @@ orbit_radius = 180.0
 orbit_speed = 0.45
 orbit_start_angle_degrees = 15.0
 texture = ExtResource("2_dnc3y")
+can_build_base = false
 reference_radius_earth = 0.383
 reference_orbit_au = 0.39
 reference_period_days = 89.0
 size_authoring_mode = 1
 gameplay_orbit_bias = 0.78
-scan_resources = Array[ExtResource("1_e30or")]([SubResource("Resource_ir0ba"), ExtResource("3_2jtnk"), ExtResource("4_8awlg")])
+scan_resources = Array[ExtResource("1_e30or")]([SubResource("Resource_e30or"), SubResource("Resource_f8nue"), SubResource("Resource_fvy4b"), SubResource("Resource_2dfrw")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

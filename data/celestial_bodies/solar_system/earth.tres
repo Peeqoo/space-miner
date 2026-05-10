@@ -11,6 +11,7 @@ display_name = "Earth"
 description = "Heimatplanet der Menschheit mit vielfältiger Flora und Fauna. Die Oberfläche besteht größtenteils aus Wasser und bietet ideale Bedingungen für Leben."
 body_type = "planet"
 orbit_center_id = "star"
+can_build_base = true
 orbit_radius = 265.0
 orbit_speed = 0.22
 orbit_start_angle_degrees = 140.0

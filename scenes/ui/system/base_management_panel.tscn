@@ -8,8 +8,8 @@
 [node name="BaseManagementPanel" type="PanelContainer" unique_id=995273956]
 offset_left = 6.0
 offset_top = 6.0
-offset_right = 200.0
-offset_bottom = 284.0
+offset_right = 142.0
+offset_bottom = 310.0
 script = ExtResource("1_base_panel")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=1006074701]
@@ -105,25 +105,25 @@ columns = 2
 
 [node name="BuildDroneButton" type="Button" parent="Margin/Root/ProductionSection/ProductionGrid" unique_id=1853305213]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("4_3xxhb")
 theme_override_font_sizes/font_size = 6
-text = "Drone bauen"
+text = "Drone"
 
 [node name="BuildMiningShipButton" type="Button" parent="Margin/Root/ProductionSection/ProductionGrid" unique_id=1787575394]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("4_3xxhb")
 theme_override_font_sizes/font_size = 6
-text = "Mining Ship bauen"
+text = "Mining Ship"
 
 [node name="BuildColonyShipButton" type="Button" parent="Margin/Root/ProductionSection/ProductionGrid" unique_id=334115297]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("4_3xxhb")
 theme_override_font_sizes/font_size = 6
 disabled = true
-text = "Colony Ship bauen"
+text = "Colony Ship"
 
 [node name="DividerC" type="HSeparator" parent="Margin/Root" unique_id=1727888585]
 layout_mode = 2

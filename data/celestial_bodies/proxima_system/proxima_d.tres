@@ -10,6 +10,7 @@ display_name = "Proxima Centauri D"
 description = "Kleiner Planet in enger Umlaufbahn um seinen Stern mit extremer Hitze und starker Strahlung. Die Oberfläche ist trocken, felsig und von harschen Bedingungen geprägt."
 body_type = "planet"
 orbit_center_id = "star"
+can_build_base = false
 orbit_radius = 70.0
 orbit_start_angle_degrees = 260.0
 texture = ExtResource("2_epjyb")

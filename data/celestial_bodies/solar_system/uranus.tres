@@ -29,6 +29,7 @@ orbit_radius = 840.0
 orbit_speed = 0.03
 orbit_start_angle_degrees = 200.0
 texture = ExtResource("2_5xf3h")
+can_build_base = false
 reference_radius_earth = 4.01
 reference_orbit_au = 19.2
 reference_period_days = 30728.0

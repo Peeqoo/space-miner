@@ -9,6 +9,9 @@ signal recall_mining_ship_requested(object_id: String)
 
 const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/resource_info_row.tscn")
 
+const MINING_BUTTON_TEXT_DEFAULT: String = "Mine"
+const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
+
 @onready var header_label: Label = $Margin/Root/HeaderLabel
 @onready var preview_texture: TextureRect = $Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture
 @onready var name_label: Label = $Margin/Root/MainRow/MetaColumn/NameLabel
@@ -31,6 +34,18 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 
 var current_object_id: String = ""
 
+## Shallow copy of `resources_visible` for live amount updates without a full info rebuild.
+var _cached_visible_resources: Array = []
+
+## Last known action flags from `_build_selected_object_info` (orbit buttons + mine eligibility).
+var _live_action_cache: Dictionary = {
+	"can_scan": false,
+	"can_mine": false,
+	"can_recall_drone": false,
+	"can_recall_mining_ship": false,
+	"is_home_base": false,
+}
+
 
 func _ready() -> void:
 	header_label.text = "OBJEKT-INFO"
@@ -48,6 +63,13 @@ func _ready() -> void:
 
 	if not recall_mining_ship_button.pressed.is_connected(_on_recall_mining_ship_pressed):
 		recall_mining_ship_button.pressed.connect(_on_recall_mining_ship_pressed)
+
+	if not GameSession.object_remaining_resources_changed.is_connected(
+		_on_game_session_object_resources_changed
+	):
+		GameSession.object_remaining_resources_changed.connect(
+			_on_game_session_object_resources_changed
+		)
 
 	show_empty()
 
@@ -70,8 +92,27 @@ func show_empty() -> void:
 
 	lore_text_label.text = "Kein Objekt ausgewählt."
 
-	_set_action_buttons(false, false)
+	send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
+	_set_action_buttons(false, false, false)
 	_set_recall_buttons(false, false)
+
+	_cached_visible_resources.clear()
+	_live_action_cache = {
+		"can_scan": false,
+		"can_mine": false,
+		"can_recall_drone": false,
+		"can_recall_mining_ship": false,
+		"is_home_base": false,
+	}
+
+
+func _exit_tree() -> void:
+	if GameSession.object_remaining_resources_changed.is_connected(
+		_on_game_session_object_resources_changed
+	):
+		GameSession.object_remaining_resources_changed.disconnect(
+			_on_game_session_object_resources_changed
+		)
 
 
 func show_body_info(info: Dictionary) -> void:
@@ -104,18 +145,48 @@ func _apply_info(info: Dictionary, panel_title: String) -> void:
 	_apply_resources(info)
 	_apply_lore(info)
 
-	var can_scan: bool = bool(info.get("can_scan_with_drone", false))
-	var can_mine: bool = bool(info.get("can_mine_with_ship", false))
-	var can_recall_drone: bool = bool(info.get("can_recall_drone", false))
-	var can_recall_mining_ship: bool = bool(info.get("can_recall_mining_ship", false))
-	var is_home_base: bool = bool(info.get("is_home_base", false))
+	_live_action_cache = {
+		"can_scan": bool(info.get("can_scan_with_drone", false)),
+		"can_mine": bool(info.get("can_mine_with_ship", false)),
+		"can_recall_drone": bool(info.get("can_recall_drone", false)),
+		"can_recall_mining_ship": bool(info.get("can_recall_mining_ship", false)),
+		"is_home_base": bool(info.get("is_home_base", false)),
+	}
+
+	_apply_live_action_controls()
+
+
+func _apply_live_action_controls() -> void:
+	var can_scan: bool = bool(_live_action_cache.get("can_scan", false))
+	var can_mine: bool = bool(_live_action_cache.get("can_mine", false))
+	var can_recall_drone: bool = bool(_live_action_cache.get("can_recall_drone", false))
+	var can_recall_mining_ship: bool = bool(_live_action_cache.get("can_recall_mining_ship", false))
+	var is_home_base: bool = bool(_live_action_cache.get("is_home_base", false))
+
+	var system_id_panel: String = GameSession.current_system_id
+	var resources_initialized: bool = (
+		not system_id_panel.is_empty()
+		and not current_object_id.is_empty()
+		and GameSession.has_object_resources(system_id_panel, current_object_id)
+	)
+	var object_depleted: bool = (
+		resources_initialized
+		and GameSession.is_object_depleted(system_id_panel, current_object_id)
+	)
+	var can_mine_effective: bool = can_mine and not object_depleted
 
 	if is_home_base:
-		_set_action_buttons(false, false)
+		send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
+		_set_action_buttons(false, false, false)
 		_set_recall_buttons(false, false)
 	else:
-		_set_action_buttons(can_scan, can_mine)
+		_set_action_buttons(can_scan, can_mine, can_mine_effective)
 		_set_recall_buttons(can_recall_drone, can_recall_mining_ship)
+
+		if can_mine and object_depleted:
+			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEPLETED
+		else:
+			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
 
 
 func _apply_automation_status(info: Dictionary) -> void:
@@ -133,26 +204,32 @@ func _apply_automation_status(info: Dictionary) -> void:
 
 
 func _apply_resources(info: Dictionary) -> void:
-	_clear_resource_rows()
+	_cached_visible_resources.clear()
 
 	var visible_resources_variant: Variant = info.get("resources_visible", [])
 	if visible_resources_variant is Array:
-		var visible_resources: Array = visible_resources_variant as Array
-		for entry: Variant in visible_resources:
-			var row: ResourceInfoRow = RESOURCE_INFO_ROW_SCENE.instantiate() as ResourceInfoRow
-			resource_list.add_child(row)
+		_cached_visible_resources = (visible_resources_variant as Array).duplicate()
 
-			if entry is Dictionary:
-				_apply_resource_dict_to_row(row, entry as Dictionary)
-			else:
-				# Legacy fallback: old scan data was only a String/PackedString entry.
-				row.set_row_data(_format_title(str(entry)), "--")
+	_refresh_resource_rows_from_cache()
+
+
+func _refresh_resource_rows_from_cache() -> void:
+	_clear_resource_rows()
+
+	for entry: Variant in _cached_visible_resources:
+		var row: ResourceInfoRow = RESOURCE_INFO_ROW_SCENE.instantiate() as ResourceInfoRow
+		resource_list.add_child(row)
+
+		if entry is Dictionary:
+			_apply_resource_dict_to_row(row, entry as Dictionary)
+		else:
+			row.set_row_data(_format_title(str(entry)), "--")
 
 
 func _apply_resource_dict_to_row(row: ResourceInfoRow, resource_entry: Dictionary) -> void:
 	var resource_name: String = _get_resource_display_name(resource_entry)
-	var percent_text: String = _build_percent_text(resource_entry)
-	row.set_row_data(_format_title(resource_name), percent_text)
+	var detail_text: String = _build_resource_detail_text(resource_entry)
+	row.set_row_data(_format_title(resource_name), detail_text)
 
 
 func _get_resource_display_name(resource_entry: Dictionary) -> String:
@@ -170,6 +247,46 @@ func _get_resource_display_name(resource_entry: Dictionary) -> String:
 	return "Unknown"
 
 
+func _get_resource_store_id(resource_entry: Dictionary) -> String:
+	if resource_entry.has("id"):
+		return String(resource_entry.get("id", &""))
+
+	if resource_entry.has("resource_id"):
+		return String(resource_entry.get("resource_id", &""))
+
+	if resource_entry.has("name"):
+		return str(resource_entry.get("name", ""))
+
+	return ""
+
+
+func _build_resource_detail_text(resource_entry: Dictionary) -> String:
+	var system_id_r: String = GameSession.current_system_id
+
+	if (
+		system_id_r.is_empty()
+		or current_object_id.is_empty()
+		or not GameSession.has_object_resources(system_id_r, current_object_id)
+	):
+		return _build_percent_text(resource_entry)
+
+	var resource_id_r: String = _get_resource_store_id(resource_entry)
+
+	if resource_id_r.is_empty():
+		return _build_percent_text(resource_entry)
+
+	var remaining: int = GameSession.get_remaining_resource_amount(
+		system_id_r,
+		current_object_id,
+		resource_id_r
+	)
+
+	if remaining <= 0:
+		return "depleted"
+
+	return "%d remaining" % remaining
+
+
 func _apply_lore(info: Dictionary) -> void:
 	var lore_text: String = str(info.get("lore_text", "")).strip_edges()
 
@@ -179,12 +296,12 @@ func _apply_lore(info: Dictionary) -> void:
 	lore_text_label.text = lore_text
 
 
-func _set_action_buttons(can_scan: bool, can_mine: bool) -> void:
+func _set_action_buttons(can_scan: bool, mine_visible: bool, mine_enabled: bool) -> void:
 	scan_with_drone_button.visible = can_scan
 	scan_with_drone_button.disabled = not can_scan
 
-	send_mining_ship_button.visible = can_mine
-	send_mining_ship_button.disabled = not can_mine
+	send_mining_ship_button.visible = mine_visible
+	send_mining_ship_button.disabled = not mine_enabled
 
 
 func _set_recall_buttons(can_recall_drone: bool, can_recall_mining_ship: bool) -> void:
@@ -249,6 +366,25 @@ func _format_title(value: String) -> String:
 		result_words.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
 
 	return " ".join(result_words)
+
+
+func _on_game_session_object_resources_changed(changed_system_id: String, changed_object_id: String) -> void:
+	if current_object_id.is_empty():
+		return
+
+	if visible == false:
+		return
+
+	var view_system_id: String = GameSession.current_system_id
+
+	if view_system_id.is_empty() or changed_system_id != view_system_id:
+		return
+
+	if changed_object_id != current_object_id:
+		return
+
+	_refresh_resource_rows_from_cache()
+	_apply_live_action_controls()
 
 
 func _on_scan_with_drone_pressed() -> void:
