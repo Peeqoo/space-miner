@@ -58,18 +58,26 @@ func ensure_object_resources_initialized(
 
 	var system_resources: Dictionary = remaining_resources_by_object[system_id]
 
-	if system_resources.has(object_id):
-		return
-
 	var object_resources: Dictionary = {}
+
+	if system_resources.has(object_id):
+		var existing_variant: Variant = system_resources.get(object_id, {})
+		if existing_variant is Dictionary:
+			object_resources = (existing_variant as Dictionary).duplicate(true)
+		else:
+			object_resources = {}
 
 	for entry: Variant in visible_resources:
 		var resource_id: String = _get_resource_id_from_entry(entry)
+
 		if resource_id.is_empty():
 			continue
 
-		var amount: int = _get_deposit_amount_from_entry(entry)
-		object_resources[resource_id] = amount
+		if object_resources.has(resource_id):
+			continue
+
+		var amount_init: int = _get_deposit_amount_from_entry(entry)
+		object_resources[resource_id] = amount_init
 
 	system_resources[object_id] = object_resources
 	remaining_resources_by_object[system_id] = system_resources
@@ -147,6 +155,22 @@ func extract_resource_amount(
 
 func is_resource_depleted(system_id: String, object_id: String, resource_id: String) -> bool:
 	return get_remaining_resource_amount(system_id, object_id, resource_id) <= 0
+
+
+func has_any_remaining_among(system_id: String, object_id: String, resource_ids: Array) -> bool:
+	if system_id.is_empty() or object_id.is_empty():
+		return false
+
+	for vid: Variant in resource_ids:
+		var rid: String = str(vid)
+
+		if rid.is_empty():
+			continue
+
+		if get_remaining_resource_amount(system_id, object_id, rid) > 0:
+			return true
+
+	return false
 
 
 func is_object_depleted(system_id: String, object_id: String) -> bool:

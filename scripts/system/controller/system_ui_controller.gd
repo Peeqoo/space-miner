@@ -1,5 +1,5 @@
 ## Controls the system scene UI.
-## Toggles ObjectInfoPanel and BaseManagementPanel based on current selection.
+## ObjectInfoPanel follows selection. BaseManagementPanel can stay open across selection (held state).
 class_name SystemUIController
 extends Node
 
@@ -32,7 +32,10 @@ func setup(
 		object_info_panel.visible = false
 
 	if base_management_panel != null:
-		base_management_panel.visible = false
+		if base_management_panel.has_method("hide_panel"):
+			base_management_panel.call("hide_panel")
+		else:
+			base_management_panel.visible = false
 
 	_connect_ui_signals()
 	update_all()
@@ -94,34 +97,36 @@ func update_base_panel() -> void:
 
 	var selected_node := selection.get_selected_node()
 
-	if not selected_node is SystemBody:
-		if base_management_panel.has_method("hide_panel"):
-			base_management_panel.call("hide_panel")
-		else:
-			base_management_panel.visible = false
+	var hold_open: bool = false
+	if base_management_panel.has_method("is_hold_open_across_selection"):
+		hold_open = bool(base_management_panel.call("is_hold_open_across_selection"))
 
+	if selected_node is SystemBody:
+		var body := selected_node as SystemBody
+
+		if _selected_body_has_base(body):
+			if base_management_panel.has_method("show_for_base"):
+				base_management_panel.call(
+					"show_for_base",
+					system_definition.id,
+					body.body_id,
+					"%s Base" % body.display_name,
+					true
+				)
+			else:
+				base_management_panel.visible = true
+
+			return
+
+	if hold_open:
+		if base_management_panel.has_method("refresh_while_hold_open"):
+			base_management_panel.call("refresh_while_hold_open")
 		return
 
-	var body := selected_node as SystemBody
-
-	if not _selected_body_has_base(body):
-		if base_management_panel.has_method("hide_panel"):
-			base_management_panel.call("hide_panel")
-		else:
-			base_management_panel.visible = false
-
-		return
-
-	if base_management_panel.has_method("show_for_base"):
-		base_management_panel.call(
-			"show_for_base",
-			system_definition.id,
-			body.body_id,
-			"%s Base" % body.display_name,
-			true
-		)
+	if base_management_panel.has_method("hide_panel"):
+		base_management_panel.call("hide_panel")
 	else:
-		base_management_panel.visible = true
+		base_management_panel.visible = false
 
 
 func _connect_ui_signals() -> void:
@@ -131,6 +136,11 @@ func _connect_ui_signals() -> void:
 	if automation_controller != null and automation_controller.has_signal("automation_state_changed"):
 		if not automation_controller.automation_state_changed.is_connected(_on_automation_state_changed):
 			automation_controller.automation_state_changed.connect(_on_automation_state_changed)
+
+	if not GameSession.object_remaining_resources_changed.is_connected(
+		_on_object_remaining_resources_changed
+	):
+		GameSession.object_remaining_resources_changed.connect(_on_object_remaining_resources_changed)
 
 	if object_info_panel != null:
 		if object_info_panel.has_signal("scan_requested"):
@@ -178,6 +188,18 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	info["can_scan_with_drone"] = _can_scan_selected_object(selected_node, scan_state)
 	info["can_mine_with_ship"] = _can_mine_selected_object(selected_node, scan_state)
 	info["is_home_base"] = selected_node is SystemBody and _selected_body_has_base(selected_node as SystemBody)
+
+	var mining_exhausted: bool = false
+
+	if (
+		automation_controller != null
+		and scan_state != GameSession.SCAN_UNKNOWN
+		and not object_id.is_empty()
+		and GameSession.has_object_resources(system_definition.id, object_id)
+	):
+		mining_exhausted = not automation_controller.has_mining_candidates_for_target(object_id)
+
+	info["mining_exhausted"] = mining_exhausted
 
 	if bool(info["is_home_base"]):
 		info["orbiting_drone_count"] = 0
@@ -234,6 +256,12 @@ func _can_mine_selected_object(selected_node: Node, scan_state: String) -> bool:
 	if scan_state == GameSession.SCAN_UNKNOWN:
 		return false
 
+	var object_mid: String = _get_object_id(selected_node)
+
+	if automation_controller != null:
+		if not automation_controller.has_mining_candidates_for_target(object_mid):
+			return false
+
 	return _has_available_mining_ship()
 
 
@@ -271,6 +299,10 @@ func _on_selection_changed(_selected_node: Node) -> void:
 func _on_automation_state_changed() -> void:
 	update_object_info()
 	update_base_panel()
+
+
+func _on_object_remaining_resources_changed(_changed_system_id: String, _changed_object_id: String) -> void:
+	update_object_info()
 
 
 func _on_build_drone_requested() -> void:

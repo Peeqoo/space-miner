@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_pmgmc"]
 [ext_resource type="Texture2D" uid="uid://kxdhm6m76m1k" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Jupiter/1.png" id="2_8mx0p"]
 
-[sub_resource type="Resource" id="Resource_sy7gx"]
+[sub_resource type="Resource" id="Resource_fqwt2"]
 script = ExtResource("1_fqwt2")
 resource_id = &"Hydrogen"
 richness_percent = 90
@@ -40,5 +40,5 @@ reference_radius_earth = 11.21
 reference_orbit_au = 5.2
 reference_period_days = 4331.0
 size_authoring_mode = 1
-scan_resources = Array[ExtResource("1_fqwt2")]([SubResource("Resource_sy7gx"), SubResource("Resource_d8oq5"), SubResource("Resource_ex0sj")])
+scan_resources = Array[ExtResource("1_fqwt2")]([SubResource("Resource_fqwt2"), SubResource("Resource_d8oq5"), SubResource("Resource_ex0sj")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

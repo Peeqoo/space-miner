@@ -172,14 +172,12 @@ func launch_mining_ship(target_id: String) -> bool:
 		push_error("AutomationController: Mining abgebrochen — current_system_id ist leer.")
 		return false
 
-	if GameSession.has_object_resources(system_id, target_id):
-		if GameSession.is_object_depleted(system_id, target_id):
-			push_warning("Cannot start mining: source depleted.")
-			return false
+	if GameSession.get_object_scan_state(system_id, target_id) == GameSession.SCAN_UNKNOWN:
+		push_warning("Cannot start mining: object not scanned.")
+		return false
 
-	var resolved_resource_id: String = _pick_mining_resource_id_from_store(system_id, target_id)
-
-	if resolved_resource_id.is_empty():
+	if not has_mining_candidates_for_target(target_id):
+		push_warning("Cannot start mining: no mineable resources for current scan state.")
 		return false
 
 	_disconnect_unit_signals(unit)
@@ -195,12 +193,15 @@ func launch_mining_ship(target_id: String) -> bool:
 		"system_id": system_id,
 		"base_id": BASE_ID_EARTH,
 		"target_id": target_id,
-		"cargo_resource_id": resolved_resource_id,
+		"cargo_resources": {} as Dictionary,
+		"mining_extract_remainders": {} as Dictionary,
+		"cargo_resource_id": "",
 		"current_cargo": 0.0,
 		"cargo_capacity": DEFAULT_MINING_CARGO_CAPACITY,
 		"mining_rate_per_second": DEFAULT_MINING_RATE_PER_SECOND,
 		"unload_duration": DEFAULT_MINING_UNLOAD_DURATION,
 		"unload_timer": 0.0,
+		"unload_xfer_buffers": {} as Dictionary,
 		"loop_active": true,
 		"status": MiningShipStatus.TO_TARGET,
 		"extract_remainder": 0.0,
@@ -210,6 +211,46 @@ func launch_mining_ship(target_id: String) -> bool:
 
 	_request_automation_state_changed()
 	return true
+
+
+func has_mining_candidates_for_target(object_id: String) -> bool:
+	var sid: String = GameSession.current_system_id
+
+	if sid.is_empty() or object_id.is_empty():
+		return false
+
+	var scan_state: String = GameSession.get_object_scan_state(sid, object_id)
+
+	if scan_state == GameSession.SCAN_UNKNOWN:
+		return false
+
+	var target_node: Node2D = _get_target_node(object_id)
+	var definition: Resource = _get_definition_from_target_node(target_node)
+
+	if definition == null:
+		return false
+
+	var allowed_entries: Array = _get_allowed_scanned_entries_for_object_scan(definition, scan_state)
+	var probe_ids: Array = []
+
+	for entry_variant: Variant in allowed_entries:
+		var scanned: ScannedResourceEntry = entry_variant as ScannedResourceEntry
+
+		if scanned == null:
+			continue
+
+		var rid_probe: String = String(scanned.resource_id)
+
+		if rid_probe.is_empty():
+			continue
+
+		if not probe_ids.has(rid_probe):
+			probe_ids.append(rid_probe)
+
+	if probe_ids.is_empty():
+		return false
+
+	return GameSession.has_remaining_resources_among(sid, object_id, probe_ids)
 
 
 func has_idle_drone() -> bool:
@@ -343,6 +384,7 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 	if selected_status == MiningShipStatus.MINING or selected_status == MiningShipStatus.TO_TARGET:
 		selected_runtime["status"] = MiningShipStatus.TO_BASE
 		selected_runtime["extract_remainder"] = 0.0
+		selected_runtime["mining_extract_remainders"] = {} as Dictionary
 		selected_ship.recall_to_base(home_base_node)
 
 	mining_ship_runtime_by_unit_id[unit_id] = selected_runtime
@@ -506,98 +548,184 @@ func _process(delta: float) -> void:
 
 		match status:
 			MiningShipStatus.MINING:
-				var sid: String = str(runtime.get("system_id", ""))
-				if sid.is_empty():
-					sid = GameSession.current_system_id
+				var sid_min: String = str(runtime.get("system_id", ""))
 
-				var target_id_mining: String = str(runtime.get("target_id", ""))
-				var cargo_resource_id: String = str(runtime.get("cargo_resource_id", ""))
+				if sid_min.is_empty():
+					sid_min = GameSession.current_system_id
 
-				var current_cargo_float: float = float(runtime.get("current_cargo", 0.0))
-				var cargo_capacity_float: float = float(
-					runtime.get("cargo_capacity", float(DEFAULT_MINING_CARGO_CAPACITY))
+				var target_id_min: String = str(runtime.get("target_id", ""))
+				var cargo_cap_min: int = int(runtime.get("cargo_capacity", DEFAULT_MINING_CARGO_CAPACITY))
+
+				var cargo_res_min: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
+				var cargo_total_min: int = _cargo_resources_total(cargo_res_min)
+
+				runtime["cargo_resources"] = cargo_res_min
+				runtime["current_cargo"] = float(cargo_total_min)
+
+				if cargo_total_min >= cargo_cap_min:
+					runtime["mining_extract_remainders"] = {} as Dictionary
+					runtime["extract_remainder"] = 0.0
+					var home_full_c: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+
+					if home_full_c != null:
+						runtime["status"] = MiningShipStatus.TO_BASE
+						unit.recall_to_base(home_full_c)
+
+					mining_ship_runtime_by_unit_id[unit_id] = runtime
+					continue
+
+				var target_node_min: Node2D = _get_target_node(target_id_min)
+				var definition_min: Resource = _get_definition_from_target_node(target_node_min)
+				var scan_state_min: String = GameSession.get_object_scan_state(sid_min, target_id_min)
+
+				var candidates_min: Array = _list_mining_weighted_candidates(
+					sid_min,
+					target_id_min,
+					definition_min,
+					scan_state_min
 				)
 
-				var mining_rate_pf: float = float(
+				if candidates_min.is_empty():
+					runtime["mining_extract_remainders"] = {} as Dictionary
+					runtime["extract_remainder"] = 0.0
+
+					if cargo_total_min > 0:
+						var home_empty_src: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+
+						if home_empty_src != null:
+							runtime["status"] = MiningShipStatus.TO_BASE
+							unit.recall_to_base(home_empty_src)
+					else:
+						runtime["loop_active"] = false
+						mining_ship_runtime_by_unit_id[unit_id] = runtime
+						_release_mining_ship_runtime(unit_id)
+						continue
+
+					mining_ship_runtime_by_unit_id[unit_id] = runtime
+					continue
+
+				var weight_sum: float = 0.0
+
+				for cand_m: Variant in candidates_min:
+					var cm: Dictionary = cand_m as Dictionary
+					weight_sum += float(cm.get("weight", 1.0))
+
+				if weight_sum <= 0.0001:
+					runtime["mining_extract_remainders"] = {} as Dictionary
+					runtime["extract_remainder"] = 0.0
+
+					if cargo_total_min > 0:
+						var home_ws: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+
+						if home_ws != null:
+							runtime["status"] = MiningShipStatus.TO_BASE
+							unit.recall_to_base(home_ws)
+					else:
+						runtime["loop_active"] = false
+						mining_ship_runtime_by_unit_id[unit_id] = runtime
+						_release_mining_ship_runtime(unit_id)
+						continue
+
+					mining_ship_runtime_by_unit_id[unit_id] = runtime
+					continue
+
+				var mining_rate_min: float = float(
 					runtime.get("mining_rate_per_second", DEFAULT_MINING_RATE_PER_SECOND)
 				)
-				var bonus_pf: float = get_mining_bonus_for_target(target_id_mining)
-				var effective_rate_pf: float = mining_rate_pf * (1.0 + bonus_pf)
+				var bonus_min: float = get_mining_bonus_for_target(target_id_min)
+				var effective_rate_min: float = mining_rate_min * (1.0 + bonus_min)
+				var total_extract_float: float = effective_rate_min * delta
 
-				var cargo_slots_left: int = maxi(0, ceili(cargo_capacity_float - current_cargo_float))
+				var rem_dict_min: Dictionary = runtime.get("mining_extract_remainders", {}) as Dictionary
+				rem_dict_min = rem_dict_min.duplicate(true)
 
-				if cargo_slots_left <= 0:
+				var space_left_min: int = maxi(0, cargo_cap_min - cargo_total_min)
+
+				for cand_v: Variant in candidates_min:
+					var cand: Dictionary = cand_v as Dictionary
+					var rid: String = str(cand.get("id", ""))
+
+					if rid.is_empty():
+						continue
+
+					var w: float = float(cand.get("weight", 1.0))
+					var per_res_float: float = total_extract_float * (w / weight_sum)
+					var acc: float = float(rem_dict_min.get(rid, 0.0))
+					acc += per_res_float
+					var requested: int = int(floor(acc))
+
+					if requested <= 0:
+						rem_dict_min[rid] = acc
+						continue
+
+					requested = mini(requested, space_left_min)
+
+					if requested <= 0:
+						rem_dict_min[rid] = acc
+						continue
+
+					var extracted: int = 0
+
+					if not sid_min.is_empty() and not target_id_min.is_empty():
+						extracted = GameSession.extract_resource_amount(
+							sid_min,
+							target_id_min,
+							rid,
+							requested
+						)
+
+					if extracted > 0:
+						acc = acc - float(extracted)
+					elif requested > 0:
+						acc = acc - float(requested)
+
+					if acc < 0.0:
+						acc = 0.0
+
+					rem_dict_min[rid] = acc
+
+					if extracted > 0:
+						var cur_c: int = int(cargo_res_min.get(rid, 0))
+						cargo_res_min[rid] = cur_c + extracted
+						cargo_total_min += extracted
+						space_left_min = maxi(0, cargo_cap_min - cargo_total_min)
+
+					if space_left_min <= 0:
+						break
+
+				runtime["cargo_resources"] = cargo_res_min
+				runtime["mining_extract_remainders"] = rem_dict_min
+				runtime["extract_remainder"] = 0.0
+				cargo_total_min = _cargo_resources_total(cargo_res_min)
+				runtime["current_cargo"] = float(cargo_total_min)
+
+				if cargo_total_min >= cargo_cap_min:
+					runtime["mining_extract_remainders"] = {} as Dictionary
 					runtime["extract_remainder"] = 0.0
-					var home_full: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
-					if home_full != null:
+					var home_cap: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+
+					if home_cap != null:
 						runtime["status"] = MiningShipStatus.TO_BASE
-						unit.recall_to_base(home_full)
-					mining_ship_runtime_by_unit_id[unit_id] = runtime
-					continue
+						unit.recall_to_base(home_cap)
 
-				var extract_remainder: float = float(runtime.get("extract_remainder", 0.0))
-				extract_remainder = extract_remainder + (effective_rate_pf * delta)
+				var post_candidates: Array = _list_mining_weighted_candidates(
+					sid_min,
+					target_id_min,
+					definition_min,
+					scan_state_min
+				)
 
-				var requested_amount: int = int(floor(extract_remainder))
-				if requested_amount <= 0:
-					runtime["extract_remainder"] = extract_remainder
-					mining_ship_runtime_by_unit_id[unit_id] = runtime
-					continue
-
-				requested_amount = mini(requested_amount, cargo_slots_left)
-
-				var extracted_amount: int = 0
-
-				if not sid.is_empty() and not target_id_mining.is_empty() and not cargo_resource_id.is_empty():
-					extracted_amount = GameSession.extract_resource_amount(
-						sid,
-						target_id_mining,
-						cargo_resource_id,
-						requested_amount
-					)
-
-				extract_remainder = extract_remainder - float(extracted_amount)
-
-				if extract_remainder < 0.0:
-					extract_remainder = 0.0
-
-				runtime["extract_remainder"] = extract_remainder
-
-				current_cargo_float = current_cargo_float + float(extracted_amount)
-				runtime["current_cargo"] = current_cargo_float
-
-				if current_cargo_float >= cargo_capacity_float:
+				if post_candidates.is_empty():
+					runtime["mining_extract_remainders"] = {} as Dictionary
 					runtime["extract_remainder"] = 0.0
-					var home_base_node_pf: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
-					if home_base_node_pf != null:
-						runtime["status"] = MiningShipStatus.TO_BASE
-						unit.recall_to_base(home_base_node_pf)
-				elif requested_amount > 0 and extracted_amount == 0:
-					var rid_depleted: bool = GameSession.is_resource_depleted(
-						sid,
-						target_id_mining,
-						cargo_resource_id
-					)
-					var bad_ids: bool = (
-						sid.is_empty()
-						or target_id_mining.is_empty()
-						or cargo_resource_id.is_empty()
-					)
 
-					if bad_ids or rid_depleted:
-						runtime["extract_remainder"] = 0.0
-						if current_cargo_float > 1e-5:
-							var home_depleted: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
-							if home_depleted != null:
-								runtime["status"] = MiningShipStatus.TO_BASE
-								unit.recall_to_base(home_depleted)
-						else:
-							runtime["loop_active"] = false
-							mining_ship_runtime_by_unit_id[unit_id] = runtime
-							_release_mining_ship_runtime(unit_id)
-							continue
+					if cargo_total_min > 0:
+						var home_pc: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+
+						if home_pc != null:
+							runtime["status"] = MiningShipStatus.TO_BASE
+							unit.recall_to_base(home_pc)
 					else:
-						runtime["extract_remainder"] = 0.0
 						runtime["loop_active"] = false
 						mining_ship_runtime_by_unit_id[unit_id] = runtime
 						_release_mining_ship_runtime(unit_id)
@@ -607,52 +735,80 @@ func _process(delta: float) -> void:
 
 			MiningShipStatus.UNLOADING:
 				var base_id_ul: String = str(runtime.get("base_id", BASE_ID_EARTH))
-				var resource_id_ul: String = str(runtime.get("cargo_resource_id", ""))
 				var unload_timer_ul: float = float(runtime.get("unload_timer", 0.0))
-
-				var cargo_f_ul: float = float(runtime.get("current_cargo", 0.0))
-				var snapshot_f_ul: float = float(runtime.get("unload_cargo_snapshot", cargo_f_ul))
 				var unload_dur_ul: float = float(
 					runtime.get("unload_duration", DEFAULT_MINING_UNLOAD_DURATION)
 				)
-				var xfer_buf_ul: float = float(runtime.get("unload_xfer_buffer", 0.0))
 
-				if snapshot_f_ul <= 1e-6 or resource_id_ul.is_empty():
-					unload_timer_ul = 0.0
-				else:
-					var xfer_rate_ul: float = (
-						snapshot_f_ul / unload_dur_ul if unload_dur_ul > 1e-5 else snapshot_f_ul
-					)
+				var cargo_res_ul: Dictionary = runtime.get("cargo_resources", {}) as Dictionary
+				cargo_res_ul = cargo_res_ul.duplicate(true)
+				var snap_ul: Dictionary = runtime.get("unload_cargo_snapshot", {}) as Dictionary
+				snap_ul = snap_ul.duplicate(true)
 
-					xfer_buf_ul += xfer_rate_ul * delta
-					var chunk_i_ul: int = int(floor(xfer_buf_ul))
+				var bufs_ul: Dictionary = runtime.get("unload_xfer_buffers", {}) as Dictionary
+				bufs_ul = bufs_ul.duplicate(true)
 
-					if chunk_i_ul > 0 and cargo_f_ul > 1e-6:
-						var take_i_ul: int = mini(chunk_i_ul, int(floor(cargo_f_ul)))
+				var snap_total_ul: int = _cargo_resources_total(snap_ul)
+				var cargo_total_ul: int = _cargo_resources_total(cargo_res_ul)
 
-						if take_i_ul > 0:
-							xfer_buf_ul -= float(take_i_ul)
-							cargo_f_ul -= float(take_i_ul)
-							GameSession.add_base_resource(base_id_ul, resource_id_ul, take_i_ul)
+				if snap_total_ul > 0 and unload_dur_ul > 1e-5:
+					var xfer_rate_total: float = float(snap_total_ul) / unload_dur_ul
+
+					for snap_key_variant: Variant in snap_ul.keys():
+						var rid_ul: String = str(snap_key_variant)
+						var snap_amt: int = maxi(0, int(snap_ul.get(rid_ul, 0)))
+
+						if snap_amt <= 0 or rid_ul.is_empty():
+							continue
+
+						var portion: float = float(snap_amt) / float(snap_total_ul)
+						var rate_rid: float = xfer_rate_total * portion
+						var buf_val: float = float(bufs_ul.get(rid_ul, 0.0))
+						buf_val += rate_rid * delta
+						var chunk_i: int = int(floor(buf_val))
+						var cargo_here: int = maxi(0, int(cargo_res_ul.get(rid_ul, 0)))
+
+						var take_i: int = mini(chunk_i, cargo_here)
+
+						if take_i > 0:
+							buf_val -= float(take_i)
+							cargo_res_ul[rid_ul] = cargo_here - take_i
+							GameSession.add_base_resource(base_id_ul, rid_ul, take_i)
+
+						bufs_ul[rid_ul] = buf_val
 
 					unload_timer_ul -= delta
+				else:
+					unload_timer_ul = 0.0
 
-				runtime["unload_xfer_buffer"] = xfer_buf_ul
-				runtime["current_cargo"] = cargo_f_ul
+				runtime["cargo_resources"] = cargo_res_ul
+				runtime["unload_xfer_buffers"] = bufs_ul
 				runtime["unload_timer"] = unload_timer_ul
 
-				var unload_finished: bool = unload_timer_ul <= 0.0 or cargo_f_ul <= 1e-6
+				cargo_total_ul = _cargo_resources_total(cargo_res_ul)
+				runtime["current_cargo"] = float(cargo_total_ul)
+
+				var unload_finished: bool = unload_timer_ul <= 0.0 or cargo_total_ul <= 0
 
 				if unload_finished:
-					var tail_i_ul: int = int(floor(cargo_f_ul + 1e-5))
+					for tail_key_variant: Variant in cargo_res_ul.keys():
+						var rid_tail: String = str(tail_key_variant)
+						var left_i: int = maxi(0, int(cargo_res_ul.get(rid_tail, 0)))
 
-					if tail_i_ul > 0 and not resource_id_ul.is_empty():
-						GameSession.add_base_resource(base_id_ul, resource_id_ul, tail_i_ul)
-						cargo_f_ul = 0.0
+						if left_i > 0:
+							GameSession.add_base_resource(base_id_ul, rid_tail, left_i)
 
-					runtime["current_cargo"] = cargo_f_ul
-					runtime["unload_xfer_buffer"] = 0.0
+					cargo_res_ul.clear()
+
+					var empty_bufs: Dictionary = {} as Dictionary
+					runtime["cargo_resources"] = cargo_res_ul
+					runtime["unload_xfer_buffers"] = empty_bufs
+					runtime["unload_cargo_snapshot"] = {} as Dictionary
+					runtime["unload_timer"] = 0.0
 					runtime["extract_remainder"] = 0.0
+					runtime["mining_extract_remainders"] = {} as Dictionary
+					runtime["current_cargo"] = 0.0
+					runtime["cargo_resource_id"] = ""
 
 					var loop_active_ul: bool = bool(runtime.get("loop_active", true))
 					var target_id_ul: String = str(runtime.get("target_id", ""))
@@ -663,27 +819,17 @@ func _process(delta: float) -> void:
 						if sys_ul.is_empty():
 							sys_ul = GameSession.current_system_id
 
-						if GameSession.is_object_depleted(sys_ul, target_id_ul):
+						if not has_mining_candidates_for_target(target_id_ul):
 							ids_to_release.append(unit_id)
 						else:
-							var next_resource_id_ul: String = _pick_mining_resource_id_from_store(
-								sys_ul,
-								target_id_ul
-							)
+							var target_node_ul: Node2D = _get_target_node(target_id_ul)
 
-							if next_resource_id_ul.is_empty():
-								ids_to_release.append(unit_id)
+							if target_node_ul != null:
+								runtime["status"] = MiningShipStatus.TO_TARGET
+								mining_ship_runtime_by_unit_id[unit_id] = runtime
+								unit.start_mission_to_node(target_node_ul)
 							else:
-								runtime["cargo_resource_id"] = next_resource_id_ul
-								runtime["extract_remainder"] = 0.0
-								var target_node_ul: Node2D = _get_target_node(target_id_ul)
-
-								if target_node_ul != null:
-									runtime["status"] = MiningShipStatus.TO_TARGET
-									mining_ship_runtime_by_unit_id[unit_id] = runtime
-									unit.start_mission_to_node(target_node_ul)
-								else:
-									ids_to_release.append(unit_id)
+								ids_to_release.append(unit_id)
 					else:
 						ids_to_release.append(unit_id)
 				else:
@@ -708,20 +854,39 @@ func _on_mining_ship_returned_to_base(unit: AutomationUnit) -> void:
 	if status != MiningShipStatus.TO_BASE:
 		return
 
-	var base_id := str(runtime.get("base_id", BASE_ID_EARTH))
-	var resource_id := str(runtime.get("cargo_resource_id", ""))
-	var cargo_at_arrival := float(runtime.get("current_cargo", 0.0))
+	var cargo_res_rb: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
+	runtime["cargo_resources"] = cargo_res_rb
 
-	runtime["unload_cargo_snapshot"] = cargo_at_arrival
-	runtime["unload_xfer_buffer"] = 0.0
+	var snap_rb: Dictionary = {} as Dictionary
 
-	if cargo_at_arrival <= 1e-6 or resource_id.is_empty():
+	for snap_key_variant: Variant in cargo_res_rb.keys():
+		var rid_snap: String = str(snap_key_variant)
+		var amt_snap: int = maxi(0, int(cargo_res_rb.get(rid_snap, 0)))
+
+		if rid_snap.is_empty() or amt_snap <= 0:
+			continue
+
+		snap_rb[rid_snap] = amt_snap
+
+	var total_rb: int = _cargo_resources_total(snap_rb)
+	runtime["unload_cargo_snapshot"] = snap_rb
+
+	var buf_init: Dictionary = {} as Dictionary
+
+	for buf_key_variant: Variant in snap_rb.keys():
+		buf_init[str(buf_key_variant)] = 0.0
+
+	runtime["unload_xfer_buffers"] = buf_init
+	runtime["mining_extract_remainders"] = {} as Dictionary
+	runtime["extract_remainder"] = 0.0
+	runtime["current_cargo"] = float(total_rb)
+	runtime["cargo_resource_id"] = ""
+
+	if total_rb <= 0:
 		runtime["unload_timer"] = 0.0
 	else:
-		runtime["current_cargo"] = cargo_at_arrival
 		runtime["unload_timer"] = float(runtime.get("unload_duration", DEFAULT_MINING_UNLOAD_DURATION))
 
-	runtime["extract_remainder"] = 0.0
 	runtime["status"] = MiningShipStatus.UNLOADING
 	mining_ship_runtime_by_unit_id[unit_id] = runtime
 
@@ -906,30 +1071,145 @@ func _get_target_node(target_id: String) -> Node2D:
 	return spawner.get_spawned_object(target_id) as Node2D
 
 
-func _pick_mining_resource_id_from_store(system_id: String, object_id: String) -> String:
+func _cargo_resources_total(cargo_resources: Variant) -> int:
+	if not cargo_resources is Dictionary:
+		return 0
+
+	var d: Dictionary = cargo_resources as Dictionary
+	var total_acc: int = 0
+
+	for value_variant: Variant in d.values():
+		total_acc += maxi(0, int(value_variant))
+
+	return total_acc
+
+
+func _merge_legacy_cargo_into_dictionary(runtime: Dictionary) -> Dictionary:
+	var out: Dictionary = {} as Dictionary
+	var cargo_variant: Variant = runtime.get("cargo_resources", {})
+
+	if cargo_variant is Dictionary:
+		for key_variant: Variant in (cargo_variant as Dictionary).keys():
+			var ks: String = str(key_variant)
+
+			if ks.is_empty():
+				continue
+
+			out[ks] = maxi(0, int((cargo_variant as Dictionary).get(key_variant, 0)))
+
+	var has_positive: bool = false
+
+	for amt_v: Variant in out.values():
+		if int(amt_v) > 0:
+			has_positive = true
+			break
+
+	if not has_positive:
+		var legacy_rid: String = str(runtime.get("cargo_resource_id", ""))
+		var legacy_amt: int = maxi(0, int(floor(float(runtime.get("current_cargo", 0.0)))))
+
+		if not legacy_rid.is_empty() and legacy_amt > 0:
+			out[legacy_rid] = legacy_amt
+
+	return out
+
+
+func _resource_weight_from_scanned_entry(entry: ScannedResourceEntry) -> float:
+	if entry == null:
+		return 1.0
+
+	var rp: int = int(entry.richness_percent)
+
+	if rp <= 0:
+		return 1.0
+
+	return float(rp)
+
+
+func _append_scanned_entries_from_method(dst: Array, definition: Resource, method: StringName) -> void:
+	if definition == null or not definition.has_method(method):
+		return
+
+	var got: Variant = definition.call(method)
+
+	if not got is Array:
+		return
+
+	for item: Variant in got as Array:
+		var sre: ScannedResourceEntry = item as ScannedResourceEntry
+
+		if sre != null:
+			dst.append(sre)
+
+
+func _get_allowed_scanned_entries_for_object_scan(definition: Resource, scan_state: String) -> Array:
+	var out: Array = []
+
+	if definition == null:
+		return out
+
+	match scan_state:
+		GameSession.SCAN_BASIC:
+			_append_scanned_entries_from_method(out, definition, &"get_basic_scan_resources")
+		GameSession.SCAN_DEEP:
+			_append_scanned_entries_from_method(out, definition, &"get_basic_scan_resources")
+			_append_scanned_entries_from_method(out, definition, &"get_deep_scan_resources")
+		GameSession.SCAN_SPECIAL:
+			_append_scanned_entries_from_method(out, definition, &"get_basic_scan_resources")
+			_append_scanned_entries_from_method(out, definition, &"get_deep_scan_resources")
+			_append_scanned_entries_from_method(out, definition, &"get_special_scan_resources")
+		_:
+			pass
+
+	return out
+
+
+func _list_mining_weighted_candidates(
+	system_id: String,
+	object_id: String,
+	definition: Resource,
+	scan_state: String
+) -> Array:
+	var result: Array = []
+
 	if system_id.is_empty() or object_id.is_empty():
-		return ""
+		return result
 
-	var remaining_m: Dictionary = GameSession.get_object_remaining_resources(system_id, object_id)
+	var entries: Array = _get_allowed_scanned_entries_for_object_scan(definition, scan_state)
+	var by_id: Dictionary = {} as Dictionary
 
-	if remaining_m.is_empty():
-		return ""
+	for entry_variant: Variant in entries:
+		var entry: ScannedResourceEntry = entry_variant as ScannedResourceEntry
 
-	var keys_sorted := PackedStringArray()
-	for dict_key in remaining_m.keys():
-		var key_str: String = String(dict_key)
-		if key_str.is_empty():
+		if entry == null:
 			continue
-		keys_sorted.append(key_str)
+
+		var rid: String = String(entry.resource_id)
+
+		if rid.is_empty():
+			continue
+
+		if GameSession.get_remaining_resource_amount(system_id, object_id, rid) <= 0:
+			continue
+
+		var wt: float = _resource_weight_from_scanned_entry(entry)
+
+		if by_id.has(rid):
+			by_id[rid] = float(by_id[rid]) + wt
+		else:
+			by_id[rid] = wt
+
+	var keys_sorted: PackedStringArray = PackedStringArray()
+
+	for dict_key: Variant in by_id.keys():
+		keys_sorted.append(str(dict_key))
 
 	keys_sorted.sort()
 
-	for sorted_key: String in keys_sorted:
-		var amt_var: Variant = remaining_m.get(sorted_key, 0)
-		if int(amt_var) > 0:
-			return sorted_key
+	for sk: String in keys_sorted:
+		result.append({"id": sk, "weight": float(by_id[sk])} as Dictionary)
 
-	return ""
+	return result
 
 
 func _request_automation_state_changed() -> void:

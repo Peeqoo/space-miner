@@ -103,6 +103,10 @@ func ensure_object_resources_initialized(system_id: String, object_id: String, v
 	object_scans.ensure_object_resources_initialized(system_id, object_id, visible_resources)
 
 
+func has_remaining_resources_among(system_id: String, object_id: String, resource_ids: Array) -> bool:
+	return object_scans.has_any_remaining_among(system_id, object_id, resource_ids)
+
+
 func has_object_resources(system_id: String, object_id: String) -> bool:
 	return object_scans.has_object_resources(system_id, object_id)
 

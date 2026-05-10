@@ -44,6 +44,7 @@ var _live_action_cache: Dictionary = {
 	"can_recall_drone": false,
 	"can_recall_mining_ship": false,
 	"is_home_base": false,
+	"mining_exhausted": false,
 }
 
 
@@ -103,6 +104,7 @@ func show_empty() -> void:
 		"can_recall_drone": false,
 		"can_recall_mining_ship": false,
 		"is_home_base": false,
+		"mining_exhausted": false,
 	}
 
 
@@ -151,6 +153,7 @@ func _apply_info(info: Dictionary, panel_title: String) -> void:
 		"can_recall_drone": bool(info.get("can_recall_drone", false)),
 		"can_recall_mining_ship": bool(info.get("can_recall_mining_ship", false)),
 		"is_home_base": bool(info.get("is_home_base", false)),
+		"mining_exhausted": bool(info.get("mining_exhausted", false)),
 	}
 
 	_apply_live_action_controls()
@@ -163,17 +166,10 @@ func _apply_live_action_controls() -> void:
 	var can_recall_mining_ship: bool = bool(_live_action_cache.get("can_recall_mining_ship", false))
 	var is_home_base: bool = bool(_live_action_cache.get("is_home_base", false))
 
-	var system_id_panel: String = GameSession.current_system_id
-	var resources_initialized: bool = (
-		not system_id_panel.is_empty()
-		and not current_object_id.is_empty()
-		and GameSession.has_object_resources(system_id_panel, current_object_id)
-	)
-	var object_depleted: bool = (
-		resources_initialized
-		and GameSession.is_object_depleted(system_id_panel, current_object_id)
-	)
-	var can_mine_effective: bool = can_mine and not object_depleted
+	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false))
+
+	var mining_block_depleted: bool = mining_exhausted
+	var can_mine_effective: bool = can_mine and not mining_block_depleted
 
 	if is_home_base:
 		send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
@@ -183,7 +179,7 @@ func _apply_live_action_controls() -> void:
 		_set_action_buttons(can_scan, can_mine, can_mine_effective)
 		_set_recall_buttons(can_recall_drone, can_recall_mining_ship)
 
-		if can_mine and object_depleted:
+		if can_mine and mining_block_depleted:
 			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEPLETED
 		else:
 			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT

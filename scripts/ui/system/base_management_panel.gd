@@ -46,6 +46,13 @@ var current_body_id: String = ""
 var current_base_name: String = "Earth"
 var is_docked: bool = false
 
+## When true: panel stays visible while selecting other objects (bases with stored body_id).
+var _hold_open_across_selections: bool = false
+## Last body_id passed to show_for_base — used for toggle-close on same-base click.
+var _held_base_body_id: String = ""
+
+@onready var close_base_panel_button: Button = $Margin/Root/HeaderSection/CloseBasePanelButton
+
 
 func _ready() -> void:
 	visible = false
@@ -63,6 +70,8 @@ func _ready() -> void:
 	if not GameSession.base_resources_changed.is_connected(_on_game_session_base_resources_changed):
 		GameSession.base_resources_changed.connect(_on_game_session_base_resources_changed)
 
+	_connect_button(close_base_panel_button, _on_close_base_panel_pressed)
+
 	refresh_from_game_session()
 
 
@@ -72,13 +81,32 @@ func show_for_base(system_id: String, body_id: String, base_name: String, docked
 	current_base_name = base_name
 	is_docked = docked
 
+	_hold_open_across_selections = true
+	_held_base_body_id = body_id
+
 	visible = true
 	refresh_from_game_session()
 
 
 func hide_panel() -> void:
+	_hold_open_across_selections = false
+	_held_base_body_id = ""
 	visible = false
 	hover_info_panel.visible = false
+
+
+func is_hold_open_across_selection() -> bool:
+	return _hold_open_across_selections
+
+
+func get_hold_base_body_id() -> String:
+	return _held_base_body_id
+
+
+func refresh_while_hold_open() -> void:
+	if not _hold_open_across_selections:
+		return
+	refresh_from_game_session()
 
 
 func _exit_tree() -> void:
@@ -109,6 +137,10 @@ func refresh_from_game_session() -> void:
 
 func set_status_text(text: String) -> void:
 	status_label.text = text
+
+
+func _on_close_base_panel_pressed() -> void:
+	hide_panel()
 
 
 func _on_build_drone_pressed() -> void:
@@ -169,7 +201,7 @@ func _connect_button(button: Button, callback: Callable) -> void:
 
 
 func _apply_colony_ship_button_locked_state() -> void:
-	const COLONY_BUTTON_TEXT: String = "Colony Ship — Coming Soon"
+	const COLONY_BUTTON_TEXT: String = "Colony Ship"
 	const COLONY_HINT: String = "Unlocks after stable Phase 4 loop."
 
 	build_colony_ship_button.disabled = true
