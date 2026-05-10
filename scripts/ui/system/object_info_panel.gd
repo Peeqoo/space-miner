@@ -8,6 +8,7 @@ signal recall_drone_requested(object_id: String)
 signal recall_mining_ship_requested(object_id: String)
 
 const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/resource_info_row.tscn")
+const ACTION_BLOCKER_BOX_PATH: NodePath = NodePath("Margin/Root/ActionBlockerBox")
 
 const MINING_BUTTON_TEXT_DEFAULT: String = "Mine"
 const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
@@ -32,6 +33,8 @@ const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
 @onready var recall_drone_button: Button = $Margin/Root/GridContainer/RecallDroneButton
 @onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
 
+var action_blocker_box: ActionBlockerBox = null
+
 var current_object_id: String = ""
 
 ## Shallow copy of `resources_visible` for live amount updates without a full info rebuild.
@@ -52,6 +55,9 @@ func _ready() -> void:
 	header_label.text = "OBJEKT-INFO"
 	resource_title_label.text = "SICHTBARE RESSOURCEN"
 	lore_title_label.text = "HINWEIS"
+	action_blocker_box = get_node_or_null(ACTION_BLOCKER_BOX_PATH) as ActionBlockerBox
+	if action_blocker_box != null:
+		action_blocker_box.clear()
 
 	if not scan_with_drone_button.pressed.is_connected(_on_scan_with_drone_pressed):
 		scan_with_drone_button.pressed.connect(_on_scan_with_drone_pressed)
@@ -105,7 +111,12 @@ func show_empty() -> void:
 		"can_recall_mining_ship": false,
 		"is_home_base": false,
 		"mining_exhausted": false,
+		"scan_state": GameSession.SCAN_UNKNOWN,
+		"visible_resource_count": 0,
 	}
+
+	if action_blocker_box != null:
+		action_blocker_box.clear()
 
 
 func _exit_tree() -> void:
@@ -154,6 +165,8 @@ func _apply_info(info: Dictionary, panel_title: String) -> void:
 		"can_recall_mining_ship": bool(info.get("can_recall_mining_ship", false)),
 		"is_home_base": bool(info.get("is_home_base", false)),
 		"mining_exhausted": bool(info.get("mining_exhausted", false)),
+		"scan_state": str(info.get("scan_state", GameSession.SCAN_UNKNOWN)),
+		"visible_resource_count": _get_visible_resource_count(info),
 	}
 
 	_apply_live_action_controls()
@@ -166,7 +179,8 @@ func _apply_live_action_controls() -> void:
 	var can_recall_mining_ship: bool = bool(_live_action_cache.get("can_recall_mining_ship", false))
 	var is_home_base: bool = bool(_live_action_cache.get("is_home_base", false))
 
-	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false))
+	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false)) or _is_current_object_mining_exhausted()
+	_live_action_cache["mining_exhausted"] = mining_exhausted
 
 	var mining_block_depleted: bool = mining_exhausted
 	var can_mine_effective: bool = can_mine and not mining_block_depleted
@@ -184,18 +198,107 @@ func _apply_live_action_controls() -> void:
 		else:
 			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
 
+	_refresh_action_blockers()
+
+
+func _refresh_action_blockers() -> void:
+	if action_blocker_box == null:
+		return
+
+	if current_object_id.is_empty():
+		action_blocker_box.clear()
+		return
+
+	var is_home_base: bool = bool(_live_action_cache.get("is_home_base", false))
+	if is_home_base:
+		action_blocker_box.clear()
+		return
+
+	var reasons: Array[String] = []
+	var can_scan: bool = bool(_live_action_cache.get("can_scan", false))
+	var can_mine: bool = bool(_live_action_cache.get("can_mine", false))
+	var can_recall_drone: bool = bool(_live_action_cache.get("can_recall_drone", false))
+	var can_recall_mining_ship: bool = bool(_live_action_cache.get("can_recall_mining_ship", false))
+	var scan_state: String = str(_live_action_cache.get("scan_state", GameSession.SCAN_UNKNOWN))
+	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false)) or _is_current_object_mining_exhausted()
+	var visible_resource_count: int = int(_live_action_cache.get("visible_resource_count", 0))
+
+	if scan_state == GameSession.SCAN_UNKNOWN:
+		reasons.append("Object not scanned yet.")
+		if not can_scan:
+			reasons.append("No idle ScanDrone available or object cannot be scanned.")
+	else:
+		if mining_exhausted:
+			reasons.append("Mining target depleted.")
+		elif visible_resource_count <= 0:
+			reasons.append("No mineable resources visible.")
+		elif not can_mine:
+			reasons.append("No idle MiningShip available or no mining candidate.")
+
+	if (not can_scan and not can_mine and not can_recall_drone and not can_recall_mining_ship and reasons.is_empty()):
+		reasons.append("No available action for this object.")
+
+	if reasons.is_empty():
+		action_blocker_box.clear()
+	else:
+		action_blocker_box.show_reasons("Action blocked", reasons)
+
+
+func _is_current_object_mining_exhausted() -> bool:
+	var system_id_r: String = GameSession.current_system_id
+
+	if system_id_r.is_empty() or current_object_id.is_empty():
+		return false
+
+	if _cached_visible_resources.is_empty():
+		return false
+
+	if not GameSession.has_object_resources(system_id_r, current_object_id):
+		return false
+
+	var has_mineable_entry := false
+
+	for entry: Variant in _cached_visible_resources:
+		if not (entry is Dictionary):
+			continue
+
+		var resource_id_r: String = _get_resource_store_id(entry as Dictionary)
+		if resource_id_r.is_empty():
+			continue
+
+		has_mineable_entry = true
+
+		var remaining: int = GameSession.get_remaining_resource_amount(
+			system_id_r,
+			current_object_id,
+			resource_id_r
+		)
+
+		if remaining > 0:
+			return false
+
+	return has_mineable_entry
+
+
+func _get_visible_resource_count(info: Dictionary) -> int:
+	var visible_resources_variant: Variant = info.get("resources_visible", [])
+	if visible_resources_variant is Array:
+		return (visible_resources_variant as Array).size()
+
+	return 0
+
 
 func _apply_automation_status(info: Dictionary) -> void:
-	var drone_count: int = int(info.get("orbiting_drone_count", 0))
-	var mining_ship_count: int = int(info.get("orbiting_mining_ship_count", 0))
+	var drone_count: int = int(info.get("active_scan_drone_count", 0))
+	var mining_ship_count: int = int(info.get("active_mining_ship_count", 0))
 	var mining_bonus: float = float(info.get("mining_bonus", 0.0))
 
 	drone_orbit_label.visible = drone_count > 0
 	mine_orbit_label.visible = mining_ship_count > 0
-	mining_bonus_label.visible = drone_count > 0
+	mining_bonus_label.visible = absf(mining_bonus) > 1e-5
 
-	drone_orbit_label.text = "Drones im Orbit: %d" % drone_count
-	mine_orbit_label.text = "Mining Ships im Orbit: %d" % mining_ship_count
+	drone_orbit_label.text = "Drone: %d" % drone_count
+	mine_orbit_label.text = "MiningShips: %d" % mining_ship_count
 	mining_bonus_label.text = "Mining Bonus: +%d%%" % int(round(mining_bonus * 100.0))
 
 

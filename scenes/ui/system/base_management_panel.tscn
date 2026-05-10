@@ -1,15 +1,15 @@
 [gd_scene format=3 uid="uid://cw0s5utrneclh"]
 
 [ext_resource type="Script" uid="uid://0a2kf782psjp" path="res://scripts/ui/system/base_management_panel.gd" id="1_base_panel"]
-[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/pixeloperator_hbsc_label_settings.tres" id="2_kq77j"]
-[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/pixeloperator8_label_settings.tres" id="3_4em1t"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/pixeloperator_hbsc_label_settings.tres" id="2_kq77j"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/pixeloperator8_label_settings.tres" id="3_4em1t"]
 [ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="4_3xxhb"]
 
 [node name="BaseManagementPanel" type="PanelContainer" unique_id=995273956]
 offset_left = 6.0
 offset_top = 6.0
 offset_right = 142.0
-offset_bottom = 310.0
+offset_bottom = 254.0
 script = ExtResource("1_base_panel")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=1006074701]
@@ -167,6 +167,7 @@ layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="HoverInfoPanel" type="PanelContainer" parent="Margin/Root" unique_id=946566434]
+visible = false
 layout_mode = 2
 
 [node name="HoverInfoMargin" type="MarginContainer" parent="Margin/Root/HoverInfoPanel" unique_id=1547781535]

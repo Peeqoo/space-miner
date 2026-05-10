@@ -202,17 +202,17 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	info["mining_exhausted"] = mining_exhausted
 
 	if bool(info["is_home_base"]):
-		info["orbiting_drone_count"] = 0
-		info["orbiting_mining_ship_count"] = 0
+		info["active_scan_drone_count"] = 0
+		info["active_mining_ship_count"] = 0
 		info["mining_bonus"] = 0.0
 		info["can_recall_drone"] = false
 		info["can_recall_mining_ship"] = false
 	else:
-		info["orbiting_drone_count"] = _get_orbiting_drone_count(object_id)
-		info["orbiting_mining_ship_count"] = _get_orbiting_mining_ship_count(object_id)
+		info["active_scan_drone_count"] = _get_active_scan_drone_count(object_id)
+		info["active_mining_ship_count"] = _get_active_mining_ship_count(object_id)
 		info["mining_bonus"] = _get_mining_bonus_for_object(object_id)
-		info["can_recall_drone"] = int(info["orbiting_drone_count"]) > 0
-		info["can_recall_mining_ship"] = _get_assigned_mining_ship_count(object_id) > 0
+		info["can_recall_drone"] = _get_orbiting_drone_count(object_id) > 0
+		info["can_recall_mining_ship"] = _get_active_mining_ship_count(object_id) > 0
 
 	# Lore text comes directly from the definition — not scan-gated.
 	if selected_node is SystemBody:
@@ -392,7 +392,7 @@ func _has_available_drone() -> bool:
 
 func _has_available_mining_ship() -> bool:
 	if automation_controller != null:
-		return automation_controller.has_idle_mining_ship()
+		return automation_controller.has_available_mining_ship()
 
 	return _get_base_mining_ship_count() > 0
 
@@ -423,6 +423,20 @@ func _get_orbiting_mining_ship_count(object_id: String) -> int:
 		return automation_controller.get_orbiting_mining_ship_count(object_id)
 
 	return 0
+
+
+func _get_active_scan_drone_count(object_id: String) -> int:
+	if object_id.is_empty():
+		return 0
+
+	if automation_controller != null:
+		return automation_controller.get_active_scan_drone_count_for_target(object_id)
+
+	return 0
+
+
+func _get_active_mining_ship_count(object_id: String) -> int:
+	return _get_assigned_mining_ship_count(object_id)
 
 
 func _get_assigned_mining_ship_count(object_id: String) -> int:

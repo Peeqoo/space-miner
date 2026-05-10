@@ -233,15 +233,30 @@ func _on_action_button_mouse_exited(_button: Button) -> void:
 
 
 func _build_hover_cost_text(button: Button) -> String:
+	var base_id_hover: String = _get_current_base_id()
+	var resources_snapshot: Dictionary = GameSession.get_base_resources(base_id_hover)
+
 	match button.name:
 		"BuildDroneButton":
-			return "Kosten: %s" % GameSession.get_build_cost_text("drone")
+			return _format_hover_cost_lines(BaseStore.DRONE_COST, resources_snapshot)
 		"BuildMiningShipButton":
-			return "Kosten: %s" % GameSession.get_build_cost_text("mining_ship")
+			return _format_hover_cost_lines(BaseStore.MINING_SHIP_COST, resources_snapshot)
 		"BuildColonyShipButton":
 			return "Unlocks after stable Phase 4 loop."
 		_:
 			return ""
+
+
+func _format_hover_cost_lines(cost: Dictionary, available_by_id: Dictionary) -> String:
+	var lines: PackedStringArray = PackedStringArray()
+
+	for resource_id: Variant in cost.keys():
+		var need: int = int(cost.get(resource_id, 0))
+		var have: int = int(available_by_id.get(resource_id, 0))
+		var res_name: String = _format_title(str(resource_id))
+		lines.append("%s: %d / %d" % [res_name, have, need])
+
+	return "\n".join(lines)
 
 
 func _format_title(value: String) -> String:

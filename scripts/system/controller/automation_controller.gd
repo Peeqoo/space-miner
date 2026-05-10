@@ -36,6 +36,10 @@ enum MiningShipStatus {
 
 var mining_ship_runtime_by_unit_id: Dictionary = {}
 
+## Scan drones keep a logical assignment from launch until they return idle at Earth (`returned_to_base`).
+## Mirrors mining runtime: used for UI mission counts independent of orbit position / AutomationStore lifecycle.
+var scan_drone_target_by_unit_id: Dictionary = {}
+
 ## Coalesces automation_state_changed emits to at most once per idle frame (fewer UI rebuilds).
 var _automation_state_emit_scheduled: bool = false
 
@@ -148,6 +152,12 @@ func launch_scan_drone(target_id: String) -> void:
 		unit.arrived_at_target.connect(_on_scan_drone_arrived_at_target.bind(mission_id, target_id))
 
 	active_units_by_mission_id[mission_id] = unit
+
+	var drone_uid_launch: int = unit.get_instance_id()
+	scan_drone_target_by_unit_id[drone_uid_launch] = target_id
+
+	_ensure_returned_to_base_connected(unit)
+
 	unit.start_mission_to_node(target_node)
 
 	_request_automation_state_changed()
@@ -186,8 +196,7 @@ func launch_mining_ship(target_id: String) -> bool:
 	if not unit.arrived_at_target.is_connected(_on_mining_ship_arrived_at_target):
 		unit.arrived_at_target.connect(_on_mining_ship_arrived_at_target)
 
-	if not unit.returned_to_base.is_connected(_on_mining_ship_returned_to_base):
-		unit.returned_to_base.connect(_on_mining_ship_returned_to_base)
+	_ensure_returned_to_base_connected(unit)
 
 	mining_ship_runtime_by_unit_id[unit.get_instance_id()] = {
 		"system_id": system_id,
@@ -261,26 +270,60 @@ func has_idle_mining_ship() -> bool:
 	return _get_idle_mining_ship() != null
 
 
+func has_available_mining_ship() -> bool:
+	return _get_idle_mining_ship() != null
+
+
+func get_active_scan_drone_count_for_target(target_id: String) -> int:
+	if target_id.is_empty():
+		return 0
+
+	var n: int = 0
+
+	for uid_var: Variant in scan_drone_target_by_unit_id.keys():
+		var assigned: Variant = scan_drone_target_by_unit_id.get(uid_var, "")
+		var assigned_str: String = str(assigned)
+
+		if assigned_str.is_empty():
+			continue
+
+		if assigned_str != target_id:
+			continue
+
+		n += 1
+
+	return n
+
+
+func get_active_mining_ship_count_for_target(target_id: String) -> int:
+	return get_assigned_mining_ship_count(target_id)
+
+
 func get_orbiting_drone_count(target_id: String) -> int:
 	if target_id.is_empty():
 		return 0
 
-	var count := 0
+	var orbit_drone_count: int = 0
 
-	for drone in idle_drones:
-		if drone == null or not is_instance_valid(drone):
+	for orbiting_drone: AutomationUnit in idle_drones:
+		if orbiting_drone == null or not is_instance_valid(orbiting_drone):
 			continue
 
-		if not drone.is_available():
+		if orbiting_drone.unit_type != AutomationUnit.UnitType.DRONE:
 			continue
 
-		if drone.base_node == null or not is_instance_valid(drone.base_node):
+		if not orbiting_drone.is_available():
 			continue
 
-		if _get_object_id_from_node(drone.base_node) == target_id:
-			count += 1
+		if orbiting_drone.base_node == null or not is_instance_valid(orbiting_drone.base_node):
+			continue
 
-	return count
+		if _get_object_id_from_node(orbiting_drone.base_node) != target_id:
+			continue
+
+		orbit_drone_count += 1
+
+	return orbit_drone_count
 
 
 func get_orbiting_mining_ship_count(target_id: String) -> int:
@@ -328,6 +371,7 @@ func recall_one_drone_from_target(target_id: String) -> bool:
 			continue
 
 		_disconnect_unit_signals(drone)
+		_ensure_returned_to_base_connected(drone)
 		drone.recall_to_base(home_base_node)
 		_request_automation_state_changed()
 		return true
@@ -433,6 +477,11 @@ func _on_scan_drone_arrived_at_target(
 
 	if mission.is_empty():
 		active_units_by_mission_id.erase(mission_id)
+		var drone_uid_miss: int = unit.get_instance_id()
+
+		if scan_drone_target_by_unit_id.has(drone_uid_miss):
+			scan_drone_target_by_unit_id.erase(drone_uid_miss)
+
 		_request_automation_state_changed()
 		return
 
@@ -944,6 +993,11 @@ func _get_idle_mining_ship() -> AutomationUnit:
 		if not ship.is_available():
 			continue
 
+		var ship_uid_idle: int = ship.get_instance_id()
+
+		if mining_ship_runtime_by_unit_id.has(ship_uid_idle):
+			continue
+
 		if ship.base_node == null or not is_instance_valid(ship.base_node):
 			continue
 
@@ -955,21 +1009,58 @@ func _get_idle_mining_ship() -> AutomationUnit:
 	return null
 
 
+func _ensure_returned_to_base_connected(unit: AutomationUnit) -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	if not unit.returned_to_base.is_connected(_on_automation_unit_returned_to_base):
+		unit.returned_to_base.connect(_on_automation_unit_returned_to_base)
+
+
+func _on_automation_unit_returned_to_base(unit: AutomationUnit) -> void:
+	match unit.unit_type:
+		AutomationUnit.UnitType.MINING_SHIP:
+			_on_mining_ship_returned_to_base(unit)
+		AutomationUnit.UnitType.DRONE:
+			_on_scan_drone_return_dock_clear_assignment(unit)
+
+
+func _on_scan_drone_return_dock_clear_assignment(unit: AutomationUnit) -> void:
+	var drone_uid_rb: int = unit.get_instance_id()
+
+	if not scan_drone_target_by_unit_id.has(drone_uid_rb):
+		return
+
+	scan_drone_target_by_unit_id.erase(drone_uid_rb)
+	_request_automation_state_changed()
+
+
 func _disconnect_unit_signals(unit: AutomationUnit) -> void:
 	if unit == null or not is_instance_valid(unit):
 		return
 
-	for connection in unit.arrived_at_target.get_connections():
-		var callable: Callable = connection.get("callable")
+	for arrival_connection: Dictionary in unit.arrived_at_target.get_connections():
+		var arrival_callable_variant: Variant = arrival_connection.get("callable", Callable())
 
-		if unit.arrived_at_target.is_connected(callable):
-			unit.arrived_at_target.disconnect(callable)
+		if not arrival_callable_variant is Callable:
+			continue
 
-	for connection in unit.returned_to_base.get_connections():
-		var callable: Callable = connection.get("callable")
+		var arrival_cb: Callable = arrival_callable_variant as Callable
 
-		if unit.returned_to_base.is_connected(callable):
-			unit.returned_to_base.disconnect(callable)
+		if unit.arrived_at_target.is_connected(arrival_cb):
+			unit.arrived_at_target.disconnect(arrival_cb)
+
+	for return_connection: Dictionary in unit.returned_to_base.get_connections():
+		var return_callable_variant: Variant = return_connection.get("callable", Callable())
+
+		if not return_callable_variant is Callable:
+			continue
+
+		var return_cb: Callable = return_callable_variant as Callable
+
+		if unit.returned_to_base.is_connected(return_cb):
+			unit.returned_to_base.disconnect(return_cb)
+
 
 func _get_definition_from_target_node(target_node: Node2D) -> Resource:
 	if target_node == null:

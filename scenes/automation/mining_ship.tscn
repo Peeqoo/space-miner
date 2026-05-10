@@ -9,6 +9,7 @@ region = Rect2(27, 0, 26, 25)
 
 [node name="MiningShip" type="Node2D" unique_id=818123353]
 script = ExtResource("1_jasay")
+unit_type = 1
 
 [node name="VisualRoot" type="Node2D" parent="." unique_id=1107334371]
 

@@ -2,9 +2,10 @@
 
 [ext_resource type="Script" uid="uid://0umh4u1nx7fg" path="res://scripts/ui/system/object_info_panel.gd" id="1_c2q1o"]
 [ext_resource type="Texture2D" uid="uid://cyp5c64hdqm15" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Earth/Eurasia_Africa/Clouds/1.png" id="1_omcxk"]
-[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/pixeloperator_hbsc_label_settings.tres" id="2_2h3fg"]
-[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/pixeloperator8_label_settings.tres" id="4_ckpwi"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/pixeloperator_hbsc_label_settings.tres" id="2_2h3fg"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/pixeloperator8_label_settings.tres" id="4_ckpwi"]
 [ext_resource type="FontFile" uid="uid://bt3p1wh0fgq6" path="res://assets/fonts/PixelOperatorHBSC.ttf" id="5_ckpwi"]
+[ext_resource type="PackedScene" uid="uid://cstv0jvkwjody" path="res://scenes/ui/system/action_blocker_box.tscn" id="6_s0a2i"]
 
 [node name="ObjectInfoPanel" type="PanelContainer" unique_id=987163130]
 anchors_preset = 1
@@ -13,7 +14,7 @@ anchor_right = 1.0
 offset_left = -160.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = 292.0
+offset_bottom = 250.0
 grow_horizontal = 0
 script = ExtResource("1_c2q1o")
 
@@ -129,6 +130,10 @@ text = "Bewohnter Gesteinsplanet mit bekannter Infrastruktur."
 label_settings = ExtResource("4_ckpwi")
 autowrap_mode = 3
 
+[node name="DividerC" type="HSeparator" parent="Margin/Root" unique_id=1788739762]
+layout_mode = 2
+theme_override_constants/separation = 0
+
 [node name="VBoxContainer" type="VBoxContainer" parent="Margin/Root" unique_id=910843747]
 layout_mode = 2
 theme_override_constants/separation = 2
@@ -147,10 +152,6 @@ label_settings = ExtResource("4_ckpwi")
 layout_mode = 2
 text = "Mining Bonus: +0%"
 label_settings = ExtResource("4_ckpwi")
-
-[node name="DividerC" type="HSeparator" parent="Margin/Root" unique_id=1788739762]
-layout_mode = 2
-theme_override_constants/separation = 0
 
 [node name="GridContainer" type="GridContainer" parent="Margin/Root" unique_id=1253186436]
 layout_mode = 2
@@ -185,3 +186,7 @@ size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 8
 text = "Mining Ship zurück"
+
+[node name="ActionBlockerBox" parent="Margin/Root" unique_id=1943824876 instance=ExtResource("6_s0a2i")]
+visible = false
+layout_mode = 2
