@@ -159,6 +159,11 @@ func launch_scan_drone(target_id: String) -> void:
 
 	_ensure_returned_to_base_connected(unit)
 
+	unit.work_duration = (
+		DEFAULT_SCAN_DURATION
+		* GameSession.get_scan_drone_scan_duration_multiplier(BASE_ID_EARTH)
+	)
+
 	unit.start_mission_to_node(target_node)
 
 	_request_automation_state_changed()

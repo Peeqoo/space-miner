@@ -251,6 +251,30 @@ func is_base_storage_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) ->
 	return bases.is_storage_upgrade_i_bought(base_id)
 
 
+func can_buy_scan_drone_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return bases.can_buy_scan_drone_upgrade_i(base_id)
+
+
+func buy_scan_drone_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	if not bases.buy_scan_drone_upgrade_i(base_id):
+		return false
+
+	base_resources_changed.emit(base_id)
+	return true
+
+
+func is_scan_drone_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return bases.is_scan_drone_upgrade_i_bought(base_id)
+
+
+func get_scan_drone_upgrade_i_cost() -> Dictionary:
+	return bases.get_scan_drone_upgrade_i_cost()
+
+
+func get_scan_drone_scan_duration_multiplier(base_id: String = BaseStore.BASE_EARTH) -> float:
+	return clampf(bases.get_scan_drone_scan_duration_multiplier(base_id), 0.05, 10.0)
+
+
 func can_build_base_drone(base_id: String) -> bool:
 	return bases.can_afford(base_id, BaseStore.DRONE_COST)
 

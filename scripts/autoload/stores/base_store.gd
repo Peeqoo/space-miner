@@ -38,6 +38,15 @@ const STORAGE_UPGRADE_I_COST: Dictionary = {
 	"Copper": 10,
 }
 
+## Phase 5.2: first scan-drone timing upgrade (applied at mission launch only).
+const SCAN_DRONE_UPGRADE_I_COST: Dictionary = {
+	"Iron": 20,
+	"Copper": 15,
+}
+
+## Multiplier on base scan duration; 0.75 = 25 % faster missions.
+const SCAN_DRONE_UPGRADE_I_DURATION_MULTIPLIER: float = 0.75
+
 var bases: Dictionary = {
 	BASE_EARTH: {
 		"resources": {},
@@ -46,6 +55,7 @@ var bases: Dictionary = {
 		"mining_ships": 1,
 		"storage_capacity": INITIAL_STORAGE_CAPACITY,
 		"storage_upgrade_level": 0,
+		"scan_drone_upgrade_level": 0,
 	}
 }
 
@@ -56,8 +66,14 @@ func get_base(base_id: String) -> Dictionary:
 
 	var base_entry: Dictionary = bases[base_id]
 	_normalize_base_storage_fields(base_entry)
+	_normalize_scan_drone_upgrade_fields(base_entry)
 
 	return base_entry
+
+
+func _normalize_scan_drone_upgrade_fields(base: Dictionary) -> void:
+	if not base.has("scan_drone_upgrade_level"):
+		base["scan_drone_upgrade_level"] = 0
 
 
 func _normalize_base_storage_fields(base: Dictionary) -> void:
@@ -155,6 +171,41 @@ func buy_storage_upgrade_i(base_id: String) -> bool:
 	base_up["storage_capacity"] = cap_now + STORAGE_UPGRADE_I_CAPACITY_BONUS
 	base_up["storage_upgrade_level"] = 1
 	bases[base_id] = base_up
+
+	return true
+
+
+func get_scan_drone_upgrade_i_cost() -> Dictionary:
+	return SCAN_DRONE_UPGRADE_I_COST.duplicate(true)
+
+
+func is_scan_drone_upgrade_i_bought(base_id: String) -> bool:
+	return int(get_base(base_id).get("scan_drone_upgrade_level", 0)) >= 1
+
+
+func get_scan_drone_scan_duration_multiplier(base_id: String) -> float:
+	if is_scan_drone_upgrade_i_bought(base_id):
+		return SCAN_DRONE_UPGRADE_I_DURATION_MULTIPLIER
+	return 1.0
+
+
+func can_buy_scan_drone_upgrade_i(base_id: String) -> bool:
+	if is_scan_drone_upgrade_i_bought(base_id):
+		return false
+
+	return can_afford(base_id, SCAN_DRONE_UPGRADE_I_COST)
+
+
+func buy_scan_drone_upgrade_i(base_id: String) -> bool:
+	if not can_buy_scan_drone_upgrade_i(base_id):
+		return false
+
+	if not spend_cost(base_id, SCAN_DRONE_UPGRADE_I_COST):
+		return false
+
+	var base_scan: Dictionary = get_base(base_id)
+	base_scan["scan_drone_upgrade_level"] = 1
+	bases[base_id] = base_scan
 
 	return true
 
@@ -289,4 +340,5 @@ func _create_empty_base() -> Dictionary:
 		"mining_ships": 0,
 		"storage_capacity": INITIAL_STORAGE_CAPACITY,
 		"storage_upgrade_level": 0,
+		"scan_drone_upgrade_level": 0,
 	}
