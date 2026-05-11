@@ -204,6 +204,16 @@ func launch_mining_ship(target_id: String) -> bool:
 
 	_ensure_returned_to_base_connected(unit)
 
+	var cargo_cap_mission: int = maxi(
+		1,
+		int(
+			round(
+				float(DEFAULT_MINING_CARGO_CAPACITY)
+				* GameSession.get_mining_ship_cargo_capacity_multiplier(BASE_ID_EARTH)
+			)
+		)
+	)
+
 	mining_ship_runtime_by_unit_id[unit.get_instance_id()] = {
 		"system_id": system_id,
 		"base_id": BASE_ID_EARTH,
@@ -212,7 +222,7 @@ func launch_mining_ship(target_id: String) -> bool:
 		"mining_extract_remainders": {} as Dictionary,
 		"cargo_resource_id": "",
 		"current_cargo": 0.0,
-		"cargo_capacity": DEFAULT_MINING_CARGO_CAPACITY,
+		"cargo_capacity": cargo_cap_mission,
 		"mining_rate_per_second": DEFAULT_MINING_RATE_PER_SECOND,
 		"unload_duration": DEFAULT_MINING_UNLOAD_DURATION,
 		"unload_timer": 0.0,

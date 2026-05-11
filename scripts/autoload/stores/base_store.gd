@@ -47,6 +47,16 @@ const SCAN_DRONE_UPGRADE_I_COST: Dictionary = {
 ## Multiplier on base scan duration; 0.75 = 25 % faster missions.
 const SCAN_DRONE_UPGRADE_I_DURATION_MULTIPLIER: float = 0.75
 
+## Phase 5.3: first mining-ship cargo upgrade (new missions only).
+const MINING_SHIP_UPGRADE_I_COST: Dictionary = {
+	"Iron": 40,
+	"Aluminum": 20,
+	"Copper": 10,
+}
+
+## 1.25 = +25 % cargo capacity vs DEFAULT_MINING_CARGO_CAPACITY on new missions.
+const MINING_SHIP_UPGRADE_I_CARGO_CAPACITY_MULTIPLIER: float = 1.25
+
 var bases: Dictionary = {
 	BASE_EARTH: {
 		"resources": {},
@@ -56,6 +66,7 @@ var bases: Dictionary = {
 		"storage_capacity": INITIAL_STORAGE_CAPACITY,
 		"storage_upgrade_level": 0,
 		"scan_drone_upgrade_level": 0,
+		"mining_ship_upgrade_level": 0,
 	}
 }
 
@@ -67,8 +78,14 @@ func get_base(base_id: String) -> Dictionary:
 	var base_entry: Dictionary = bases[base_id]
 	_normalize_base_storage_fields(base_entry)
 	_normalize_scan_drone_upgrade_fields(base_entry)
+	_normalize_mining_ship_upgrade_fields(base_entry)
 
 	return base_entry
+
+
+func _normalize_mining_ship_upgrade_fields(base: Dictionary) -> void:
+	if not base.has("mining_ship_upgrade_level"):
+		base["mining_ship_upgrade_level"] = 0
 
 
 func _normalize_scan_drone_upgrade_fields(base: Dictionary) -> void:
@@ -210,6 +227,41 @@ func buy_scan_drone_upgrade_i(base_id: String) -> bool:
 	return true
 
 
+func get_mining_ship_upgrade_i_cost() -> Dictionary:
+	return MINING_SHIP_UPGRADE_I_COST.duplicate(true)
+
+
+func is_mining_ship_upgrade_i_bought(base_id: String) -> bool:
+	return int(get_base(base_id).get("mining_ship_upgrade_level", 0)) >= 1
+
+
+func get_mining_ship_cargo_capacity_multiplier(base_id: String) -> float:
+	if is_mining_ship_upgrade_i_bought(base_id):
+		return MINING_SHIP_UPGRADE_I_CARGO_CAPACITY_MULTIPLIER
+	return 1.0
+
+
+func can_buy_mining_ship_upgrade_i(base_id: String) -> bool:
+	if is_mining_ship_upgrade_i_bought(base_id):
+		return false
+
+	return can_afford(base_id, MINING_SHIP_UPGRADE_I_COST)
+
+
+func buy_mining_ship_upgrade_i(base_id: String) -> bool:
+	if not can_buy_mining_ship_upgrade_i(base_id):
+		return false
+
+	if not spend_cost(base_id, MINING_SHIP_UPGRADE_I_COST):
+		return false
+
+	var base_ms: Dictionary = get_base(base_id)
+	base_ms["mining_ship_upgrade_level"] = 1
+	bases[base_id] = base_ms
+
+	return true
+
+
 func spend_resource(base_id: String, resource_id: String, amount: int) -> bool:
 	if amount <= 0:
 		return true
@@ -341,4 +393,5 @@ func _create_empty_base() -> Dictionary:
 		"storage_capacity": INITIAL_STORAGE_CAPACITY,
 		"storage_upgrade_level": 0,
 		"scan_drone_upgrade_level": 0,
+		"mining_ship_upgrade_level": 0,
 	}
