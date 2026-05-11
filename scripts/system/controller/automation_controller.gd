@@ -32,6 +32,7 @@ enum MiningShipStatus {
 	MINING,
 	TO_BASE,
 	UNLOADING,
+	WAITING_FOR_STORAGE,
 }
 
 var mining_ship_runtime_by_unit_id: Dictionary = {}
@@ -818,10 +819,16 @@ func _process(delta: float) -> void:
 						var cargo_here: int = maxi(0, int(cargo_res_ul.get(rid_ul, 0)))
 
 						var take_i: int = mini(chunk_i, cargo_here)
+						var storage_free_xfer: int = GameSession.get_base_storage_free(base_id_ul)
+						take_i = mini(take_i, storage_free_xfer)
 
 						if take_i > 0:
 							buf_val -= float(take_i)
-							cargo_res_ul[rid_ul] = cargo_here - take_i
+							var after_r: int = cargo_here - take_i
+							if after_r <= 0:
+								cargo_res_ul.erase(rid_ul)
+							else:
+								cargo_res_ul[rid_ul] = after_r
 							GameSession.add_base_resource(base_id_ul, rid_ul, take_i)
 
 						bufs_ul[rid_ul] = buf_val
@@ -840,18 +847,78 @@ func _process(delta: float) -> void:
 				var unload_finished: bool = unload_timer_ul <= 0.0 or cargo_total_ul <= 0
 
 				if unload_finished:
-					for tail_key_variant: Variant in cargo_res_ul.keys():
-						var rid_tail: String = str(tail_key_variant)
-						var left_i: int = maxi(0, int(cargo_res_ul.get(rid_tail, 0)))
+					if cargo_total_ul > 0:
+						cargo_res_ul = _unload_greedy_into_base_until_full(base_id_ul, cargo_res_ul)
+						cargo_total_ul = _cargo_resources_total(cargo_res_ul)
 
-						if left_i > 0:
-							GameSession.add_base_resource(base_id_ul, rid_tail, left_i)
+					if cargo_total_ul <= 0:
+						var empty_bufs: Dictionary = {} as Dictionary
+						cargo_res_ul.clear()
 
-					cargo_res_ul.clear()
+						runtime["cargo_resources"] = cargo_res_ul
+						runtime["unload_xfer_buffers"] = empty_bufs
+						runtime["unload_cargo_snapshot"] = {} as Dictionary
+						runtime["unload_timer"] = 0.0
+						runtime["extract_remainder"] = 0.0
+						runtime["mining_extract_remainders"] = {} as Dictionary
+						runtime["current_cargo"] = 0.0
+						runtime["cargo_resource_id"] = ""
 
-					var empty_bufs: Dictionary = {} as Dictionary
-					runtime["cargo_resources"] = cargo_res_ul
-					runtime["unload_xfer_buffers"] = empty_bufs
+						var loop_active_ul: bool = bool(runtime.get("loop_active", true))
+						var target_id_ul: String = str(runtime.get("target_id", ""))
+
+						if loop_active_ul and not target_id_ul.is_empty():
+							var sys_ul: String = str(runtime.get("system_id", ""))
+
+							if sys_ul.is_empty():
+								sys_ul = GameSession.current_system_id
+
+							if not has_mining_candidates_for_target(target_id_ul):
+								ids_to_release.append(unit_id)
+							else:
+								var target_node_ul: Node2D = _get_target_node(target_id_ul)
+
+								if target_node_ul != null:
+									runtime["status"] = MiningShipStatus.TO_TARGET
+									mining_ship_runtime_by_unit_id[unit_id] = runtime
+									unit.start_mission_to_node(target_node_ul)
+								else:
+									ids_to_release.append(unit_id)
+						else:
+							ids_to_release.append(unit_id)
+					else:
+						var empty_bufs_wait: Dictionary = {} as Dictionary
+						runtime["cargo_resources"] = cargo_res_ul
+						runtime["unload_xfer_buffers"] = empty_bufs_wait
+						runtime["unload_cargo_snapshot"] = {} as Dictionary
+						runtime["unload_timer"] = 0.0
+						runtime["current_cargo"] = float(cargo_total_ul)
+						runtime["status"] = MiningShipStatus.WAITING_FOR_STORAGE
+						mining_ship_runtime_by_unit_id[unit_id] = runtime
+				else:
+					mining_ship_runtime_by_unit_id[unit_id] = runtime
+
+			MiningShipStatus.WAITING_FOR_STORAGE:
+				var base_ws: String = str(runtime.get("base_id", BASE_ID_EARTH))
+				var cargo_ws: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
+
+				var unit_ws: AutomationUnit = instance_from_id(unit_id) as AutomationUnit
+
+				if unit_ws == null or not is_instance_valid(unit_ws):
+					ids_to_release.append(unit_id)
+					continue
+
+				cargo_ws = _unload_greedy_into_base_until_full(base_ws, cargo_ws.duplicate(true))
+				var cargo_total_ws: int = _cargo_resources_total(cargo_ws)
+				runtime["cargo_resources"] = cargo_ws
+				runtime["current_cargo"] = float(cargo_total_ws)
+
+				if cargo_total_ws <= 0:
+					var empty_bufs_ws: Dictionary = {} as Dictionary
+					cargo_ws.clear()
+
+					runtime["cargo_resources"] = cargo_ws
+					runtime["unload_xfer_buffers"] = empty_bufs_ws
 					runtime["unload_cargo_snapshot"] = {} as Dictionary
 					runtime["unload_timer"] = 0.0
 					runtime["extract_remainder"] = 0.0
@@ -859,24 +926,24 @@ func _process(delta: float) -> void:
 					runtime["current_cargo"] = 0.0
 					runtime["cargo_resource_id"] = ""
 
-					var loop_active_ul: bool = bool(runtime.get("loop_active", true))
-					var target_id_ul: String = str(runtime.get("target_id", ""))
+					var loop_active_ws: bool = bool(runtime.get("loop_active", true))
+					var target_id_ws: String = str(runtime.get("target_id", ""))
 
-					if loop_active_ul and not target_id_ul.is_empty():
-						var sys_ul: String = str(runtime.get("system_id", ""))
+					if loop_active_ws and not target_id_ws.is_empty():
+						var sys_ws: String = str(runtime.get("system_id", ""))
 
-						if sys_ul.is_empty():
-							sys_ul = GameSession.current_system_id
+						if sys_ws.is_empty():
+							sys_ws = GameSession.current_system_id
 
-						if not has_mining_candidates_for_target(target_id_ul):
+						if not has_mining_candidates_for_target(target_id_ws):
 							ids_to_release.append(unit_id)
 						else:
-							var target_node_ul: Node2D = _get_target_node(target_id_ul)
+							var target_node_ws: Node2D = _get_target_node(target_id_ws)
 
-							if target_node_ul != null:
+							if target_node_ws != null:
 								runtime["status"] = MiningShipStatus.TO_TARGET
 								mining_ship_runtime_by_unit_id[unit_id] = runtime
-								unit.start_mission_to_node(target_node_ul)
+								unit_ws.start_mission_to_node(target_node_ws)
 							else:
 								ids_to_release.append(unit_id)
 					else:
@@ -1173,6 +1240,44 @@ func _cargo_resources_total(cargo_resources: Variant) -> int:
 		total_acc += maxi(0, int(value_variant))
 
 	return total_acc
+
+
+func _unload_greedy_into_base_until_full(base_id_load: String, cargo_in: Dictionary) -> Dictionary:
+	var leftover_load: Dictionary = cargo_in.duplicate(true)
+	var key_list_load: Array = []
+
+	for k_var_unload: Variant in leftover_load.keys():
+		key_list_load.append(str(k_var_unload))
+
+	key_list_load.sort()
+
+	for rid_g: Variant in key_list_load:
+		var rid_str: String = str(rid_g)
+
+		if rid_str.is_empty():
+			continue
+
+		var have_ul_q: int = maxi(0, int(leftover_load.get(rid_str, 0)))
+
+		if have_ul_q <= 0:
+			leftover_load.erase(rid_str)
+			continue
+
+		var free_ul_q: int = GameSession.get_base_storage_free(base_id_load)
+
+		if free_ul_q <= 0:
+			continue
+
+		var req_take: int = mini(have_ul_q, free_ul_q)
+		var accepted_ul_q: int = GameSession.add_base_resource(base_id_load, rid_str, req_take)
+		var remain_ul_q: int = have_ul_q - accepted_ul_q
+
+		if remain_ul_q <= 0:
+			leftover_load.erase(rid_str)
+		else:
+			leftover_load[rid_str] = remain_ul_q
+
+	return leftover_load
 
 
 func _merge_legacy_cargo_into_dictionary(runtime: Dictionary) -> Dictionary:

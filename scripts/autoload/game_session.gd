@@ -179,10 +179,13 @@ func get_base_resources(base_id: String) -> Dictionary:
 	return bases.get_resources(base_id)
 
 
-func add_base_resource(base_id: String, resource_id: String, amount: int) -> void:
-	bases.add_resource(base_id, resource_id, amount)
-	if amount > 0:
+func add_base_resource(base_id: String, resource_id: String, amount: int) -> int:
+	var added: int = bases.add_resource(base_id, resource_id, amount)
+
+	if added > 0:
 		base_resources_changed.emit(base_id)
+
+	return added
 
 
 func spend_base_resource(base_id: String, resource_id: String, amount: int) -> bool:
@@ -214,6 +217,38 @@ func build_base_mining_ship(base_id: String) -> bool:
 
 func build_base_colony_ship(base_id: String) -> bool:
 	return bases.build_colony_ship(base_id)
+
+
+func get_base_storage_used(base_id: String = BaseStore.BASE_EARTH) -> int:
+	return bases.get_storage_used(base_id)
+
+
+func get_base_storage_capacity(base_id: String = BaseStore.BASE_EARTH) -> int:
+	return bases.get_storage_capacity(base_id)
+
+
+func get_base_storage_free(base_id: String = BaseStore.BASE_EARTH) -> int:
+	return bases.get_storage_free(base_id)
+
+
+func can_buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return bases.can_buy_storage_upgrade_i(base_id)
+
+
+func buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	if not bases.buy_storage_upgrade_i(base_id):
+		return false
+
+	base_resources_changed.emit(base_id)
+	return true
+
+
+func get_base_storage_upgrade_i_cost() -> Dictionary:
+	return bases.get_storage_upgrade_i_cost()
+
+
+func is_base_storage_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return bases.is_storage_upgrade_i_bought(base_id)
 
 
 func can_build_base_drone(base_id: String) -> bool:
