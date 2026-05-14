@@ -1,0 +1,191 @@
+[gd_scene format=3 uid="uid://c1nagkqv1c68n"]
+
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/pixeloperator8_label_settings.tres" id="1_5ygps"]
+[ext_resource type="Script" uid="uid://dwegen5xjg5yf" path="res://scripts/ui/system/top_hud.gd" id="1_script"]
+
+[node name="TopHUD" type="PanelContainer" unique_id=1772545870]
+custom_minimum_size = Vector2(600, 14)
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 6.0
+offset_right = 300.0
+offset_bottom = 24.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=101]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 2
+
+[node name="Root" type="HBoxContainer" parent="Margin" unique_id=102]
+layout_mode = 2
+theme_override_constants/separation = 5
+alignment = 1
+
+[node name="StorageWidget" type="PanelContainer" parent="Margin/Root" unique_id=103]
+custom_minimum_size = Vector2(100, 14)
+layout_mode = 2
+
+[node name="StorageMargin" type="MarginContainer" parent="Margin/Root/StorageWidget" unique_id=104]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 1
+
+[node name="StorageRow" type="HBoxContainer" parent="Margin/Root/StorageWidget/StorageMargin" unique_id=105]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="StorageIcon" type="TextureRect" parent="Margin/Root/StorageWidget/StorageMargin/StorageRow" unique_id=106]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="StorageLabel" type="Label" parent="Margin/Root/StorageWidget/StorageMargin/StorageRow" unique_id=107]
+layout_mode = 2
+text = "Storage 0/100"
+label_settings = ExtResource("1_5ygps")
+
+[node name="SeparatorA" type="VSeparator" parent="Margin/Root" unique_id=108]
+layout_mode = 2
+
+[node name="ScanDroneWidget" type="PanelContainer" parent="Margin/Root" unique_id=109]
+custom_minimum_size = Vector2(100, 14)
+layout_mode = 2
+
+[node name="ScanDroneMargin" type="MarginContainer" parent="Margin/Root/ScanDroneWidget" unique_id=110]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 1
+
+[node name="ScanDroneRow" type="HBoxContainer" parent="Margin/Root/ScanDroneWidget/ScanDroneMargin" unique_id=111]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="ScanDroneIcon" type="TextureRect" parent="Margin/Root/ScanDroneWidget/ScanDroneMargin/ScanDroneRow" unique_id=112]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ScanDroneLabel" type="Label" parent="Margin/Root/ScanDroneWidget/ScanDroneMargin/ScanDroneRow" unique_id=113]
+layout_mode = 2
+text = "SD: 1"
+label_settings = ExtResource("1_5ygps")
+
+[node name="SeparatorB" type="VSeparator" parent="Margin/Root" unique_id=114]
+layout_mode = 2
+
+[node name="MiningShipWidget" type="PanelContainer" parent="Margin/Root" unique_id=115]
+custom_minimum_size = Vector2(100, 14)
+layout_mode = 2
+
+[node name="MiningShipMargin" type="MarginContainer" parent="Margin/Root/MiningShipWidget" unique_id=116]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 1
+
+[node name="MiningShipRow" type="HBoxContainer" parent="Margin/Root/MiningShipWidget/MiningShipMargin" unique_id=117]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="MiningShipIcon" type="TextureRect" parent="Margin/Root/MiningShipWidget/MiningShipMargin/MiningShipRow" unique_id=118]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MiningShipLabel" type="Label" parent="Margin/Root/MiningShipWidget/MiningShipMargin/MiningShipRow" unique_id=119]
+layout_mode = 2
+text = "MS: 1"
+label_settings = ExtResource("1_5ygps")
+
+[node name="SeparatorC" type="VSeparator" parent="Margin/Root" unique_id=120]
+layout_mode = 2
+
+[node name="ColonyShipWidget" type="PanelContainer" parent="Margin/Root" unique_id=121]
+custom_minimum_size = Vector2(100, 14)
+layout_mode = 2
+
+[node name="ColonyShipMargin" type="MarginContainer" parent="Margin/Root/ColonyShipWidget" unique_id=122]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 1
+
+[node name="ColonyShipRow" type="HBoxContainer" parent="Margin/Root/ColonyShipWidget/ColonyShipMargin" unique_id=123]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="ColonyShipIcon" type="TextureRect" parent="Margin/Root/ColonyShipWidget/ColonyShipMargin/ColonyShipRow" unique_id=124]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ColonyShipLabel" type="Label" parent="Margin/Root/ColonyShipWidget/ColonyShipMargin/ColonyShipRow" unique_id=125]
+layout_mode = 2
+text = "CS: 0"
+label_settings = ExtResource("1_5ygps")
+
+[node name="SeparatorD" type="VSeparator" parent="Margin/Root" unique_id=126]
+layout_mode = 2
+
+[node name="JobsWidget" type="PanelContainer" parent="Margin/Root" unique_id=127]
+custom_minimum_size = Vector2(100, 14)
+layout_mode = 2
+
+[node name="JobsMargin" type="MarginContainer" parent="Margin/Root/JobsWidget" unique_id=128]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 1
+
+[node name="JobsRow" type="HBoxContainer" parent="Margin/Root/JobsWidget/JobsMargin" unique_id=129]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="JobsIcon" type="TextureRect" parent="Margin/Root/JobsWidget/JobsMargin/JobsRow" unique_id=130]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="JobsLabel" type="Label" parent="Margin/Root/JobsWidget/JobsMargin/JobsRow" unique_id=131]
+layout_mode = 2
+text = "Jobs: 0"
+label_settings = ExtResource("1_5ygps")

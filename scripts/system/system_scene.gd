@@ -77,7 +77,11 @@ func _setup_controllers() -> void:
 		$UI/ObjectInfoPanel,
 		$UI/BaseManagementPanel,
 		automation_controller,
-		spawner
+		spawner,
+		$UI/ProductionPanel,
+		$UI/UpgradePanel,
+		$UI/TopHUD,
+		get_node_or_null("UI/TopHudHoverPanel"),
 	)
 
 	automation_controller.setup(

@@ -24,6 +24,9 @@ func show_reasons(title: String, reasons: Array[String]) -> void:
 		var label := reason_label_template.duplicate() as Label
 		label.text = "- %s" % reason
 		label.visible = true
+		label.custom_minimum_size = Vector2(0, 0)
+		label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		reason_list.add_child(label)
 
 	show()

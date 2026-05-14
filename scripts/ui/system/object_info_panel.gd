@@ -6,14 +6,14 @@ signal scan_requested(object_id: String)
 signal mining_requested(object_id: String)
 signal recall_drone_requested(object_id: String)
 signal recall_mining_ship_requested(object_id: String)
+signal close_requested()
 
 const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/resource_info_row.tscn")
-const ACTION_BLOCKER_BOX_PATH: NodePath = NodePath("Margin/Root/ActionBlockerBox")
 
 const MINING_BUTTON_TEXT_DEFAULT: String = "Mine"
 const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
 
-@onready var header_label: Label = $Margin/Root/HeaderLabel
+@onready var header_label: Label = $Margin/Root/HBoxContainer/HeaderLabel
 @onready var preview_texture: TextureRect = $Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture
 @onready var name_label: Label = $Margin/Root/MainRow/MetaColumn/NameLabel
 @onready var type_label: Label = $Margin/Root/MainRow/MetaColumn/TypeLabel
@@ -24,16 +24,15 @@ const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
 @onready var lore_title_label: Label = $Margin/Root/LoreTitleLabel
 @onready var lore_text_label: Label = $Margin/Root/LoreTextLabel
 
-@onready var drone_orbit_label: Label = $Margin/Root/VBoxContainer/DroneOrbitLabel
-@onready var mine_orbit_label: Label = $Margin/Root/VBoxContainer/MineOrbitLabel
-@onready var mining_bonus_label: Label = $Margin/Root/VBoxContainer/MiningBonusLabel
+@onready var drone_orbit_label: Label = $Margin/Root/OrbitStatusSection/DroneOrbitLabel
+@onready var mine_orbit_label: Label = $Margin/Root/OrbitStatusSection/MineOrbitLabel
+@onready var mining_bonus_label: Label = $Margin/Root/OrbitStatusSection/MiningBonusLabel
 
+@onready var close_base_panel_button: Button = $Margin/Root/HBoxContainer/CloseBasePanelButton
 @onready var scan_with_drone_button: Button = $Margin/Root/GridContainer/ScanWithDroneButton
 @onready var send_mining_ship_button: Button = $Margin/Root/GridContainer/SendMiningShipButton
 @onready var recall_drone_button: Button = $Margin/Root/GridContainer/RecallDroneButton
 @onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
-
-var action_blocker_box: ActionBlockerBox = null
 
 var current_object_id: String = ""
 
@@ -52,12 +51,8 @@ var _live_action_cache: Dictionary = {
 
 
 func _ready() -> void:
-	header_label.text = "OBJEKT-INFO"
-	resource_title_label.text = "SICHTBARE RESSOURCEN"
-	lore_title_label.text = "HINWEIS"
-	action_blocker_box = get_node_or_null(ACTION_BLOCKER_BOX_PATH) as ActionBlockerBox
-	if action_blocker_box != null:
-		action_blocker_box.clear()
+	if not close_base_panel_button.pressed.is_connected(_on_close_base_panel_pressed):
+		close_base_panel_button.pressed.connect(_on_close_base_panel_pressed)
 
 	if not scan_with_drone_button.pressed.is_connected(_on_scan_with_drone_pressed):
 		scan_with_drone_button.pressed.connect(_on_scan_with_drone_pressed)
@@ -84,7 +79,6 @@ func _ready() -> void:
 func show_empty() -> void:
 	current_object_id = ""
 
-	header_label.text = "OBJEKT-INFO"
 	preview_texture.texture = null
 	name_label.text = "Name: -"
 	type_label.text = "Typ: -"
@@ -115,8 +109,7 @@ func show_empty() -> void:
 		"visible_resource_count": 0,
 	}
 
-	if action_blocker_box != null:
-		action_blocker_box.clear()
+	call_deferred("_fit_height_to_content")
 
 
 func _exit_tree() -> void:
@@ -137,7 +130,6 @@ func show_poi_info(info: Dictionary) -> void:
 
 
 func _apply_info(info: Dictionary, panel_title: String) -> void:
-	header_label.text = panel_title
 	current_object_id = str(info.get("id", ""))
 
 	preview_texture.texture = info.get("preview_texture", null) as Texture2D
@@ -198,50 +190,7 @@ func _apply_live_action_controls() -> void:
 		else:
 			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
 
-	_refresh_action_blockers()
-
-
-func _refresh_action_blockers() -> void:
-	if action_blocker_box == null:
-		return
-
-	if current_object_id.is_empty():
-		action_blocker_box.clear()
-		return
-
-	var is_home_base: bool = bool(_live_action_cache.get("is_home_base", false))
-	if is_home_base:
-		action_blocker_box.clear()
-		return
-
-	var reasons: Array[String] = []
-	var can_scan: bool = bool(_live_action_cache.get("can_scan", false))
-	var can_mine: bool = bool(_live_action_cache.get("can_mine", false))
-	var can_recall_drone: bool = bool(_live_action_cache.get("can_recall_drone", false))
-	var can_recall_mining_ship: bool = bool(_live_action_cache.get("can_recall_mining_ship", false))
-	var scan_state: String = str(_live_action_cache.get("scan_state", GameSession.SCAN_UNKNOWN))
-	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false)) or _is_current_object_mining_exhausted()
-	var visible_resource_count: int = int(_live_action_cache.get("visible_resource_count", 0))
-
-	if scan_state == GameSession.SCAN_UNKNOWN:
-		reasons.append("Object not scanned yet.")
-		if not can_scan:
-			reasons.append("No idle ScanDrone available or object cannot be scanned.")
-	else:
-		if mining_exhausted:
-			reasons.append("Mining target depleted.")
-		elif visible_resource_count <= 0:
-			reasons.append("No mineable resources visible.")
-		elif not can_mine:
-			reasons.append("No idle MiningShip available or no mining candidate.")
-
-	if (not can_scan and not can_mine and not can_recall_drone and not can_recall_mining_ship and reasons.is_empty()):
-		reasons.append("No available action for this object.")
-
-	if reasons.is_empty():
-		action_blocker_box.clear()
-	else:
-		action_blocker_box.show_reasons("Action blocked", reasons)
+	call_deferred("_fit_height_to_content")
 
 
 func _is_current_object_mining_exhausted() -> bool:
@@ -486,6 +435,12 @@ func _on_game_session_object_resources_changed(changed_system_id: String, change
 	_apply_live_action_controls()
 
 
+func _on_close_base_panel_pressed() -> void:
+	show_empty()
+	hide()
+	close_requested.emit()
+
+
 func _on_scan_with_drone_pressed() -> void:
 	if current_object_id.is_empty():
 		return
@@ -512,3 +467,8 @@ func _on_recall_mining_ship_pressed() -> void:
 		return
 
 	recall_mining_ship_requested.emit(current_object_id)
+
+
+func _fit_height_to_content() -> void:
+	var target_size := get_combined_minimum_size()
+	size.y = target_size.y

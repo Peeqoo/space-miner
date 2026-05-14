@@ -11,6 +11,11 @@ var object_info_panel: PanelContainer
 var base_management_panel: PanelContainer
 var automation_controller: AutomationController = null
 
+var production_panel: Control = null
+var upgrade_panel: Control = null
+var top_hud: Control = null
+var top_hud_hover_panel: Control = null
+
 
 func setup(
 	p_system_definition: SystemDefinition,
@@ -18,7 +23,11 @@ func setup(
 	p_object_info_panel: PanelContainer,
 	p_base_management_panel: PanelContainer,
 	p_automation_controller: AutomationController = null,
-	p_spawner: SystemSpawner = null
+	p_spawner: SystemSpawner = null,
+	p_production_panel: Control = null,
+	p_upgrade_panel: Control = null,
+	p_top_hud: Control = null,
+	p_top_hud_hover_panel: Control = null,
 ) -> void:
 	system_definition = p_system_definition
 	selection = p_selection
@@ -27,6 +36,11 @@ func setup(
 	object_info_panel = p_object_info_panel
 	base_management_panel = p_base_management_panel
 	automation_controller = p_automation_controller
+
+	production_panel = p_production_panel
+	upgrade_panel = p_upgrade_panel
+	top_hud = p_top_hud
+	top_hud_hover_panel = p_top_hud_hover_panel
 
 	if object_info_panel != null:
 		object_info_panel.visible = false
@@ -44,6 +58,7 @@ func setup(
 func update_all() -> void:
 	update_object_info()
 	update_base_panel()
+	_update_top_hud()
 
 
 func _process(_delta: float) -> void:
@@ -167,6 +182,41 @@ func _connect_ui_signals() -> void:
 		if base_management_panel.has_signal("build_mining_ship_requested"):
 			if not base_management_panel.build_mining_ship_requested.is_connected(_on_build_mining_ship_requested):
 				base_management_panel.build_mining_ship_requested.connect(_on_build_mining_ship_requested)
+
+		if base_management_panel.has_signal("open_production_requested"):
+			if not base_management_panel.open_production_requested.is_connected(_on_base_open_production):
+				base_management_panel.open_production_requested.connect(_on_base_open_production)
+
+		if base_management_panel.has_signal("open_upgrades_requested"):
+			if not base_management_panel.open_upgrades_requested.is_connected(_on_base_open_upgrades):
+				base_management_panel.open_upgrades_requested.connect(_on_base_open_upgrades)
+
+	if production_panel != null:
+		if production_panel.has_signal("build_scan_drone_requested"):
+			if not production_panel.build_scan_drone_requested.is_connected(_on_build_drone_requested):
+				production_panel.build_scan_drone_requested.connect(_on_build_drone_requested)
+
+		if production_panel.has_signal("build_mining_ship_requested"):
+			if not production_panel.build_mining_ship_requested.is_connected(_on_build_mining_ship_requested):
+				production_panel.build_mining_ship_requested.connect(_on_build_mining_ship_requested)
+
+		if production_panel.has_signal("close_requested"):
+			if not production_panel.close_requested.is_connected(_on_production_close):
+				production_panel.close_requested.connect(_on_production_close)
+
+	if upgrade_panel != null:
+		if upgrade_panel.has_signal("close_requested"):
+			if not upgrade_panel.close_requested.is_connected(_on_upgrade_close):
+				upgrade_panel.close_requested.connect(_on_upgrade_close)
+
+	if top_hud != null:
+		if top_hud.has_signal("hover_requested"):
+			if not top_hud.hover_requested.is_connected(_on_top_hud_hover_requested):
+				top_hud.hover_requested.connect(_on_top_hud_hover_requested)
+
+		if top_hud.has_signal("hover_cleared"):
+			if not top_hud.hover_cleared.is_connected(_on_top_hud_hover_cleared):
+				top_hud.hover_cleared.connect(_on_top_hud_hover_cleared)
 
 
 func _build_selected_object_info(selected_node: Node) -> Dictionary:
@@ -299,6 +349,7 @@ func _on_selection_changed(_selected_node: Node) -> void:
 func _on_automation_state_changed() -> void:
 	update_object_info()
 	update_base_panel()
+	_update_top_hud()
 
 
 func _on_object_remaining_resources_changed(_changed_system_id: String, _changed_object_id: String) -> void:
@@ -457,3 +508,123 @@ func _get_mining_bonus_for_object(object_id: String) -> float:
 		return automation_controller.get_mining_bonus_for_target(object_id)
 
 	return 0.0
+
+
+func _update_top_hud() -> void:
+	if top_hud != null and top_hud.has_method("refresh_from_game_session"):
+		top_hud.call("refresh_from_game_session")
+
+
+func _on_base_open_production() -> void:
+	if production_panel != null:
+		production_panel.visible = true
+		if production_panel.has_method("refresh_from_game_session"):
+			production_panel.call("refresh_from_game_session")
+
+
+func _on_base_open_upgrades() -> void:
+	if upgrade_panel != null:
+		upgrade_panel.visible = true
+		if upgrade_panel.has_method("refresh_from_game_session"):
+			upgrade_panel.call("refresh_from_game_session")
+
+
+func _on_production_close() -> void:
+	if production_panel != null:
+		production_panel.visible = false
+
+
+func _on_upgrade_close() -> void:
+	if upgrade_panel != null:
+		upgrade_panel.visible = false
+
+
+func _on_top_hud_hover_requested(kind: String, screen_position: Vector2) -> void:
+	if top_hud_hover_panel == null:
+		return
+	var content := _build_hover_details(kind)
+	var title: String = str(content.get("title", ""))
+	var details: Array = content.get("details", [])
+	var hint: String = str(content.get("hint", ""))
+	if top_hud_hover_panel.has_method("show_details"):
+		top_hud_hover_panel.call("show_details", title, details, hint, screen_position)
+
+
+func _on_top_hud_hover_cleared() -> void:
+	if top_hud_hover_panel != null and top_hud_hover_panel.has_method("clear"):
+		top_hud_hover_panel.call("clear")
+
+
+func _build_hover_details(kind: String) -> Dictionary:
+	var base_id: String = BaseStore.BASE_EARTH
+	var details: Array = []
+	var title: String = ""
+	var hint: String = ""
+
+	match kind:
+		"storage":
+			var used := GameSession.get_base_storage_used(base_id)
+			var cap := GameSession.get_base_storage_capacity(base_id)
+			var free := GameSession.get_base_storage_free(base_id)
+			title = "Storage"
+			details.append("Used: %d / %d" % [used, cap])
+			details.append("Free: %d" % free)
+			var resources := GameSession.get_base_resources(base_id)
+			for res_id: Variant in resources.keys():
+				var amt := int(resources.get(res_id, 0))
+				if amt > 0:
+					details.append("%s: %d" % [str(res_id).capitalize(), amt])
+			hint = "Base storage capacity."
+
+		"scan_drones":
+			var total := GameSession.get_base_drone_count(base_id)
+			var busy := 0
+			if automation_controller != null:
+				busy = automation_controller.scan_drone_target_by_unit_id.size()
+			var idle := maxi(0, total - busy)
+			var upgrade_str := "Installed" if GameSession.is_scan_drone_upgrade_i_bought(base_id) else "Not installed"
+			title = "ScanDrones"
+			details = [
+				"Total: %d" % total,
+				"Idle: %d" % idle,
+				"Busy: %d" % busy,
+				"Speed Upgrade: %s" % upgrade_str,
+			]
+			hint = "Used for scanning unknown objects."
+
+		"mining_ships":
+			var total := GameSession.get_base_mining_ship_count(base_id)
+			var busy := 0
+			if automation_controller != null:
+				busy = automation_controller.mining_ship_runtime_by_unit_id.size()
+			var idle := maxi(0, total - busy)
+			var upgrade_str := "Installed" if GameSession.is_mining_ship_upgrade_i_bought(base_id) else "Not installed"
+			title = "MiningShips"
+			details = [
+				"Total: %d" % total,
+				"Idle: %d" % idle,
+				"Active: %d" % busy,
+				"Cargo Upgrade: %s" % upgrade_str,
+			]
+			hint = "Used for automated resource extraction."
+
+		"colony_ships":
+			title = "ColonyShips"
+			details = ["Total: 0", "Status: Locked"]
+			hint = "Used for system expansion later."
+
+		"jobs":
+			var scan_jobs := 0
+			var mining_jobs := 0
+			if automation_controller != null:
+				scan_jobs = automation_controller.scan_drone_target_by_unit_id.size()
+				mining_jobs = automation_controller.mining_ship_runtime_by_unit_id.size()
+			title = "Jobs"
+			details = [
+				"Active: %d" % (scan_jobs + mining_jobs),
+				"Scanning: %d" % scan_jobs,
+				"Mining: %d" % mining_jobs,
+			]
+			hint = "Current automation tasks."
+
+	return {"title": title, "details": details, "hint": hint}

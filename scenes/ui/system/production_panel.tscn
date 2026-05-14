@@ -1,0 +1,98 @@
+[gd_scene format=3 uid="uid://u2v1nk1sj5ys"]
+
+[ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="1_35t14"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/pixeloperator_hbsc_label_settings.tres" id="1_okxwm"]
+[ext_resource type="Script" uid="uid://v8v17yky4ndb" path="res://scripts/ui/system/production_panel.gd" id="1_script"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/pixeloperator8_label_settings.tres" id="3_6333g"]
+
+[node name="ProductionPanel" type="PanelContainer" unique_id=55424944]
+visible = false
+custom_minimum_size = Vector2(170, 0)
+grow_vertical = 1
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=495679809]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Root" type="VBoxContainer" parent="Margin" unique_id=1844084761]
+layout_mode = 2
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/Root" unique_id=1155943465]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Margin/Root/HeaderRow" unique_id=1526689746]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Production"
+label_settings = ExtResource("1_okxwm")
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="Margin/Root/HeaderRow" unique_id=637053799]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("1_35t14")
+theme_override_font_sizes/font_size = 6
+text = "x"
+
+[node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=2078598069]
+layout_mode = 2
+
+[node name="ProductionList" type="VBoxContainer" parent="Margin/Root" unique_id=262762925]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="BuildScanDroneButton" type="Button" parent="Margin/Root/ProductionList" unique_id=363767449]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("1_35t14")
+theme_override_font_sizes/font_size = 6
+text = "ScanDrone"
+
+[node name="BuildMiningShipButton" type="Button" parent="Margin/Root/ProductionList" unique_id=1083284395]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("1_35t14")
+theme_override_font_sizes/font_size = 6
+text = "MiningShip"
+
+[node name="BuildColonyShipButton" type="Button" parent="Margin/Root/ProductionList" unique_id=1320494600]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("1_35t14")
+theme_override_font_sizes/font_size = 6
+text = "ColonyShip"
+
+[node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=1796703348]
+layout_mode = 2
+
+[node name="HoverInfoPanel" type="PanelContainer" parent="Margin/Root" unique_id=1720138369]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HoverInfoMargin" type="MarginContainer" parent="Margin/Root/HoverInfoPanel" unique_id=1094808784]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="HoverInfoRoot" type="VBoxContainer" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin" unique_id=770763280]
+layout_mode = 2
+
+[node name="HoverTitleLabel" type="Label" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=2065645425]
+layout_mode = 2
+text = "Production Info"
+label_settings = ExtResource("1_okxwm")
+
+[node name="HoverDescLabel" type="Label" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=2141048289]
+layout_mode = 2
+text = "Hover an production to see details."
+label_settings = ExtResource("3_6333g")
+autowrap_mode = 3
+
+[node name="HoverCostLabel" type="Label" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1357510888]
+layout_mode = 2
+text = "Cost: -"
+label_settings = ExtResource("3_6333g")
+autowrap_mode = 3

@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://dacjs0jlq1mhg"]
+
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/pixeloperator_hbsc_label_settings.tres" id="1_f1hb0"]
+[ext_resource type="Script" uid="uid://kx5fbt3i7oqw" path="res://scripts/ui/system/top_hud_hover_panel.gd" id="1_script"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/pixeloperator8_label_settings.tres" id="2_8agil"]
+
+[node name="TopHudHoverPanel" type="PanelContainer" unique_id=1002840814]
+custom_minimum_size = Vector2(100, 0)
+offset_right = 100.0
+grow_vertical = 1
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=12133918]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 2
+
+[node name="Root" type="VBoxContainer" parent="Margin" unique_id=2116650563]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="TitleLabel" type="Label" parent="Margin/Root" unique_id=2063715938]
+layout_mode = 2
+text = "Details"
+label_settings = ExtResource("1_f1hb0")
+text_overrun_behavior = 3
+
+[node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=101808966]
+layout_mode = 2
+
+[node name="DetailList" type="VBoxContainer" parent="Margin/Root" unique_id=572279710]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="DetailLabelTemplate" type="Label" parent="Margin/Root/DetailList" unique_id=1580171013]
+visible = false
+layout_mode = 2
+text = "Detail: -"
+label_settings = ExtResource("2_8agil")
+autowrap_mode = 3
+
+[node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=1824286974]
+visible = false
+layout_mode = 2
+
+[node name="HintLabel" type="Label" parent="Margin/Root" unique_id=357584438]
+visible = false
+layout_mode = 2
+text = "Hover details"
+label_settings = ExtResource("2_8agil")
+autowrap_mode = 3
