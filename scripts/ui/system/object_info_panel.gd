@@ -122,14 +122,14 @@ func _exit_tree() -> void:
 
 
 func show_body_info(info: Dictionary) -> void:
-	_apply_info(info, "PLANETEN-INFO")
+	_apply_info(info)
 
 
 func show_poi_info(info: Dictionary) -> void:
-	_apply_info(info, "OBJEKT-INFO")
+	_apply_info(info)
 
 
-func _apply_info(info: Dictionary, panel_title: String) -> void:
+func _apply_info(info: Dictionary) -> void:
 	current_object_id = str(info.get("id", ""))
 
 	preview_texture.texture = info.get("preview_texture", null) as Texture2D
@@ -470,5 +470,10 @@ func _on_recall_mining_ship_pressed() -> void:
 
 
 func _fit_height_to_content() -> void:
-	var target_size := get_combined_minimum_size()
-	size.y = target_size.y
+	if not is_inside_tree():
+		return
+
+	if not visible:
+		return
+
+	size.y = get_combined_minimum_size().y
