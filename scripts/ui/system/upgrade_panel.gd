@@ -17,7 +17,7 @@ const UPGRADE_INFO: Dictionary = {
 	},
 	"MiningShipUpgradeButton": {
 		"title": "MiningShip Upgrade I",
-		"desc": "MiningShips carry 25% more cargo.",
+		"desc": "MiningShips carry 25% more cargo. Applies to newly launched mining missions.",
 	},
 }
 

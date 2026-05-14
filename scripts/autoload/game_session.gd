@@ -208,15 +208,27 @@ func get_base_mining_ship_count(base_id: String) -> int:
 
 
 func build_base_drone(base_id: String) -> bool:
-	return bases.build_drone(base_id)
+	if not bases.build_drone(base_id):
+		return false
+
+	base_resources_changed.emit(base_id)
+	return true
 
 
 func build_base_mining_ship(base_id: String) -> bool:
-	return bases.build_mining_ship(base_id)
+	if not bases.build_mining_ship(base_id):
+		return false
+
+	base_resources_changed.emit(base_id)
+	return true
 
 
 func build_base_colony_ship(base_id: String) -> bool:
-	return bases.build_colony_ship(base_id)
+	if not bases.build_colony_ship(base_id):
+		return false
+
+	base_resources_changed.emit(base_id)
+	return true
 
 
 func get_base_storage_used(base_id: String = BaseStore.BASE_EARTH) -> int:
