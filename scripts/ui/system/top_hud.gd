@@ -63,16 +63,20 @@ func _connect_widget_hover(widget: Control, kind: String) -> void:
 
 
 func _on_widget_entered(kind: String, widget: Control) -> void:
-	hover_requested.emit(kind, _get_hover_position(widget))
+	hover_requested.emit(kind, _get_hover_anchor_screen_position(widget))
 
 
 func _on_widget_exited() -> void:
 	hover_cleared.emit()
 
 
-func _get_hover_position(widget: Control) -> Vector2:
-	var rect := widget.get_global_rect()
-	return Vector2(rect.position.x, rect.position.y + rect.size.y + 6.0)
+## Returns screen space for hover placement: x = widget center, y = TopHUD bottom + 8.
+func _get_hover_anchor_screen_position(widget: Control) -> Vector2:
+	var wrect := widget.get_global_rect()
+	var hud_rect := get_global_rect()
+	var center_x: float = wrect.position.x + wrect.size.x * 0.5
+	var top_y: float = hud_rect.position.y + hud_rect.size.y + 8.0
+	return Vector2(center_x, top_y)
 
 
 func _on_resources_changed(_base_id: String) -> void:

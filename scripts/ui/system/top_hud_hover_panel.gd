@@ -40,11 +40,8 @@ func show_details(
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		detail_list.add_child(lbl)
 
-	var vp := get_viewport_rect()
-	var min_w := maxf(custom_minimum_size.x, 180.0)
-	var x := clampf(screen_position.x, 0.0, vp.size.x - min_w)
-	var y := screen_position.y
-	position = Vector2(x, y)
+	## screen_position is the final top-left in screen space (clamped by SystemUIController safe zone).
+	position = Vector2(screen_position.x, screen_position.y)
 
 	visible = true
 	call_deferred("_fit_height_after_layout")

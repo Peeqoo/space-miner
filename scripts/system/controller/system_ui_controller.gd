@@ -16,6 +16,8 @@ var upgrade_panel: Control = null
 var top_hud: Control = null
 var top_hud_hover_panel: Control = null
 
+const _TOP_HUD_HOVER_SIDE_MARGIN := 12.0
+
 
 func setup(
 	p_system_definition: SystemDefinition,
@@ -515,7 +517,113 @@ func _update_top_hud() -> void:
 		top_hud.call("refresh_from_game_session")
 
 
+func _clear_top_hud_hover_panel() -> void:
+	if top_hud_hover_panel != null and top_hud_hover_panel.has_method("clear"):
+		top_hud_hover_panel.call("clear")
+
+
+func _get_visible_hover_anchor_panels() -> Array[Control]:
+	var panels: Array[Control] = []
+
+	if base_management_panel != null and base_management_panel.visible:
+		panels.append(base_management_panel)
+
+	if object_info_panel != null and object_info_panel.visible:
+		panels.append(object_info_panel)
+
+	return panels
+
+
+func _find_nearest_panel_to_x(panels: Array[Control], x: float) -> Control:
+	var best_panel: Control = null
+	var best_distance: float = INF
+
+	for panel: Control in panels:
+		var rect: Rect2 = panel.get_global_rect()
+		var center_x: float = rect.position.x + rect.size.x * 0.5
+		var distance: float = absf(center_x - x)
+
+		if distance < best_distance:
+			best_distance = distance
+			best_panel = panel
+
+	return best_panel
+
+
+func _get_top_hud_hover_position(screen_position: Vector2) -> Vector2:
+	var panels: Array[Control] = _get_visible_hover_anchor_panels()
+
+	if panels.is_empty():
+		return _get_hover_position_under_widget(screen_position)
+
+	var nearest_panel: Control = _find_nearest_panel_to_x(panels, screen_position.x)
+
+	if nearest_panel == null:
+		return _get_hover_position_under_widget(screen_position)
+
+	return _get_hover_position_next_to_panel(nearest_panel, screen_position)
+
+
+func _get_top_hud_hover_width() -> float:
+	if top_hud_hover_panel == null:
+		return 180.0
+	var c: Control = top_hud_hover_panel as Control
+	var width: float = c.size.x
+	if width <= 0.0:
+		width = c.custom_minimum_size.x
+	if width <= 0.0:
+		width = 180.0
+	return width
+
+
+func _clamp_hover_position_to_viewport(pos: Vector2, hover_width: float) -> Vector2:
+	var vp: Viewport = get_viewport()
+	if vp == null:
+		return pos
+	var margin: float = _TOP_HUD_HOVER_SIDE_MARGIN
+	var viewport_width: float = vp.get_visible_rect().size.x
+	var min_x: float = margin
+	var max_x: float = viewport_width - hover_width - margin
+	if max_x < min_x:
+		pos.x = viewport_width * 0.5 - hover_width * 0.5
+	else:
+		pos.x = clampf(pos.x, min_x, max_x)
+	return pos
+
+
+func _get_hover_position_under_widget(screen_position: Vector2) -> Vector2:
+	var hover_width: float = _get_top_hud_hover_width()
+	var x: float = screen_position.x - hover_width * 0.5
+	var y: float = screen_position.y
+	return _clamp_hover_position_to_viewport(Vector2(x, y), hover_width)
+
+
+func _get_hover_position_next_to_panel(panel: Control, screen_position: Vector2) -> Vector2:
+	var margin: float = _TOP_HUD_HOVER_SIDE_MARGIN
+	var hover_width: float = _get_top_hud_hover_width()
+	var vp: Viewport = get_viewport()
+	if vp == null:
+		return screen_position
+	var viewport_width: float = vp.get_visible_rect().size.x
+
+	var rect: Rect2 = panel.get_global_rect()
+	var panel_center_x: float = rect.position.x + rect.size.x * 0.5
+	var viewport_center_x: float = viewport_width * 0.5
+
+	var x: float = 0.0
+	if panel_center_x < viewport_center_x:
+		x = rect.position.x + rect.size.x + margin
+	else:
+		x = rect.position.x - hover_width - margin
+
+	var y: float = rect.position.y
+	return _clamp_hover_position_to_viewport(Vector2(x, y), hover_width)
+
+
 func _on_base_open_production() -> void:
+	_clear_top_hud_hover_panel()
+	if upgrade_panel != null:
+		upgrade_panel.visible = false
 	if production_panel != null:
 		production_panel.visible = true
 		if production_panel.has_method("refresh_from_game_session"):
@@ -523,6 +631,9 @@ func _on_base_open_production() -> void:
 
 
 func _on_base_open_upgrades() -> void:
+	_clear_top_hud_hover_panel()
+	if production_panel != null:
+		production_panel.visible = false
 	if upgrade_panel != null:
 		upgrade_panel.visible = true
 		if upgrade_panel.has_method("refresh_from_game_session"):
@@ -542,12 +653,14 @@ func _on_upgrade_close() -> void:
 func _on_top_hud_hover_requested(kind: String, screen_position: Vector2) -> void:
 	if top_hud_hover_panel == null:
 		return
+
 	var content := _build_hover_details(kind)
 	var title: String = str(content.get("title", ""))
 	var details: Array = content.get("details", [])
 	var hint: String = str(content.get("hint", ""))
+	var hover_position: Vector2 = _get_top_hud_hover_position(screen_position)
 	if top_hud_hover_panel.has_method("show_details"):
-		top_hud_hover_panel.call("show_details", title, details, hint, screen_position)
+		top_hud_hover_panel.call("show_details", title, details, hint, hover_position)
 
 
 func _on_top_hud_hover_cleared() -> void:
