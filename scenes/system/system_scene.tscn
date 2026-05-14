@@ -111,7 +111,6 @@ offset_bottom = -7.0
 [node name="TopHUD" parent="UI" unique_id=1772545870 instance=ExtResource("14_hrum5")]
 
 [node name="ProductionPanel" parent="UI" unique_id=55424944 instance=ExtResource("15_dc3br")]
-visible = true
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
@@ -121,7 +120,6 @@ offset_right = 178.00023
 offset_bottom = 91.0
 
 [node name="UpgradePanel" parent="UI" unique_id=576152500 instance=ExtResource("16_06sa2")]
-visible = true
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5

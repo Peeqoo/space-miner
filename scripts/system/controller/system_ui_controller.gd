@@ -176,6 +176,10 @@ func _connect_ui_signals() -> void:
 			if not object_info_panel.recall_mining_ship_requested.is_connected(_on_recall_mining_ship_requested):
 				object_info_panel.recall_mining_ship_requested.connect(_on_recall_mining_ship_requested)
 
+		if object_info_panel.has_signal("close_requested"):
+			if not object_info_panel.close_requested.is_connected(_on_object_info_close_requested):
+				object_info_panel.close_requested.connect(_on_object_info_close_requested)
+
 	if base_management_panel != null:
 		if base_management_panel.has_signal("build_drone_requested"):
 			if not base_management_panel.build_drone_requested.is_connected(_on_build_drone_requested):
@@ -346,6 +350,12 @@ func _get_object_id(node: Node) -> String:
 func _on_selection_changed(_selected_node: Node) -> void:
 	update_object_info()
 	update_base_panel()
+
+
+func _on_object_info_close_requested() -> void:
+	if selection == null:
+		return
+	selection.clear_selection(true)
 
 
 func _on_automation_state_changed() -> void:
