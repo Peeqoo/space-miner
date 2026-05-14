@@ -5,6 +5,9 @@ extends Node
 
 signal selection_changed(selected_node: Node)
 
+## Emitted when the player double-clicks the already selected object to resume camera follow.
+signal focus_selected_requested(target: Node2D)
+
 var system_definition: SystemDefinition
 var spawner: SystemSpawner
 
@@ -39,6 +42,16 @@ func get_selected_node() -> Node:
 	return selected_node
 
 
+func notify_focus_selected_requested(target: Node2D) -> void:
+	if target == null:
+		return
+
+	if get_selected_node() != target:
+		return
+
+	focus_selected_requested.emit(target)
+
+
 func clear_selection(should_emit: bool = true) -> void:
 	if selected_node != null and selected_node.has_method("set_selected"):
 		selected_node.set_selected(false)
@@ -56,6 +69,9 @@ func handle_empty_space_click(event: InputEvent) -> void:
 
 
 func _on_body_selected(body: SystemBody) -> void:
+	if body != null and selected_node == body:
+		return
+
 	clear_selection(false)
 
 	selected_node = body
@@ -65,6 +81,9 @@ func _on_body_selected(body: SystemBody) -> void:
 
 
 func _on_poi_selected(poi: PointOfInterest) -> void:
+	if poi != null and selected_node == poi:
+		return
+
 	clear_selection(false)
 
 	selected_node = poi

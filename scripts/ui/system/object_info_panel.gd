@@ -329,10 +329,48 @@ func _build_resource_detail_text(resource_entry: Dictionary) -> String:
 		resource_id_r
 	)
 
-	if remaining <= 0:
-		return "depleted"
+	var total_from_entry: int = _read_total_amount_from_resource_entry(resource_entry)
+	var total: int = remaining
 
-	return "%d remaining" % remaining
+	if total_from_entry >= 0:
+		total = maxi(total_from_entry, remaining)
+
+	if remaining <= 0:
+		return "0 / %d" % total
+
+	return "%d / %d" % [remaining, total]
+
+
+## Reads an optional cap/total from the scan `resources_visible` dict only (no store/API).
+## Returns -1 if no usable field exists — caller then uses `remaining` as display total (fallback).
+func _read_total_amount_from_resource_entry(resource_entry: Dictionary) -> int:
+	const KEYS: Array[StringName] = [
+		&"total",
+		&"total_amount",
+		&"max_amount",
+		&"initial_amount",
+		&"original_amount",
+		&"base_amount",
+		&"deposit_amount",
+		&"amount",
+	]
+
+	for key: StringName in KEYS:
+		if not resource_entry.has(key):
+			continue
+
+		var raw: Variant = resource_entry.get(key, null)
+		if raw == null:
+			continue
+
+		var parsed: int = int(raw)
+
+		if parsed < 0:
+			continue
+
+		return parsed
+
+	return -1
 
 
 func _apply_lore(info: Dictionary) -> void:

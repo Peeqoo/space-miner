@@ -2,6 +2,7 @@ class_name PointOfInterest
 extends Node2D
 
 signal selected(poi: PointOfInterest)
+signal refocus_camera_requested(node: Node2D)
 
 @onready var poi_visual: Sprite2D = $OrbitPivot/POIVisual
 @onready var selection_ring: Node2D = $OrbitPivot/SelectionRing
@@ -126,9 +127,24 @@ func _on_click_area_input_event(
 	event: InputEvent,
 	_shape_idx: int
 ) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		get_viewport().set_input_as_handled()
-		selected.emit(self)
+	if not (event is InputEventMouseButton):
+		return
+
+	var mb := event as InputEventMouseButton
+
+	if mb.button_index != MOUSE_BUTTON_LEFT or not mb.pressed:
+		return
+
+	get_viewport().set_input_as_handled()
+
+	if mb.double_click and is_selected:
+		refocus_camera_requested.emit(self)
+		return
+
+	if is_selected:
+		return
+
+	selected.emit(self)
 
 
 func _build_fallback_texture() -> Texture2D:

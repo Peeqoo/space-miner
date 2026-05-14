@@ -4,6 +4,7 @@ class_name SystemBody
 extends Node2D
 
 signal selected(body: SystemBody)
+signal refocus_camera_requested(node: Node2D)
 
 @onready var body_visual: Sprite2D = $OrbitPivot/BodyVisual
 @onready var back_orbit_units: Node2D = $OrbitPivot/BackOrbitUnits
@@ -207,6 +208,21 @@ func _on_click_area_input_event(
 	event: InputEvent,
 	_shape_idx: int
 ) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		get_viewport().set_input_as_handled()
-		selected.emit(self)
+	if not (event is InputEventMouseButton):
+		return
+
+	var mb := event as InputEventMouseButton
+
+	if mb.button_index != MOUSE_BUTTON_LEFT or not mb.pressed:
+		return
+
+	get_viewport().set_input_as_handled()
+
+	if mb.double_click and is_selected:
+		refocus_camera_requested.emit(self)
+		return
+
+	if is_selected:
+		return
+
+	selected.emit(self)

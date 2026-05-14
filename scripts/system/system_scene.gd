@@ -48,7 +48,7 @@ func _finish_initial_setup() -> void:
 
 	var start_node := spawner.get_spawned_object(start_body_id) as Node2D
 	if start_node != null:
-		camera.set_follow_target(start_node, true)
+		camera.set_focus_target(start_node, true)
 
 	system_ui.update_all()
 
@@ -91,6 +91,49 @@ func _setup_controllers() -> void:
 
 	spawner.body_spawned.connect(selection.register_body)
 	spawner.poi_spawned.connect(selection.register_poi)
+
+	_wire_camera_follow_to_selection()
+
+
+func _wire_camera_follow_to_selection() -> void:
+	if selection != null:
+		if not selection.selection_changed.is_connected(_on_selection_camera_follow):
+			selection.selection_changed.connect(_on_selection_camera_follow)
+
+		if not selection.focus_selected_requested.is_connected(_on_focus_selected_camera_follow):
+			selection.focus_selected_requested.connect(_on_focus_selected_camera_follow)
+
+	if not spawner.body_spawned.is_connected(_on_body_spawned_camera_refocus_wire):
+		spawner.body_spawned.connect(_on_body_spawned_camera_refocus_wire)
+
+	if not spawner.poi_spawned.is_connected(_on_poi_spawned_camera_refocus_wire):
+		spawner.poi_spawned.connect(_on_poi_spawned_camera_refocus_wire)
+
+
+func _on_selection_camera_follow(selected: Node) -> void:
+	if selected is Node2D:
+		camera.set_focus_target(selected as Node2D, true)
+	else:
+		camera.clear_focus_target()
+
+
+func _on_focus_selected_camera_follow(target: Node2D) -> void:
+	camera.set_focus_target(target, true)
+
+
+func _on_body_spawned_camera_refocus_wire(body: SystemBody) -> void:
+	if body != null and not body.refocus_camera_requested.is_connected(_on_surface_refocus_camera_requested):
+		body.refocus_camera_requested.connect(_on_surface_refocus_camera_requested)
+
+
+func _on_poi_spawned_camera_refocus_wire(poi: PointOfInterest) -> void:
+	if poi != null and not poi.refocus_camera_requested.is_connected(_on_surface_refocus_camera_requested):
+		poi.refocus_camera_requested.connect(_on_surface_refocus_camera_requested)
+
+
+func _on_surface_refocus_camera_requested(node: Node2D) -> void:
+	if selection != null:
+		selection.notify_focus_selected_requested(node)
 
 
 func _resolve_active_system_definition() -> void:

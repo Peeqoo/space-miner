@@ -124,11 +124,18 @@ static func _entry_to_scan_resource(entry: Variant) -> Dictionary:
 		if richness_percent != null:
 			percent = clampi(int(richness_percent), 0, 100)
 
-		return {
+		var out: Dictionary = {
 			"id": StringName(resource_id),
 			"richness_percent": percent,
 			"display_text": "%s %d%%" % [String(resource_id), percent],
 		}
+
+		# Original deposit size for UI (remaining / total); same source ObjectScanStore uses at init.
+		var deposit_variant: Variant = entry.get("deposit_amount")
+		if deposit_variant != null:
+			out["total"] = maxi(0, int(deposit_variant))
+
+		return out
 
 	# Compatibility fallback for old PackedStringArray/String data.
 	# This should only be temporary while old .tres files are converted.

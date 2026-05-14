@@ -45,6 +45,12 @@ var _velocity: Vector2 = Vector2.ZERO
 var _drag_relative: Vector2 = Vector2.ZERO
 var _is_right_dragging: bool = false
 
+## When enabled, camera lerps toward `focus_target` (selection / refocus). Manual pan turns this off.
+var focus_target: Node2D = null
+var follow_enabled: bool = false
+
+@export var follow_smooth_speed: float = 5.0
+
 
 func _ready() -> void:
 	make_current()
@@ -55,6 +61,27 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if follow_enabled and (focus_target == null or not is_instance_valid(focus_target)):
+		clear_focus_target()
+
+	if follow_enabled and is_instance_valid(focus_target):
+		var kb: Vector2 = _read_keyboard_input()
+		var drag_pan_this_frame: bool = (
+			_is_right_dragging and delta > 0.0 and _drag_relative.length_squared() > 0.0
+		)
+
+		if kb.length_squared() > 0.01 or drag_pan_this_frame:
+			disable_follow_from_manual_input()
+		else:
+			global_position = global_position.lerp(
+				focus_target.global_position,
+				1.0 - exp(-follow_smooth_speed * delta)
+			)
+			_velocity = Vector2.ZERO
+			_drag_relative = Vector2.ZERO
+			zoom = zoom.lerp(zoom_target, clampf(zoom_smooth_speed * delta, 0.0, 1.0))
+			return
+
 	_handle_camera_movement(delta)
 	zoom = zoom.lerp(zoom_target, clampf(zoom_smooth_speed * delta, 0.0, 1.0))
 
@@ -150,30 +177,48 @@ func _read_keyboard_input() -> Vector2:
 # --------------------------------------------------
 
 func set_start_position(world_position: Vector2) -> void:
+	disable_follow_from_manual_input()
 	global_position = world_position
 	_velocity = Vector2.ZERO
 
 
 func focus_world_position(world_position: Vector2) -> void:
+	disable_follow_from_manual_input()
 	global_position = world_position
 	_velocity = Vector2.ZERO
 
 
 func snap_to_position(world_position: Vector2) -> void:
+	disable_follow_from_manual_input()
 	global_position = world_position
 	_velocity = Vector2.ZERO
 
 
 func clear_follow() -> void:
-	pass
+	clear_focus_target()
 
 
-func set_follow_target(target: Node2D, _enable_follow: bool = true) -> void:
-	if target == null:
-		return
+func set_focus_target(target: Node2D, enable_follow: bool = true) -> void:
+	focus_target = target
+	follow_enabled = enable_follow and target != null and is_instance_valid(target)
 
-	global_position = target.global_position
-	_velocity = Vector2.ZERO
+
+## Backwards-compatible alias (e.g. older callers expecting the old name).
+func set_follow_target(target: Node2D, enable_follow: bool = true) -> void:
+	set_focus_target(target, enable_follow)
+
+
+func focus_current_target() -> void:
+	follow_enabled = focus_target != null and is_instance_valid(focus_target)
+
+
+func disable_follow_from_manual_input() -> void:
+	follow_enabled = false
+
+
+func clear_focus_target() -> void:
+	focus_target = null
+	follow_enabled = false
 
 
 # --------------------------------------------------

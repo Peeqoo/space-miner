@@ -9,7 +9,6 @@
 visible = false
 custom_minimum_size = Vector2(170, 0)
 offset_right = 175.0
-grow_vertical = 1
 script = ExtResource("1_script")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=569057441]
@@ -39,7 +38,7 @@ layout_mode = 2
 size_flags_horizontal = 16
 size_flags_vertical = 8
 theme_override_fonts/font = ExtResource("3_ok6kd")
-theme_override_font_sizes/font_size = 6
+theme_override_font_sizes/font_size = 4
 text = "x"
 
 [node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=653898319]

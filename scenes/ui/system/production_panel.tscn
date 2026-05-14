@@ -8,7 +8,6 @@
 [node name="ProductionPanel" type="PanelContainer" unique_id=55424944]
 visible = false
 custom_minimum_size = Vector2(170, 0)
-grow_vertical = 1
 script = ExtResource("1_script")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=495679809]
@@ -34,7 +33,7 @@ horizontal_alignment = 1
 [node name="CloseButton" type="Button" parent="Margin/Root/HeaderRow" unique_id=637053799]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("1_35t14")
-theme_override_font_sizes/font_size = 6
+theme_override_font_sizes/font_size = 4
 text = "x"
 
 [node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=2078598069]
