@@ -1,6 +1,6 @@
 # Space Miner Projektübersicht
 
-Stand: 2026-05-09
+Stand: 2026-05-14
 
 ---
 
@@ -15,15 +15,17 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **Galaxy Map**: Übersicht aller Sternensysteme, Auswahl und Einstieg in ein System
 - **System Scene**: Darstellung eines Sternensystems mit Planeten und POIs
 - **Automation System**: Automatisierte Drohnen (Scan) und Mining Ships (Mining)
-- **BaseManagementPanel**: UI für Ressourcen, Produktions- und Flottensteuerung der Heimatbasis
-- **ObjectInfoPanel**: UI für Scaninformationen und Aktionen an ausgewählten Objekten
+- **System-HUD (`system_scene.tscn` / `UI`)**: `TopHUD` (globale Kurzinfos), `TopHudHoverPanel` (Widget-Hover), `BaseManagementPanel` (Base-Hub), `ProductionPanel` (Builds), `UpgradePanel` (Phase-5-Upgrades), `ObjectInfoPanel` (Objektinfos / Scan / Mine / Recall)
+- **ObjectInfoPanel**: Scan-Infos und Aktionen am selektierten Body/POI; **keine** `ActionBlockerBox`; `CloseBasePanelButton` emittiert `close_requested` → `SystemUIController` cleared die Selection
 - **Scan System**: Mehrstufiges Scansystem mit drei Tiers (basic, deep, special)
 
 ### Aktiv wirkende Systeme
 - GameSession + alle Stores
 - AutomationController (Mining, Scanning, Unit-Spawning)
 - SystemUIController (Panel-Orchestrierung, Signal-Routing)
-- BaseManagementPanel (dynamische ResourceList über `storage_info_row.tscn`)
+- TopHUD / TopHudHoverPanel (Status + Hoverdetails, Positionierung über `SystemUIController`)
+- BaseManagementPanel (Base-Hub: Info + Navigation zu Production/Upgrades)
+- ProductionPanel / UpgradePanel (eigene Build- bzw. Upgrade-UI)
 - ObjectInfoPanel (ScannedResourceEntry-Darstellung über `resource_info_row.tscn`)
 - ScanInfoBuilder (Build-Pipeline für Scan-Dictionaries)
 - CelestialPresentationCalculator (Darstellung von Planeten im System)
@@ -69,7 +71,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
   - `create_mining_mission(base_id, target_id) -> int`
   - `complete_automation_mission(mission_id) -> Dictionary`
   - Earth-Aliase: `get_earth_resource_amount`, `add_earth_resource`, etc.
-- **Zugreifende Scripts:** automation_controller.gd, system_ui_controller.gd, base_management_panel.gd, object_info_panel.gd, galaxy_map.gd, system_scene.gd, scan_info_builder.gd, main.gd
+- **Zugreifende Scripts:** automation_controller.gd, system_ui_controller.gd, base_management_panel.gd, object_info_panel.gd, production_panel.gd, upgrade_panel.gd, top_hud.gd, galaxy_map.gd, system_scene.gd, scan_info_builder.gd, main.gd
 - **Definierte Signale:** keine
 - **Emittierte Signale:** keine
 - **Verbundene Signale:** keine (ist Autoload, nicht Subscriber)
@@ -124,8 +126,8 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
   - `AutomationController`
   - `WorldRoot/StarRoot`, `WorldRoot/SystemBodiesRoot`, `WorldRoot/PointOfInterestRoot`, `WorldRoot/AutomationRoot`
   - `BackgroundRoot/OrbitGuidesLayer`
-  - `UI/ObjectInfoPanel`, `UI/BaseManagementPanel`
-- **Instanziierte Szenen:** ObjectInfoPanel, BaseManagementPanel, SystemBody (dynamisch), PointOfInterest (dynamisch), AutomationUnit (dynamisch)
+  - `UI/TopHUD`, `UI/TopHudHoverPanel`, `UI/BaseManagementPanel`, `UI/ObjectInfoPanel`, `UI/ProductionPanel`, `UI/UpgradePanel`
+- **Instanziierte Szenen:** TopHUD, TopHudHoverPanel, ObjectInfoPanel, BaseManagementPanel, ProductionPanel, UpgradePanel; SystemBody (dynamisch), PointOfInterest (dynamisch), AutomationUnit (dynamisch)
 
 ### `res://scenes/system/objects/system_body.tscn`
 - **Root-Node:** Node2D
@@ -142,31 +144,51 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 ### `res://scenes/ui/system/base_management_panel.tscn`
 - **Root-Node:** PanelContainer (`BaseManagementPanel`)
 - **Script:** `res://scripts/ui/system/base_management_panel.gd`
+- **Rolle:** Base-Hub — Vorschau, Basisname, Status, Population/Food/Growth-Labels, Navigation
 - **Wichtige Child-Nodes:**
-  - `Margin/Root/HeaderSection/BaseNameLabel`
-  - `Margin/Root/HeaderSection/StatusLabel`
-  - `Margin/Root/HeaderSection/PopulationLabel`
-  - `Margin/Root/StorageSection/ResourcePanel/.../ResourceList` (VBoxContainer — wird dynamisch befüllt)
-  - `Margin/Root/ProductionSection/ProductionGrid/BuildDroneButton`
-  - `Margin/Root/ProductionSection/ProductionGrid/BuildMiningShipButton`
-  - `Margin/Root/ProductionSection/ProductionGrid/BuildColonyShipButton`
-  - `Margin/Root/FleetSection/FleetGrid/DroneCountLabel`
-  - `Margin/Root/FleetSection/FleetGrid/MiningShipCountLabel`
-  - `Margin/Root/HoverInfoPanel` (mit HoverTitleLabel, HoverDescLabel, HoverCostLabel)
-- **Instanziierte Szenen:** `storage_info_row.tscn` (dynamisch via `_add_storage_row`)
-- **Hinweis:** KEIN `StatusTextLabel` im tscn definiert — `status_text_label` kann null sein (Fallback auf StatusLabel)
+  - `Margin/Root/HeaderRow/HeaderLabel`, `Margin/Root/HeaderRow/CloseBasePanelButton`
+  - `Margin/Root/MainRow/PreviewPanel/.../PreviewTexture`
+  - `Margin/Root/MainRow/MetaColumn/BaseNameLabel`, `StatusLabel`, `PopulationLabel`, `FoodLabel`, `PopulationGrowthLabel`
+  - `Margin/Root/ManagementButtonSection/OpenProductionButton`, `OpenUpgradeButton`
+  - `Margin/Root/StatusTextLabel` (Hinweiszeile)
+- **Signale (Script):** `open_production_requested`, `open_upgrades_requested`
+- **Instanziierte Szenen:** keine (kein dynamisches `storage_info_row` mehr im Base-Hub)
+
+### `res://scenes/ui/system/top_hud.tscn`
+- **Root-Node:** PanelContainer (`TopHUD`)
+- **Script:** `res://scripts/ui/system/top_hud.gd`
+- **Rolle:** Globale Kurzinfos — Storage, ScanDrones, MiningShips, ColonyShips, Jobs (je `*Widget` mit Label)
+- **Signale:** `hover_requested(kind, screen_position)`, `hover_cleared`
+
+### `res://scenes/ui/system/top_hud_hover_panel.tscn`
+- **Root-Node:** PanelContainer (`TopHudHoverPanel`)
+- **Script:** `res://scripts/ui/system/top_hud_hover_panel.gd`
+- **Rolle:** Detail-Popup für TopHUD-Hover; Höhe content-driven (`size.y` nach Layout)
+
+### `res://scenes/ui/system/production_panel.tscn`
+- **Root-Node:** PanelContainer (`ProductionPanel`)
+- **Script:** `res://scripts/ui/system/production_panel.gd`
+- **Rolle:** Build ScanDrone / MiningShip; ColonyShip-Button gesperrt; internes `HoverInfoPanel` für Button-Hover
+- **Wichtige Child-Nodes:** `Margin/Root/ProductionList/BuildScanDroneButton`, `BuildMiningShipButton`, `BuildColonyShipButton`, `Margin/Root/HeaderRow/CloseButton`, `Margin/Root/HoverInfoPanel/...`
+
+### `res://scenes/ui/system/upgrade_panel.tscn`
+- **Root-Node:** PanelContainer (`UpgradePanel`)
+- **Script:** `res://scripts/ui/system/upgrade_panel.gd`
+- **Rolle:** Phase-5-Upgrades (Storage / ScanDrone / MiningShip Upgrade I); internes `HoverInfoPanel`
+- **Wichtige Child-Nodes:** `Margin/Root/UpgradeList/StorageUpgradeButton`, `ScanDroneUpgradeButton`, `MiningShipUpgradeButton`, `Margin/Root/HeaderRow/CloseButton`, `Margin/Root/HoverInfoPanel/...`
 
 ### `res://scenes/ui/system/object_info_panel.tscn`
 - **Root-Node:** PanelContainer
 - **Script:** `res://scripts/ui/system/object_info_panel.gd`
 - **Wichtige Child-Nodes:**
-  - `Margin/Root/HeaderLabel`
+  - `Margin/Root/HBoxContainer/HeaderLabel` (Titel aus Editor, z. B. „Object-Info“), `Margin/Root/HBoxContainer/CloseBasePanelButton`
   - `Margin/Root/MainRow/PreviewPanel/.../PreviewTexture`
   - `Margin/Root/MainRow/MetaColumn/NameLabel`, `TypeLabel`, `ScanStatusLabel`, `DistanceLabel`
   - `Margin/Root/ResourcePanel/.../ResourceList` (VBoxContainer — dynamisch)
-  - `Margin/Root/VBoxContainer/DroneOrbitLabel`, `MineOrbitLabel`, `MiningBonusLabel`
+  - `Margin/Root/OrbitStatusSection/DroneOrbitLabel`, `MineOrbitLabel`, `MiningBonusLabel`
   - `Margin/Root/GridContainer/ScanWithDroneButton`, `SendMiningShipButton`, `RecallDroneButton`, `RecallMiningShipButton`
 - **Instanziierte Szenen:** `resource_info_row.tscn` (dynamisch)
+- **Hinweis:** Keine `ActionBlockerBox`
 
 ### `res://scenes/ui/system/storage_info_row.tscn`
 - **Root-Node:** HBoxContainer (`StorageInfoRow`)
@@ -318,19 +340,19 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 ### `res://scripts/system/controller/system_ui_controller.gd`
 - **class_name:** SystemUIController
 - **extends:** Node
-- **Aufgabe:** Schaltet UI-Panels basierend auf Selektion; routet Signale zwischen Panels und Controllern
-- **Wichtige Variablen:** system_definition, selection, spawner, object_info_panel, base_management_panel, automation_controller
-- **Verbundene Signale:**
+- **Aufgabe:** Orchestriert System-UI: Selektion → ObjectInfo/Base; routet Scan/Mine/Recall, Production/Upgrade-Builds, TopHUD-Hover-Position
+- **Wichtige Variablen:** system_definition, selection, spawner, object_info_panel, base_management_panel, production_panel, upgrade_panel, top_hud, top_hud_hover_panel, automation_controller
+- **Verbundene Signale (Auszug):**
   - `selection.selection_changed` → `_on_selection_changed`
   - `automation_controller.automation_state_changed` → `_on_automation_state_changed`
-  - `object_info_panel.scan_requested` → `_on_object_scan_requested`
-  - `object_info_panel.mining_requested` → `_on_object_mining_requested`
-  - `object_info_panel.recall_drone_requested` → `_on_recall_drone_requested`
-  - `object_info_panel.recall_mining_ship_requested` → `_on_recall_mining_ship_requested`
-  - `base_management_panel.build_drone_requested` → `_on_build_drone_requested`
-  - `base_management_panel.build_mining_ship_requested` → `_on_build_mining_ship_requested`
-- **Genutzte Autoloads:** GameSession, BaseStore (direkte Klassenreferenz)
-- **Wichtige Funktionen:** `update_all()`, `update_object_info()`, `update_base_panel()`, `_on_automation_state_changed()`
+  - `object_info_panel.scan_requested` / `mining_requested` / `recall_*` → Automation-Launcher
+  - `object_info_panel.close_requested` → `_on_object_info_close_requested` → `selection.clear_selection(true)`
+  - `base_management_panel.open_production_requested` / `open_upgrades_requested` → öffnet/schließt Production/Upgrade; leert TopHUD-Hover
+  - `production_panel.build_scan_drone_requested` / `build_mining_ship_requested` → `_on_build_*`
+  - `production_panel.close_requested` / `upgrade_panel.close_requested`
+  - `top_hud.hover_requested` / `hover_cleared` → TopHudHoverPanel
+- **Genutzte Autoloads:** GameSession
+- **Wichtige Funktionen:** `update_all()`, `update_object_info()`, `update_base_panel()`, `_get_top_hud_hover_position()`, `_get_visible_hover_anchor_panels()` (nur Base + ObjectInfo als Hover-Anker)
 
 ### `res://scripts/system/controller/system_camera_controller.gd`
 - **class_name:** SystemCameraController
@@ -395,39 +417,39 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 ### `res://scripts/ui/system/base_management_panel.gd`
 - **class_name:** (keine — extends PanelContainer)
-- **Aufgabe:** Basis-Management-UI: zeigt Ressourcen, Produktions- und Flottensteuerung
-- **Definierte Signale:** `build_drone_requested`, `build_mining_ship_requested`, `build_colony_ship_requested`
-- **Preloads:** `STORAGE_ROW_SCENE = preload("res://scenes/ui/system/storage_info_row.tscn")`
-- **onready-NodePaths (Risiko-Pfade):**
-  - `$Margin/Root/HeaderSection/BaseNameLabel`
-  - `$Margin/Root/HeaderSection/StatusLabel`
-  - `$Margin/Root/HeaderSection/PopulationLabel`
-  - `$Margin/Root/StorageSection/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList`
-  - `$Margin/Root/ProductionSection/ProductionGrid/BuildDroneButton`
-  - `$Margin/Root/ProductionSection/ProductionGrid/BuildMiningShipButton`
-  - `$Margin/Root/ProductionSection/ProductionGrid/BuildColonyShipButton`
-  - `$Margin/Root/FleetSection/FleetGrid/DroneCountLabel`
-  - `$Margin/Root/FleetSection/FleetGrid/MiningShipCountLabel`
-  - `$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel`
-  - `$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel`
-  - `$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel`
-  - `get_node_or_null("Margin/Root/StatusTextLabel")` → **UNSICHER**: Dieser Node existiert laut `.tscn` nicht; Fallback auf StatusLabel ist aktiv
-- **Wichtige Funktionen:**
-  - `show_for_base(system_id, body_id, base_name, docked)` — zeigt das Panel für eine Basis
-  - `refresh_from_game_session()` — liest Ressourcen, Population, Drones, Mining Ships; ruft `_rebuild_resource_list()` auf
-  - `_rebuild_resource_list(base_id)` — löscht alle Kinder von ResourceList, erzeugt neue `storage_info_row`-Instanzen
-  - `_add_storage_row(resource_name, amount)` — instanziiert `storage_info_row.tscn` und befüllt Labels via `get_node_or_null`
-  - `hide_panel()`, `set_status_text()`
-- **Genutzte Autoloads:** GameSession, BaseStore (Konstante BASE_EARTH)
+- **Aufgabe:** Base-Hub — Anzeige Basis-Metadaten; Navigation zu Production/Upgrade; kein Build mehr auf diesem Panel
+- **Definierte Signale:** `open_production_requested`, `open_upgrades_requested`
+- **Wichtige @onready-Pfade:** `Margin/Root/MainRow/MetaColumn/BaseNameLabel`, `StatusLabel`, `PopulationLabel`; `Margin/Root/ManagementButtonSection/OpenProductionButton`, `OpenUpgradeButton`; `Margin/Root/StatusTextLabel`; `Margin/Root/HeaderRow/CloseBasePanelButton`
+- **Wichtige Funktionen:** `show_for_base()`, `hide_panel()`, `refresh_from_game_session()`, `set_status_text()`, `_fit_height_to_content()` (fixe Breite, Höhe aus Inhalt)
+- **Genutzte Autoloads:** GameSession
 
 ### `res://scripts/ui/system/object_info_panel.gd`
 - **class_name:** (keine — extends PanelContainer)
-- **Aufgabe:** Zeigt Scan-Info für das selektierte Objekt; Aktions-Buttons
-- **Definierte Signale:** `scan_requested(object_id)`, `mining_requested(object_id)`, `recall_drone_requested(object_id)`, `recall_mining_ship_requested(object_id)`
+- **Aufgabe:** Zeigt Scan-Info für das selektierte Objekt; Aktions-Buttons Scan/Mine/Recall
+- **Definierte Signale:** `scan_requested`, `mining_requested`, `recall_drone_requested`, `recall_mining_ship_requested`, `close_requested`
 - **Preloads:** `RESOURCE_INFO_ROW_SCENE = preload("res://scenes/ui/system/resource_info_row.tscn")`
 - **Genutzte Autoloads:** GameSession
-- **Wichtige Funktionen:** `show_empty()`, `show_body_info(info)`, `show_poi_info(info)`, `_apply_info()`, `_apply_resources()`, `_apply_lore()`, `set_distance_text()`
-- **Risiko:** Legacy-Fallback in `_apply_resources()` (Zeile 149) für alte String-Einträge in Scan-Arrays
+- **Wichtige Funktionen:** `show_empty()`, `show_body_info(info)`, `show_poi_info(info)`, `_apply_info()`, `_apply_resources()`, `_apply_lore()`, `set_distance_text()`, `_fit_height_to_content()` (nur `size.y`, Guard bei `visible`)
+- **Risiko:** Legacy-Fallback in `_apply_resources()` für alte String-Einträge in Scan-Arrays
+
+### `res://scripts/ui/system/top_hud.gd`
+- **extends:** PanelContainer
+- **Aufgabe:** Globale Kennzahlen (Storage, SD, MS, CS, Jobs); emittiert Hover-Anchor (`hover_requested` mit Widget-Mitte, TopHUD-Unterkante + 8 px)
+- **Genutzte Autoloads:** GameSession (`base_resources_changed`)
+
+### `res://scripts/ui/system/top_hud_hover_panel.gd`
+- **extends:** PanelContainer
+- **Aufgabe:** Zeigt Titel, Detailzeilen, Hint; `_fit_height_after_layout()` wartet einen Frame, dann nur `size.y`-Fit
+
+### `res://scripts/ui/system/production_panel.gd`
+- **extends:** PanelContainer
+- **Aufgabe:** `GameSession.build_base_drone` / `build_base_mining_ship`; ColonyShip gesperrt; `close_requested`
+- **Genutzte Autoloads:** GameSession
+
+### `res://scripts/ui/system/upgrade_panel.gd`
+- **extends:** PanelContainer
+- **Aufgabe:** Phase-5-Käufe (`buy_base_storage_upgrade_i`, `buy_scan_drone_upgrade_i`, `buy_mining_ship_upgrade_i`); `close_requested`
+- **Genutzte Autoloads:** GameSession
 
 ### `res://scripts/ui/system/storage_row.gd`
 - **class_name:** (keine — extends HBoxContainer)
@@ -559,7 +581,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 	- **`GameSession.add_base_resource(base_id, "ore", current_cargo)`** ← Mining → Base Storage (direkter Call)
 	- Setzt `current_cargo = 0`, Status → UNLOADING, `unload_timer = 2.0`
 11. **Nach Unload-Timer:** wenn `loop_active`, startet neuer Flug zum Ziel; sonst: Ship wird freigegeben
-12. **Nach jedem State-Wechsel:** `automation_state_changed.emit()` → SystemUIController._on_automation_state_changed() → `update_base_panel()` → `BaseManagementPanel.show_for_base()` → `refresh_from_game_session()`
+12. **Nach jedem State-Wechsel:** `automation_state_changed.emit()` → `SystemUIController._on_automation_state_changed()` → `update_base_panel()` → ggf. `BaseManagementPanel.show_for_base()` / `refresh_while_hold_open()` / `hide_panel()` und `refresh_from_game_session()`
 
 **Alte Ship-/Cargo-Logik:** KEINE. Es gibt kein Ship-Cargo-Objekt, keine `transfer_all_cargo_to_base()`-Funktion, keine `CargoPanel`-UI. Die Keys `current_cargo`/`cargo_capacity`/`cargo_resource_id` sind private Puffer in einem Dictionary innerhalb des AutomationControllers.
 
@@ -584,42 +606,27 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 ---
 
-## 8. Datenfluss: BaseManagementPanel
+## 8. Datenfluss: BaseManagementPanel (Base-Hub)
 
 **Schrittweise Beschreibung:**
 
-1. **Spieler klickt auf Earth** → `selection_changed(earth_body)`
-2. **SystemUIController.update_base_panel():**
-   - Prüft `_selected_body_has_base(body)` → true wenn `body.body_id == "earth"`
-   - Ruft `base_management_panel.show_for_base(system_id, "earth", "Earth Base", true)` auf
-3. **BaseManagementPanel.show_for_base():** setzt `current_body_id = "earth"`, `visible = true`, ruft `refresh_from_game_session()` auf
-4. **BaseManagementPanel.refresh_from_game_session():**
-   - `base_id = "earth"` (aus `current_body_id`)
-   - Liest ore, fuel, population, drones, mining_ships aus GameSession
-   - Setzt Labels: `base_name_label`, `status_label`, `population_label`, `drone_count_label`, `mining_ship_count_label`
-   - Ruft `_rebuild_resource_list("earth")` auf
-5. **_rebuild_resource_list():**
-   - Ruft `GameSession.get_base_resources("earth")` → `{ore: X, fuel: Y, food: Z}`
-   - Für jede Resource: `_add_storage_row(_format_title(resource_id), amount)`
-6. **_add_storage_row():**
-   - Instanziiert `storage_info_row.tscn`
-   - `row.get_node_or_null("ResourceNameLabel").text = resource_name`
-   - `row.get_node_or_null("ResourceValueLabel").text = str(amount)`
-7. **Nach Mining-Unload:** `automation_state_changed` → `SystemUIController._on_automation_state_changed()` → `update_base_panel()` → Schritt 2 wiederholt sich
+1. **Spieler wählt Earth (Body mit Basis)** → `selection_changed(earth_body)`
+2. **SystemUIController.update_base_panel():** prüft `_selected_body_has_base(body)` → ruft `base_management_panel.show_for_base(system_id, body_id, "…", true)` auf
+3. **BaseManagementPanel.show_for_base():** setzt `current_body_id`, `visible = true`, `refresh_from_game_session()`
+4. **BaseManagementPanel.refresh_from_game_session():** liest Population etc. aus `GameSession`, setzt Labels (`BaseNameLabel`, `StatusLabel`, `PopulationLabel`, …), `call_deferred("_fit_height_to_content")`
+5. **Spieler klickt „Production“ / „Upgrades“:** `open_production_requested` / `open_upgrades_requested` → `SystemUIController` blendet `ProductionPanel` bzw. `UpgradePanel` ein (und schließt das jeweils andere)
+6. **Nach Mining-Unload:** wie in Abschnitt 6 — `automation_state_changed` → `update_base_panel()` erneut
 
-**Keine alten NodePaths/Labels:** `OreLabel`, `FuelLabel`, `FoodLabel` existieren nicht mehr. `StatusTextLabel` ist im tscn nicht definiert (Fallback auf `StatusLabel` aktiv → kein Fehler, aber stiller Fallback).
+**Hinweis:** Globale Lager-/Flotten-Kurzinfos liegen im **TopHUD** (`top_hud.gd`), nicht im Base-Hub.
 
 ---
 
 ## 9. UI Row Scenes
 
-### `storage_info_row.tscn` — AKTIV
-- **Status:** Aktiv, wird von `base_management_panel.gd` verwendet
-- **Script:** KEIN Script
+### `storage_info_row.tscn` — vorhanden, nicht Base-Hub
+- **Status:** Szene existiert (`res://scenes/ui/system/storage_info_row.tscn`); **BaseManagementPanel** instanziiert sie aktuell **nicht** mehr
 - **Root:** HBoxContainer (`StorageInfoRow`)
-- **Labels:** `ResourceNameLabel` (Name), `ResourceValueLabel` (Integer-Betrag)
-- **Nutzung:** Dynamisch instanziiert in `BaseManagementPanel._add_storage_row()` für jede Ressource der Basis
-- **Befüllung:** Über `get_node_or_null` direkt im Panel-Script (kein Script auf der Row)
+- **Labels:** `ResourceNameLabel`, `ResourceValueLabel`
 
 ### `resource_info_row.tscn` — AKTIV
 - **Status:** Aktiv, wird von `object_info_panel.gd` verwendet
@@ -652,7 +659,6 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 | DEFAULT_MINING_DURATION | `scripts/system/controller/automation_controller.gd` L13 | `DEFAULT_MINING_DURATION = 999999.0` | Pseudo-unendlich; das Mining läuft per Cargo-Kapazität, nicht per Zeitlimit | Unsicher | Durch echtes unbegrenztes Loop ersetzen oder dokumentieren |
 | can_build_base | `resources/definitions/system_body_definition.gd` L23 | `can_build_base: bool = true` | Export-Feld existiert, wird aber nirgends im Code ausgewertet | Unsicher | Auswerten oder entfernen |
 | Galaxy-Map only PackedStringArray join | `scripts/galaxy/galaxy_map.gd` L153 | `join(PackedStringArray(display_parts))` | Unnötiger Umweg (join auf Array reicht in GD4) | Niedrig | Vereinfachen |
-| status_text_label null-Fallback | `scripts/ui/system/base_management_panel.gd` L53 | `get_node_or_null("Margin/Root/StatusTextLabel")` | Node existiert nicht im tscn; stiller Fallback auf StatusLabel | Niedrig | StatusTextLabel entfernen oder tscn ergänzen |
 
 ---
 
@@ -660,10 +666,9 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 | Risiko | Datei | Ursache | Auswirkung | Fix-Vorschlag |
 |---|---|---|---|---|
-| StatusTextLabel fehlt im tscn | `base_management_panel.gd` L53 / `base_management_panel.tscn` | `get_node_or_null` auf nicht existenten Node | Kein Fehler, aber set_status_text() überschreibt StatusLabel statt dediziertem Label | StatusTextLabel zum tscn hinzufügen oder Code bereinigen |
 | POI-Scan-Ressourcen ohne Prozentwert | `scan_info_builder.gd` L135-142 + POI-Definitionen | PackedStringArray-Fallback erzeugt `richness_percent = -1` | UI zeigt "--" statt Prozentwert für alle POI-Ressourcen | POI-Definitionen auf ScannedResourceEntry migrieren |
 | ResourceAmountLabel vs ResourceValueLabel | `storage_row.gd` L3 vs `storage_info_row.tscn` | Falsch benanntes Label im verwaisten Script | Kein Fehler (Script nicht genutzt), aber Konfusionspotenzial | storage_row.gd löschen |
-| automation_state_changed sehr häufig | `automation_controller.gd` | Signal wird bei fast jedem State-Wechsel emittiert (15+ Stellen) | Jeder Emit triggert UI-Rebuild (resource list wird gecleart und neu gebaut) | Debounce/defer oder targeted refresh einbauen |
+| automation_state_changed sehr häufig | `automation_controller.gd` | Signal wird bei fast jedem State-Wechsel emittiert (15+ Stellen) | Jeder Emit triggert `SystemUIController`-Refresh (`update_object_info`, `update_base_panel`, `_update_top_hud`; Production/Upgrade bei Sichtbarkeit) | Debounce/defer oder targeted refresh einbauen |
 | _process() jedes Frame für alle Mining Ships | `automation_controller.gd` L431+ | Immer aktiv wenn `mining_ship_runtime_by_unit_id` nicht leer | Kein Performance-Problem bei kleiner Einheitenzahl; könnte bei vielen Ships skalieren | Akzeptabel, bei Bedarf optimieren |
 | GameSession-Stores nicht persistiert | `game_session.gd` + alle Stores | RefCounted-Instanzen; kein Speichern/Laden | Spielzustand geht bei Applikationsende verloren | Save/Load System implementieren |
 | Missions-ID-Zähler nicht persistiert | `automation_store.gd` | `next_mission_id` startet immer bei 1 | Nach Reload: ID-Konflikte theoretisch möglich (derzeit kein Problem) | Mit Save-System sichern |
@@ -704,21 +709,27 @@ system_scene.tscn
 	   ├─ SystemUIController
 	   │    ├─ ◄─ selection.selection_changed
 	   │    ├─ ◄─ automation_controller.automation_state_changed
-	   │    ├─ ◄─ object_info_panel.scan_requested / mining_requested / recall_*
-	   │    ├─ ◄─ base_management_panel.build_drone/mining_ship_requested
+	   │    ├─ ◄─ object_info_panel.scan_requested / mining_requested / recall_* / close_requested
+	   │    ├─ ◄─ base_management_panel.open_production_requested / open_upgrades_requested
+	   │    ├─ ◄─ production_panel.build_scan_drone_requested / build_mining_ship_requested / close_requested
+	   │    ├─ ◄─ upgrade_panel.close_requested
+	   │    ├─ ◄─ top_hud.hover_requested / hover_cleared
 	   │    ├─ ──► ObjectInfoPanel (show_body_info, show_poi_info, show_empty, set_distance_text)
-	   │    └─ ──► BaseManagementPanel (show_for_base, hide_panel)
+	   │    ├─ ──► BaseManagementPanel (show_for_base, hide_panel, refresh_while_hold_open)
+	   │    ├─ ──► ProductionPanel / UpgradePanel (sichtbarkeit, refresh)
+	   │    └─ ──► TopHudHoverPanel (show_details / clear)
 	   ├─ AutomationController
 	   │    ├─ GameSession (add_base_resource, scan_state, missions, drone/ship count)
 	   │    ├─ SystemSpawner (get_spawned_object)
 	   │    ├─ AutomationUnit (drone/mining_ship Instanzen)
 	   │    └─ ──► automation_state_changed Signal
+	   ├─ TopHUD / TopHudHoverPanel
+	   │    └─ GameSession (Lesen von Base-Ressourcen / Counts für Labels)
 	   ├─ ObjectInfoPanel
 	   │    ├─ ResourceInfoRow (dynamisch instanziiert)
 	   │    └─ GameSession (SCAN_UNKNOWN Konstante)
 	   └─ BaseManagementPanel
-			├─ StorageInfoRow (dynamisch instanziiert via storage_info_row.tscn)
-			└─ GameSession (get_base_resources, get_base_resource_amount, add/spend, build_*)
+			└─ GameSession (Population etc.)
 ```
 
 ---
@@ -726,13 +737,12 @@ system_scene.tscn
 ## 13. Empfohlene nächste Aufräum-Reihenfolge
 
 1. **`storage_row.gd` löschen** — sicher, wird nirgends genutzt; beseitigt Konfusion mit `storage_info_row.tscn`
-2. **`StatusTextLabel` klären** — entweder Node zum tscn hinzufügen oder `get_node_or_null`-Zeile aus base_management_panel.gd entfernen
-3. **`can_build_base` auswerten oder entfernen** — einfache Änderung; im `system_ui_controller._selected_body_has_base()` prüfen statt hart auf "earth" testen
-4. **`PointOfInterestDefinition` auf `Array[ScannedResourceEntry]` migrieren** — mittlerer Aufwand; alle POI-`.tres`-Dateien updaten; danach Kompatibilitäts-Fallback in `scan_info_builder.gd` entfernen
-5. **Legacy `orbit_radius`/`orbit_speed`/`body_scale`-Felder in SystemBodyDefinition bereinigen** — nach vollständiger Datenmigration auf Referenzdaten
-6. **`automation_state_changed`-Frequenz reduzieren** — z.B. mit einem `call_deferred`-Debounce oder gezieltem dirty-Flag
-7. **Save/Load-System implementieren** — GameSession-State persistieren; alle Stores absichern
-8. **Galaxy Map: Ressourcen-Summary auf echte ScannedResourceEntry-Daten umstellen** — derzeit nutzt galaxy_map.gd noch die alten PackedStringArray-Felder von SystemBodyDefinition (L162)
+2. **`can_build_base` auswerten oder entfernen** — einfache Änderung; im `system_ui_controller._selected_body_has_base()` prüfen statt hart auf "earth" testen
+3. **`PointOfInterestDefinition` auf `Array[ScannedResourceEntry]` migrieren** — mittlerer Aufwand; alle POI-`.tres`-Dateien updaten; danach Kompatibilitäts-Fallback in `scan_info_builder.gd` entfernen
+4. **Legacy `orbit_radius`/`orbit_speed`/`body_scale`-Felder in SystemBodyDefinition bereinigen** — nach vollständiger Datenmigration auf Referenzdaten
+5. **`automation_state_changed`-Frequenz reduzieren** — z.B. mit einem `call_deferred`-Debounce oder gezieltem dirty-Flag
+6. **Save/Load-System implementieren** — GameSession-State persistieren; alle Stores absichern
+7. **Galaxy Map: Ressourcen-Summary auf echte ScannedResourceEntry-Daten umstellen** — derzeit nutzt galaxy_map.gd noch die alten PackedStringArray-Felder von SystemBodyDefinition (L162)
 
 ---
 
@@ -764,17 +774,14 @@ system_scene.tscn
 ### `ResourceList`
 | Datei | Zeile | Kontext |
 |---|---|---|
-| base_management_panel.gd | 39 | `@onready var resource_list: VBoxContainer = $Margin/Root/StorageSection/.../ResourceList` |
-| base_management_panel.tscn | 82 | `[node name="ResourceList" type="VBoxContainer"]` |
-| object_info_panel.gd | 19 | `@onready var resource_list: VBoxContainer = $Margin/Root/ResourcePanel/.../ResourceList` |
-| object_info_panel.tscn | 110 | `[node name="ResourceList" type="VBoxContainer"]` |
+| object_info_panel.gd | `@onready` | `$Margin/Root/ResourcePanel/.../ResourceList` |
+| object_info_panel.tscn | ResourceList | unter `ResourceScroll` |
 
 ### `storage_row` / `storage_info_row`
-| Datei | Zeile | Kontext |
-|---|---|---|
-| base_management_panel.gd | 9 | `const STORAGE_ROW_SCENE = preload("res://scenes/ui/system/storage_info_row.tscn")` |
-| base_management_panel.gd | 195 | `_add_storage_row(...)` |
-| base_management_panel.gd | 198 | `func _add_storage_row(...)` |
+| Datei | Kontext |
+|---|---|
+| `storage_info_row.tscn` | Vorhandene Row-Szene (aktuell nicht vom Base-Hub genutzt) |
+| `storage_row.gd` | Verwaistes Script — siehe `old_systems` / Abschnitt 13 |
 
 ### `automation_state_changed`
 | Datei | Zeilen | Kontext |
@@ -798,8 +805,7 @@ system_scene.tscn
 |---|---|---|
 | automation_controller.gd | 8 | `drone.tscn` |
 | automation_controller.gd | 9 | `mining_ship.tscn` |
-| base_management_panel.gd | 9 | `storage_info_row.tscn` |
-| object_info_panel.gd | 10 | `resource_info_row.tscn` |
+| object_info_panel.gd | 11 | `resource_info_row.tscn` |
 | system_spawner.gd | 19 | `system_body.tscn` |
 | system_spawner.gd | 20 | `point_of_interest.tscn` |
 | scene_flow.gd | 24 | `load(scene_path)` (dynamisch) |

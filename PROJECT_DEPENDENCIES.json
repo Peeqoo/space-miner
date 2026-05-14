@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-09",
+  "generated_at": "2026-05-14",
   "godot_version": "4.6.1",
   "project_name": "SpaceMining",
   "main_scene": "res://scenes/core/main.tscn",
@@ -133,7 +133,11 @@
 		"$WorldRoot/AutomationRoot",
 		"$BackgroundRoot/OrbitGuidesLayer",
 		"$UI/ObjectInfoPanel",
-        "$UI/BaseManagementPanel"
+		"$UI/BaseManagementPanel",
+		"$UI/TopHUD",
+		"$UI/TopHudHoverPanel",
+		"$UI/ProductionPanel",
+		"$UI/UpgradePanel"
 	  ]
 	},
 	{
@@ -236,8 +240,15 @@
 		"object_info_panel.mining_requested -> _on_object_mining_requested",
 		"object_info_panel.recall_drone_requested -> _on_recall_drone_requested",
 		"object_info_panel.recall_mining_ship_requested -> _on_recall_mining_ship_requested",
-		"base_management_panel.build_drone_requested -> _on_build_drone_requested",
-        "base_management_panel.build_mining_ship_requested -> _on_build_mining_ship_requested"
+		"object_info_panel.close_requested -> _on_object_info_close_requested",
+		"base_management_panel.open_production_requested -> _on_base_open_production",
+		"base_management_panel.open_upgrades_requested -> _on_base_open_upgrades",
+		"production_panel.build_scan_drone_requested -> _on_build_drone_requested",
+		"production_panel.build_mining_ship_requested -> _on_build_mining_ship_requested",
+		"production_panel.close_requested -> _on_production_close",
+		"upgrade_panel.close_requested -> _on_upgrade_close",
+		"top_hud.hover_requested -> _on_top_hud_hover_requested",
+		"top_hud.hover_cleared -> _on_top_hud_hover_cleared"
 	  ],
 	  "preloads": [],
 	  "risk_node_paths": []
@@ -335,33 +346,26 @@
 	  "extends": "PanelContainer",
 	  "autoloads_used": ["GameSession"],
 	  "signals_defined": [
-		"build_drone_requested",
-		"build_mining_ship_requested",
-        "build_colony_ship_requested"
+		"open_production_requested",
+		"open_upgrades_requested"
 	  ],
 	  "signals_emitted": [
-		"build_drone_requested",
-		"build_mining_ship_requested",
-        "build_colony_ship_requested"
+		"open_production_requested",
+		"open_upgrades_requested"
 	  ],
 	  "signals_connected": [],
-	  "preloads": [
-        "res://scenes/ui/system/storage_info_row.tscn"
-	  ],
+	  "preloads": [],
 	  "risk_node_paths": [
-		"$Margin/Root/HeaderSection/BaseNameLabel",
-		"$Margin/Root/HeaderSection/StatusLabel",
-		"$Margin/Root/HeaderSection/PopulationLabel",
-		"$Margin/Root/StorageSection/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
-		"$Margin/Root/ProductionSection/ProductionGrid/BuildDroneButton",
-		"$Margin/Root/ProductionSection/ProductionGrid/BuildMiningShipButton",
-		"$Margin/Root/ProductionSection/ProductionGrid/BuildColonyShipButton",
-		"$Margin/Root/FleetSection/FleetGrid/DroneCountLabel",
-		"$Margin/Root/FleetSection/FleetGrid/MiningShipCountLabel",
-		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel",
-		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel",
-		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel",
-        "Margin/Root/StatusTextLabel (get_node_or_null — Node FEHLT im tscn, Fallback aktiv)"
+		"$Margin/Root/HeaderRow/HeaderLabel",
+		"$Margin/Root/HeaderRow/CloseBasePanelButton",
+		"$Margin/Root/MainRow/MetaColumn/BaseNameLabel",
+		"$Margin/Root/MainRow/MetaColumn/StatusLabel",
+		"$Margin/Root/MainRow/MetaColumn/PopulationLabel",
+		"$Margin/Root/MainRow/MetaColumn/FoodLabel",
+		"$Margin/Root/MainRow/MetaColumn/PopulationGrowthLabel",
+		"$Margin/Root/ManagementButtonSection/OpenProductionButton",
+		"$Margin/Root/ManagementButtonSection/OpenUpgradeButton",
+		"$Margin/Root/StatusTextLabel"
 	  ]
 	},
 	{
@@ -373,20 +377,23 @@
 		"scan_requested(object_id: String)",
 		"mining_requested(object_id: String)",
 		"recall_drone_requested(object_id: String)",
-        "recall_mining_ship_requested(object_id: String)"
+		"recall_mining_ship_requested(object_id: String)",
+		"close_requested()"
 	  ],
 	  "signals_emitted": [
 		"scan_requested",
 		"mining_requested",
 		"recall_drone_requested",
-        "recall_mining_ship_requested"
+		"recall_mining_ship_requested",
+		"close_requested"
 	  ],
 	  "signals_connected": [],
 	  "preloads": [
-        "res://scenes/ui/system/resource_info_row.tscn"
+		"res://scenes/ui/system/resource_info_row.tscn"
 	  ],
 	  "risk_node_paths": [
-		"$Margin/Root/HeaderLabel",
+		"$Margin/Root/HBoxContainer/HeaderLabel",
+		"$Margin/Root/HBoxContainer/CloseBasePanelButton",
 		"$Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture",
 		"$Margin/Root/MainRow/MetaColumn/NameLabel",
 		"$Margin/Root/MainRow/MetaColumn/TypeLabel",
@@ -396,13 +403,95 @@
 		"$Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
 		"$Margin/Root/LoreTitleLabel",
 		"$Margin/Root/LoreTextLabel",
-		"$Margin/Root/VBoxContainer/DroneOrbitLabel",
-		"$Margin/Root/VBoxContainer/MineOrbitLabel",
-		"$Margin/Root/VBoxContainer/MiningBonusLabel",
+		"$Margin/Root/OrbitStatusSection/DroneOrbitLabel",
+		"$Margin/Root/OrbitStatusSection/MineOrbitLabel",
+		"$Margin/Root/OrbitStatusSection/MiningBonusLabel",
 		"$Margin/Root/GridContainer/ScanWithDroneButton",
 		"$Margin/Root/GridContainer/SendMiningShipButton",
 		"$Margin/Root/GridContainer/RecallDroneButton",
-        "$Margin/Root/GridContainer/RecallMiningShipButton"
+		"$Margin/Root/GridContainer/RecallMiningShipButton"
+	  ]
+	},
+	{
+	  "path": "res://scripts/ui/system/top_hud.gd",
+	  "class_name": "",
+	  "extends": "PanelContainer",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": [
+		"hover_requested(kind: String, screen_position: Vector2)",
+		"hover_cleared"
+	  ],
+	  "signals_emitted": ["hover_requested", "hover_cleared"],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$Margin/Root/StorageWidget",
+		"$Margin/Root/ScanDroneWidget",
+		"$Margin/Root/MiningShipWidget",
+		"$Margin/Root/ColonyShipWidget",
+		"$Margin/Root/JobsWidget"
+	  ]
+	},
+	{
+	  "path": "res://scripts/ui/system/top_hud_hover_panel.gd",
+	  "class_name": "",
+	  "extends": "PanelContainer",
+	  "autoloads_used": [],
+	  "signals_defined": [],
+	  "signals_emitted": [],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$Margin/Root/TitleLabel",
+		"$Margin/Root/DetailList/DetailLabelTemplate",
+		"$Margin/Root/DividerB",
+		"$Margin/Root/HintLabel"
+	  ]
+	},
+	{
+	  "path": "res://scripts/ui/system/production_panel.gd",
+	  "class_name": "",
+	  "extends": "PanelContainer",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": [
+		"build_scan_drone_requested",
+		"build_mining_ship_requested",
+		"close_requested"
+	  ],
+	  "signals_emitted": [
+		"build_scan_drone_requested",
+		"build_mining_ship_requested",
+		"close_requested"
+	  ],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$Margin/Root/ProductionList/BuildScanDroneButton",
+		"$Margin/Root/ProductionList/BuildMiningShipButton",
+		"$Margin/Root/ProductionList/BuildColonyShipButton",
+		"$Margin/Root/HeaderRow/CloseButton",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel"
+	  ]
+	},
+	{
+	  "path": "res://scripts/ui/system/upgrade_panel.gd",
+	  "class_name": "",
+	  "extends": "PanelContainer",
+	  "autoloads_used": ["GameSession"],
+	  "signals_defined": ["close_requested"],
+	  "signals_emitted": ["close_requested"],
+	  "signals_connected": [],
+	  "preloads": [],
+	  "risk_node_paths": [
+		"$Margin/Root/UpgradeList/StorageUpgradeButton",
+		"$Margin/Root/UpgradeList/ScanDroneUpgradeButton",
+		"$Margin/Root/UpgradeList/MiningShipUpgradeButton",
+		"$Margin/Root/HeaderRow/CloseButton",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel",
+		"$Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel"
 	  ]
 	},
 	{
@@ -594,11 +683,19 @@
 		"WorldRoot/AutomationRoot",
 		"BackgroundRoot/OrbitGuidesLayer",
 		"UI/ObjectInfoPanel",
-        "UI/BaseManagementPanel"
+		"UI/BaseManagementPanel",
+		"UI/TopHUD",
+		"UI/TopHudHoverPanel",
+		"UI/ProductionPanel",
+		"UI/UpgradePanel"
 	  ],
 	  "instanced_scenes": [
 		"res://scenes/ui/system/object_info_panel.tscn",
-        "res://scenes/ui/system/base_management_panel.tscn"
+		"res://scenes/ui/system/base_management_panel.tscn",
+		"res://scenes/ui/system/top_hud.tscn",
+		"res://scenes/ui/system/top_hud_hover_panel.tscn",
+		"res://scenes/ui/system/production_panel.tscn",
+		"res://scenes/ui/system/upgrade_panel.tscn"
 	  ]
 	},
 	{
@@ -632,28 +729,28 @@
 	  "root_node": "PanelContainer",
 	  "script": "res://scripts/ui/system/base_management_panel.gd",
 	  "child_nodes": [
-		"Margin/Root/HeaderSection/BaseNameLabel",
-		"Margin/Root/HeaderSection/StatusLabel",
-		"Margin/Root/HeaderSection/PopulationLabel",
-		"Margin/Root/StorageSection/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
-		"Margin/Root/ProductionSection/ProductionGrid/BuildDroneButton",
-		"Margin/Root/ProductionSection/ProductionGrid/BuildMiningShipButton",
-		"Margin/Root/ProductionSection/ProductionGrid/BuildColonyShipButton",
-		"Margin/Root/FleetSection/FleetGrid/DroneCountLabel",
-		"Margin/Root/FleetSection/FleetGrid/MiningShipCountLabel",
-		"Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel",
-		"Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel",
-        "Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel"
+		"Margin/Root/HeaderRow/HeaderLabel",
+		"Margin/Root/HeaderRow/CloseBasePanelButton",
+		"Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture",
+		"Margin/Root/MainRow/MetaColumn/BaseNameLabel",
+		"Margin/Root/MainRow/MetaColumn/StatusLabel",
+		"Margin/Root/MainRow/MetaColumn/PopulationLabel",
+		"Margin/Root/MainRow/MetaColumn/FoodLabel",
+		"Margin/Root/MainRow/MetaColumn/PopulationGrowthLabel",
+		"Margin/Root/ManagementButtonSection/OpenProductionButton",
+		"Margin/Root/ManagementButtonSection/OpenUpgradeButton",
+		"Margin/Root/StatusTextLabel"
 	  ],
-	  "instanced_scenes": ["res://scenes/ui/system/storage_info_row.tscn (dynamisch)"],
-	  "notes": "StatusTextLabel ist NICHT im tscn definiert — Fallback in Script aktiv"
+	  "instanced_scenes": [],
+	  "notes": "Base-Hub: Navigation zu Production/Upgrade; keine dynamischen storage_info_row-Instanzen"
 	},
 	{
 	  "path": "res://scenes/ui/system/object_info_panel.tscn",
 	  "root_node": "PanelContainer",
 	  "script": "res://scripts/ui/system/object_info_panel.gd",
 	  "child_nodes": [
-		"Margin/Root/HeaderLabel",
+		"Margin/Root/HBoxContainer/HeaderLabel",
+		"Margin/Root/HBoxContainer/CloseBasePanelButton",
 		"Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture",
 		"Margin/Root/MainRow/MetaColumn/NameLabel",
 		"Margin/Root/MainRow/MetaColumn/TypeLabel",
@@ -663,15 +760,66 @@
 		"Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList",
 		"Margin/Root/LoreTitleLabel",
 		"Margin/Root/LoreTextLabel",
-		"Margin/Root/VBoxContainer/DroneOrbitLabel",
-		"Margin/Root/VBoxContainer/MineOrbitLabel",
-		"Margin/Root/VBoxContainer/MiningBonusLabel",
+		"Margin/Root/OrbitStatusSection/DroneOrbitLabel",
+		"Margin/Root/OrbitStatusSection/MineOrbitLabel",
+		"Margin/Root/OrbitStatusSection/MiningBonusLabel",
 		"Margin/Root/GridContainer/ScanWithDroneButton",
 		"Margin/Root/GridContainer/SendMiningShipButton",
 		"Margin/Root/GridContainer/RecallDroneButton",
-        "Margin/Root/GridContainer/RecallMiningShipButton"
+		"Margin/Root/GridContainer/RecallMiningShipButton"
 	  ],
 	  "instanced_scenes": ["res://scenes/ui/system/resource_info_row.tscn (dynamisch)"]
+	},
+	{
+	  "path": "res://scenes/ui/system/top_hud.tscn",
+	  "root_node": "PanelContainer",
+	  "script": "res://scripts/ui/system/top_hud.gd",
+	  "child_nodes": [
+		"Margin/Root/StorageWidget",
+		"Margin/Root/ScanDroneWidget",
+		"Margin/Root/MiningShipWidget",
+		"Margin/Root/ColonyShipWidget",
+		"Margin/Root/JobsWidget"
+	  ],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/ui/system/top_hud_hover_panel.tscn",
+	  "root_node": "PanelContainer",
+	  "script": "res://scripts/ui/system/top_hud_hover_panel.gd",
+	  "child_nodes": [
+		"Margin/Root/TitleLabel",
+		"Margin/Root/DetailList",
+		"Margin/Root/DividerB",
+		"Margin/Root/HintLabel"
+	  ],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/ui/system/production_panel.tscn",
+	  "root_node": "PanelContainer",
+	  "script": "res://scripts/ui/system/production_panel.gd",
+	  "child_nodes": [
+		"Margin/Root/HeaderRow/CloseButton",
+		"Margin/Root/ProductionList/BuildScanDroneButton",
+		"Margin/Root/ProductionList/BuildMiningShipButton",
+		"Margin/Root/ProductionList/BuildColonyShipButton",
+		"Margin/Root/HoverInfoPanel"
+	  ],
+	  "instanced_scenes": []
+	},
+	{
+	  "path": "res://scenes/ui/system/upgrade_panel.tscn",
+	  "root_node": "PanelContainer",
+	  "script": "res://scripts/ui/system/upgrade_panel.gd",
+	  "child_nodes": [
+		"Margin/Root/HeaderRow/CloseButton",
+		"Margin/Root/UpgradeList/StorageUpgradeButton",
+		"Margin/Root/UpgradeList/ScanDroneUpgradeButton",
+		"Margin/Root/UpgradeList/MiningShipUpgradeButton",
+		"Margin/Root/HoverInfoPanel"
+	  ],
+	  "instanced_scenes": []
 	},
 	{
 	  "path": "res://scenes/ui/system/storage_info_row.tscn",
@@ -679,7 +827,7 @@
 	  "script": null,
 	  "child_nodes": ["ResourceNameLabel", "ResourceValueLabel"],
 	  "instanced_scenes": [],
-	  "notes": "Aktiv — wird von base_management_panel.gd dynamisch instanziiert; KEIN Script"
+	  "notes": "Szene vorhanden; aktuell kein Panel-Script instanziiert diese Row (Base-Hub nutzt sie nicht)"
 	},
 	{
 	  "path": "res://scenes/ui/system/resource_info_row.tscn",
@@ -978,6 +1126,30 @@
 	},
 	{
 	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "res://scripts/ui/system/production_panel.gd",
+	  "type": "node_path",
+	  "note": "Aufrufe via call() / has_method() auf PanelContainer-Referenz"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "res://scripts/ui/system/upgrade_panel.gd",
+	  "type": "node_path",
+	  "note": "Aufrufe via call() / has_method() auf PanelContainer-Referenz"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "res://scripts/ui/system/top_hud.gd",
+	  "type": "node_path",
+	  "note": "Aufrufe via call() / has_method() auf Control-Referenz"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
+	  "to": "res://scripts/ui/system/top_hud_hover_panel.gd",
+	  "type": "node_path",
+	  "note": "Aufrufe via call() / has_method() auf Control-Referenz"
+	},
+	{
+	  "from": "res://scripts/system/controller/system_ui_controller.gd",
 	  "to": "res://scripts/system/controller/system_selection_controller.gd",
 	  "type": "signal",
 	  "signal_name": "selection_changed"
@@ -988,9 +1160,19 @@
 	  "type": "autoload_call"
 	},
 	{
-	  "from": "res://scripts/ui/system/base_management_panel.gd",
-	  "to": "res://scenes/ui/system/storage_info_row.tscn",
-	  "type": "preload"
+	  "from": "res://scripts/ui/system/top_hud.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/ui/system/production_panel.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
+	},
+	{
+	  "from": "res://scripts/ui/system/upgrade_panel.gd",
+	  "to": "GameSession",
+	  "type": "autoload_call"
 	},
 	{
 	  "from": "res://scripts/ui/system/object_info_panel.gd",
@@ -1055,12 +1237,6 @@
   ],
 
   "risks": [
-	{
-	  "type": "missing_node",
-	  "file": "res://scripts/ui/system/base_management_panel.gd",
-	  "description": "get_node_or_null('Margin/Root/StatusTextLabel') — dieser Node existiert nicht in base_management_panel.tscn. Script fällt stumm auf StatusLabel zurück.",
-	  "severity": "low"
-	},
 	{
 	  "type": "deprecated_format",
 	  "file": "res://resources/definitions/point_of_interest_definition.gd",
@@ -1135,12 +1311,6 @@
 	  "files": ["res://resources/definitions/point_of_interest_definition.gd"],
 	  "reason": "scan_basic/deep/special_resources als PackedStringArray (veraltet). SystemBodyDefinition nutzt Array[ScannedResourceEntry]. Kompatibilitäts-Fallback in scan_info_builder.gd aktiv.",
 	  "safe_to_delete": "no"
-	},
-	{
-	  "name": "StatusTextLabel Referenz in BaseManagementPanel",
-	  "files": ["res://scripts/ui/system/base_management_panel.gd"],
-	  "reason": "get_node_or_null auf nicht-existenten Node. Script-Fallback funktioniert, aber ist unklean.",
-	  "safe_to_delete": "unsure"
 	},
 	{
 	  "name": "Legacy orbit_radius/orbit_speed in SystemBodyDefinition",
