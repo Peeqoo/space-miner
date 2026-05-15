@@ -40,6 +40,7 @@ var bases: Dictionary = {
 		"population": 1,
 		"drones": 1,
 		"mining_ships": 1,
+		"colony_ships": 0,
 		"storage_capacity": INITIAL_STORAGE_CAPACITY,
 		"storage_upgrade_level": 0,
 		"scan_drone_upgrade_level": 0,
@@ -67,6 +68,7 @@ func get_base(base_id: String) -> Dictionary:
 	_normalize_base_storage_fields(base_entry)
 	_normalize_scan_drone_upgrade_fields(base_entry)
 	_normalize_mining_ship_upgrade_fields(base_entry)
+	_normalize_colony_ship_fields(base_entry)
 
 	_sync_storage_capacity_from_definition(base_id, base_entry)
 
@@ -76,6 +78,13 @@ func get_base(base_id: String) -> Dictionary:
 func _normalize_mining_ship_upgrade_fields(base: Dictionary) -> void:
 	if not base.has("mining_ship_upgrade_level"):
 		base["mining_ship_upgrade_level"] = 0
+
+
+func _normalize_colony_ship_fields(base: Dictionary) -> void:
+	if not base.has("colony_ships"):
+		base["colony_ships"] = 0
+	elif int(base["colony_ships"]) < 0:
+		base["colony_ships"] = 0
 
 
 func _normalize_scan_drone_upgrade_fields(base: Dictionary) -> void:
@@ -425,6 +434,11 @@ func get_mining_ship_count(base_id: String) -> int:
 	return int(base.get("mining_ships", 0))
 
 
+func get_colony_ship_count(base_id: String) -> int:
+	var base := get_base(base_id)
+	return int(base.get("colony_ships", 0))
+
+
 func can_build_drone(base_id: String) -> bool:
 	return can_afford(base_id, DRONE_COST)
 
@@ -456,11 +470,45 @@ func build_mining_ship(base_id: String) -> bool:
 
 
 func can_build_colony_ship(base_id: String) -> bool:
+	if not GameSession.has_established_base(base_id):
+		return false
 	return can_afford(base_id, COLONY_SHIP_COST)
 
 
 func build_colony_ship(base_id: String) -> bool:
-	return spend_cost(base_id, COLONY_SHIP_COST)
+	if not GameSession.has_established_base(base_id):
+		push_warning("BaseStore.build_colony_ship: base '%s' is not established" % base_id)
+		return false
+	if not can_afford(base_id, COLONY_SHIP_COST):
+		return false
+	if not spend_cost(base_id, COLONY_SHIP_COST):
+		return false
+	var base := get_base(base_id)
+	base["colony_ships"] = int(base.get("colony_ships", 0)) + 1
+	bases[base_id] = base
+	return true
+
+
+## Grants colony ships without cost (events / dev rollback).
+func add_colony_ship(base_id: String, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	var base := get_base(base_id)
+	base["colony_ships"] = int(base.get("colony_ships", 0)) + amount
+	bases[base_id] = base
+
+
+## Removes colony ships without spending resources (consumption for travel / colony drop).
+func consume_colony_ships(base_id: String, amount: int = 1) -> bool:
+	if amount <= 0:
+		return true
+	var base := get_base(base_id)
+	var cur: int = int(base.get("colony_ships", 0))
+	if cur < amount:
+		return false
+	base["colony_ships"] = cur - amount
+	bases[base_id] = base
+	return true
 
 
 # Adds mining ships without any cost. Used for starting units and grants.
@@ -494,6 +542,7 @@ func _create_empty_base() -> Dictionary:
 		"population": 0,
 		"drones": 0,
 		"mining_ships": 0,
+		"colony_ships": 0,
 		"storage_capacity": INITIAL_STORAGE_CAPACITY,
 		"storage_upgrade_level": 0,
 		"scan_drone_upgrade_level": 0,

@@ -270,6 +270,43 @@ func establish_base_at_body(system_id: String, body_id: String) -> bool:
 	return true
 
 
+## DEV / foundation (Phase 6.4b): spend one stored ColonyShip at `source_base_id` to establish a target body.
+## No travel, no UI. If `establish_base_at_body` fails, the ColonyShip is refunded.
+func dev_consume_colony_ship_and_establish_base(source_base_id: String, target_system_id: String, target_body_id: String) -> bool:
+	var src := source_base_id.strip_edges()
+	var tsid := target_system_id.strip_edges()
+	var tbod := target_body_id.strip_edges()
+
+	if src.is_empty():
+		push_warning("GameSession.dev_consume_colony_ship_and_establish_base: empty source_base_id")
+		return false
+	if tsid.is_empty() or tbod.is_empty():
+		push_warning("GameSession.dev_consume_colony_ship_and_establish_base: empty target ids")
+		return false
+
+	if not has_established_base(src):
+		push_warning("GameSession.dev_consume_colony_ship_and_establish_base: source not established")
+		return false
+
+	var target_base_key := tbod
+	if has_established_base(target_base_key):
+		return false
+
+	if bases.get_colony_ship_count(src) < 1:
+		return false
+
+	if not bases.consume_colony_ships(src, 1):
+		return false
+
+	if not establish_base_at_body(tsid, tbod):
+		bases.add_colony_ship(src, 1)
+		base_resources_changed.emit(src)
+		return false
+
+	base_resources_changed.emit(src)
+	return true
+
+
 func has_established_base(base_id: String) -> bool:
 	var bid := base_id.strip_edges()
 	if bid.is_empty():
@@ -461,6 +498,10 @@ func get_base_mining_ship_count(base_id: String) -> int:
 	return bases.get_mining_ship_count(base_id)
 
 
+func get_base_colony_ship_count(base_id: String) -> int:
+	return bases.get_colony_ship_count(base_id)
+
+
 func build_base_drone(base_id: String) -> bool:
 	if not bases.build_drone(base_id):
 		return false
@@ -478,10 +519,17 @@ func build_base_mining_ship(base_id: String) -> bool:
 
 
 func build_base_colony_ship(base_id: String) -> bool:
-	if not bases.build_colony_ship(base_id):
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		push_warning("GameSession.build_base_colony_ship: empty base_id")
+		return false
+	if not has_established_base(bid):
+		push_warning("GameSession.build_base_colony_ship: base '%s' not established" % bid)
+		return false
+	if not bases.build_colony_ship(bid):
 		return false
 
-	base_resources_changed.emit(base_id)
+	base_resources_changed.emit(bid)
 	return true
 
 
@@ -631,7 +679,7 @@ func can_build_base_mining_ship(base_id: String) -> bool:
 
 
 func can_build_base_colony_ship(base_id: String) -> bool:
-	return bases.can_afford(base_id, BaseStore.COLONY_SHIP_COST)
+	return bases.can_build_colony_ship(base_id)
 
 
 func get_build_cost_text(unit_type: String) -> String:

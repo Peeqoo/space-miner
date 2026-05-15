@@ -74,7 +74,7 @@ func refresh_from_game_session() -> void:
 	var ships: int = GameSession.get_base_mining_ship_count(bid)
 	mining_ship_label.text = "MS %d" % ships
 
-	colony_ship_label.text = "CS 0"
+	colony_ship_label.text = "CS %d" % GameSession.get_base_colony_ship_count(bid)
 
 
 func _connect_widget_hover(widget: Control, kind: String) -> void:

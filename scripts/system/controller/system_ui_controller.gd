@@ -1054,9 +1054,13 @@ func _build_hover_details(kind: String) -> Dictionary:
 			hint = "Used for automated resource extraction."
 
 		"colony_ships":
+			var total_cs: int = GameSession.get_base_colony_ship_count(base_id)
 			title = "ColonyShips"
-			details = ["Total: 0", "Status: Locked"]
-			hint = "Used for system expansion later."
+			details = [
+				"Total: %d" % total_cs,
+				"Status: stored (no travel yet — Phase 6.4b).",
+			]
+			hint = "Used later to establish colonies in other systems."
 
 		"jobs":
 			var scan_jobs := 0

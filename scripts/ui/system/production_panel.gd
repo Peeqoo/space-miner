@@ -1,4 +1,4 @@
-## ProductionPanel — build ScanDrones, MiningShips, and (locked) ColonyShips.
+## ProductionPanel — build ScanDrones, MiningShips, and ColonyShip inventory.
 ## Emits build_scan_drone_requested / build_mining_ship_requested for AutomationController spawning.
 extends PanelContainer
 
@@ -16,8 +16,8 @@ const BUTTON_INFO: Dictionary = {
 		"desc": "Mines resources from scanned objects.",
 	},
 	"BuildColonyShipButton": {
-		"title": "ColonyShip (Locked)",
-		"desc": "Unlocks after stable Phase 4 loop.",
+		"title": "ColonyShip",
+		"desc": "Costs resources. Stored for future colony expansion.",
 	},
 }
 
@@ -55,12 +55,11 @@ func _ready() -> void:
 	_connect_button(close_button, _on_close_pressed)
 	_connect_button(build_scan_drone_button, _on_build_scan_drone_pressed)
 	_connect_button(build_mining_ship_button, _on_build_mining_ship_pressed)
+	_connect_button(build_colony_ship_button, _on_build_colony_ship_pressed)
 
 	_register_hover(build_scan_drone_button)
 	_register_hover(build_mining_ship_button)
 	_register_hover(build_colony_ship_button)
-
-	build_colony_ship_button.disabled = true
 
 	if not GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.connect(_on_resources_changed)
@@ -77,7 +76,7 @@ func refresh_from_game_session() -> void:
 	var oid := _economy_body_id_for_ops()
 	build_scan_drone_button.disabled = not GameSession.can_build_base_drone(oid)
 	build_mining_ship_button.disabled = not GameSession.can_build_base_mining_ship(oid)
-	build_colony_ship_button.disabled = true
+	build_colony_ship_button.disabled = not GameSession.can_build_base_colony_ship(oid)
 
 
 func _on_close_pressed() -> void:
@@ -101,6 +100,14 @@ func _on_build_mining_ship_pressed() -> void:
 		return
 	if GameSession.build_base_mining_ship(oid):
 		build_mining_ship_requested.emit()
+	refresh_from_game_session()
+
+
+func _on_build_colony_ship_pressed() -> void:
+	var oid := _economy_body_id_for_ops()
+	if not GameSession.has_established_base(oid):
+		return
+	GameSession.build_base_colony_ship(oid)
 	refresh_from_game_session()
 
 
@@ -138,7 +145,7 @@ func _build_cost_text(button_name: String) -> String:
 		"BuildMiningShipButton":
 			return _format_cost_lines(BaseStore.MINING_SHIP_COST, resources)
 		"BuildColonyShipButton":
-			return "Locked. Later expansion phase."
+			return _format_cost_lines(BaseStore.COLONY_SHIP_COST, resources)
 	return ""
 
 
