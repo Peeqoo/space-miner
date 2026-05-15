@@ -48,7 +48,7 @@ var bases: Dictionary = {
 	}
 }
 
-## Phase 5.5: loaded by `GameSession`; balancing comes from `data/upgrades/*.tres`.
+## Phase 5.5: balancing data — catalog is bound externally (see project autoload).
 var _upgrade_catalog: UpgradeCatalog = null
 
 
@@ -470,19 +470,15 @@ func build_mining_ship(base_id: String) -> bool:
 
 
 func can_build_colony_ship(base_id: String) -> bool:
-	if not GameSession.has_established_base(base_id):
-		return false
 	return can_afford(base_id, COLONY_SHIP_COST)
 
 
 func build_colony_ship(base_id: String) -> bool:
-	if not GameSession.has_established_base(base_id):
-		push_warning("BaseStore.build_colony_ship: base '%s' is not established" % base_id)
-		return false
-	if not can_afford(base_id, COLONY_SHIP_COST):
+	if not can_build_colony_ship(base_id):
 		return false
 	if not spend_cost(base_id, COLONY_SHIP_COST):
 		return false
+
 	var base := get_base(base_id)
 	base["colony_ships"] = int(base.get("colony_ships", 0)) + 1
 	bases[base_id] = base

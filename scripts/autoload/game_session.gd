@@ -42,6 +42,10 @@ var _established_base_ids: Dictionary = {}
 ## Later, `base_id` may diverge from `body_id` (e.g. named settlement id); callers should use accessors.
 var _established_base_records: Dictionary = {}
 
+## Phase 6.4c: colonization ops (pending → complete/cancel). No travel visuals or timers.
+var _colonization_operations: Dictionary = {}
+var _next_colonization_operation_id: int = 1
+
 signal object_remaining_resources_changed(system_id: String, object_id: String)
 signal base_resources_changed(base_id: String)
 ## Emitted when `discovered_system_ids` or `unlocked_system_ids` change (not during initial seed).
@@ -270,41 +274,174 @@ func establish_base_at_body(system_id: String, body_id: String) -> bool:
 	return true
 
 
-## DEV / foundation (Phase 6.4b): spend one stored ColonyShip at `source_base_id` to establish a target body.
-## No travel, no UI. If `establish_base_at_body` fails, the ColonyShip is refunded.
-func dev_consume_colony_ship_and_establish_base(source_base_id: String, target_system_id: String, target_body_id: String) -> bool:
+# --------------------------------------------------
+# Colonization operations (Phase 6.4c)
+# --------------------------------------------------
+
+
+func start_colonization_operation(source_base_id: String, target_system_id: String, target_body_id: String) -> String:
 	var src := source_base_id.strip_edges()
 	var tsid := target_system_id.strip_edges()
 	var tbod := target_body_id.strip_edges()
 
-	if src.is_empty():
-		push_warning("GameSession.dev_consume_colony_ship_and_establish_base: empty source_base_id")
-		return false
-	if tsid.is_empty() or tbod.is_empty():
-		push_warning("GameSession.dev_consume_colony_ship_and_establish_base: empty target ids")
-		return false
+	if src.is_empty() or tsid.is_empty() or tbod.is_empty():
+		push_warning("GameSession.start_colonization_operation: empty source or target id")
+		return ""
 
 	if not has_established_base(src):
-		push_warning("GameSession.dev_consume_colony_ship_and_establish_base: source not established")
-		return false
+		push_warning("GameSession.start_colonization_operation: source base not established (%s)" % src)
+		return ""
 
-	var target_base_key := tbod
-	if has_established_base(target_base_key):
-		return false
+	if has_established_base_in_system(tsid):
+		push_warning("GameSession.start_colonization_operation: target system already has an established base (%s)" % tsid)
+		return ""
+
+	if has_established_base(tbod):
+		push_warning("GameSession.start_colonization_operation: target body already established (%s)" % tbod)
+		return ""
+
+	if has_pending_colonization_to_system(tsid):
+		push_warning("GameSession.start_colonization_operation: pending operation already targets system %s" % tsid)
+		return ""
 
 	if bases.get_colony_ship_count(src) < 1:
-		return false
+		return ""
 
 	if not bases.consume_colony_ships(src, 1):
+		return ""
+
+	var op_id := _allocate_colonization_operation_id()
+	var rec: Dictionary = {
+		"operation_id": op_id,
+		"source_base_id": src,
+		"target_system_id": tsid,
+		"target_body_id": tbod,
+		"status": "pending",
+		"reserved_colony_ships": 1,
+		"created_at_tick": Time.get_ticks_msec(),
+		"completed_at_tick": -1,
+	}
+	_colonization_operations[op_id] = rec
+	base_resources_changed.emit(src)
+	return op_id
+
+
+func complete_colonization_operation(operation_id: String) -> bool:
+	var oid := operation_id.strip_edges()
+	if oid.is_empty() or not _colonization_operations.has(oid):
 		return false
 
+	var rec_variant: Variant = _colonization_operations[oid]
+	if rec_variant == null or not rec_variant is Dictionary:
+		return false
+	var rec: Dictionary = (rec_variant as Dictionary).duplicate(true)
+
+	if str(rec.get("status", "")).strip_edges() != "pending":
+		return false
+
+	var src: String = str(rec.get("source_base_id", "")).strip_edges()
+	var tsid: String = str(rec.get("target_system_id", "")).strip_edges()
+	var tbod: String = str(rec.get("target_body_id", "")).strip_edges()
+	var ships_reserved: int = maxi(1, int(rec.get("reserved_colony_ships", 1)))
+
 	if not establish_base_at_body(tsid, tbod):
-		bases.add_colony_ship(src, 1)
+		rec["status"] = "failed"
+		rec["completed_at_tick"] = Time.get_ticks_msec()
+		bases.add_colony_ship(src, ships_reserved)
+		_colonization_operations[oid] = rec
 		base_resources_changed.emit(src)
 		return false
 
+	rec["status"] = "completed"
+	rec["completed_at_tick"] = Time.get_ticks_msec()
+	_colonization_operations[oid] = rec
+	base_resources_changed.emit(tbod)
+	return true
+
+
+func cancel_colonization_operation(operation_id: String) -> bool:
+	var oid := operation_id.strip_edges()
+	if oid.is_empty() or not _colonization_operations.has(oid):
+		return false
+
+	var rec_variant: Variant = _colonization_operations[oid]
+	if rec_variant == null or not rec_variant is Dictionary:
+		return false
+	var rec: Dictionary = (rec_variant as Dictionary).duplicate(true)
+
+	if str(rec.get("status", "")).strip_edges() != "pending":
+		return false
+
+	var src: String = str(rec.get("source_base_id", "")).strip_edges()
+	var reserved: int = maxi(1, int(rec.get("reserved_colony_ships", 1)))
+
+	rec["status"] = "cancelled"
+	rec["completed_at_tick"] = Time.get_ticks_msec()
+	bases.add_colony_ship(src, reserved)
+	_colonization_operations[oid] = rec
 	base_resources_changed.emit(src)
 	return true
+
+
+func get_colonization_operation(operation_id: String) -> Dictionary:
+	var oid := operation_id.strip_edges()
+	if oid.is_empty() or not _colonization_operations.has(oid):
+		return {}
+	var rec_variant: Variant = _colonization_operations[oid]
+	if rec_variant != null and rec_variant is Dictionary:
+		return (rec_variant as Dictionary).duplicate(true)
+	return {}
+
+
+func get_colonization_operations() -> Array:
+	var out: Array = []
+	var ks: Array = _colonization_operations.keys()
+	ks.sort()
+	for k: Variant in ks:
+		var rec_variant: Variant = _colonization_operations[k]
+		if rec_variant != null and rec_variant is Dictionary:
+			out.append((rec_variant as Dictionary).duplicate(true))
+	return out
+
+
+func get_pending_colonization_operations() -> Array:
+	var out: Array = []
+	for rec_variant: Variant in _colonization_operations.values():
+		if rec_variant == null or not rec_variant is Dictionary:
+			continue
+		var d: Dictionary = rec_variant as Dictionary
+		if str(d.get("status", "")).strip_edges() == "pending":
+			out.append(d.duplicate(true))
+	return out
+
+
+func has_pending_colonization_to_system(system_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return false
+	for rec_variant: Variant in _colonization_operations.values():
+		if rec_variant == null or not rec_variant is Dictionary:
+			continue
+		var d: Dictionary = rec_variant as Dictionary
+		if str(d.get("status", "")).strip_edges() != "pending":
+			continue
+		if str(d.get("target_system_id", "")).strip_edges() == sid:
+			return true
+	return false
+
+
+func _allocate_colonization_operation_id() -> String:
+	var id_str: String = "colony_%d" % _next_colonization_operation_id
+	_next_colonization_operation_id += 1
+	return id_str
+
+
+## DEV / foundation: uses colonization operation flow (start → complete) for tests.
+func dev_consume_colony_ship_and_establish_base(source_base_id: String, target_system_id: String, target_body_id: String) -> bool:
+	var op_id := start_colonization_operation(source_base_id, target_system_id, target_body_id)
+	if op_id.is_empty():
+		return false
+	return complete_colonization_operation(op_id)
 
 
 func has_established_base(base_id: String) -> bool:
@@ -521,10 +658,10 @@ func build_base_mining_ship(base_id: String) -> bool:
 func build_base_colony_ship(base_id: String) -> bool:
 	var bid := base_id.strip_edges()
 	if bid.is_empty():
-		push_warning("GameSession.build_base_colony_ship: empty base_id")
+		push_warning("GameSession: cannot build ColonyShip without base_id.")
 		return false
 	if not has_established_base(bid):
-		push_warning("GameSession.build_base_colony_ship: base '%s' not established" % bid)
+		push_warning("GameSession: cannot build ColonyShip for non-established base_id=%s." % bid)
 		return false
 	if not bases.build_colony_ship(bid):
 		return false
@@ -679,7 +816,12 @@ func can_build_base_mining_ship(base_id: String) -> bool:
 
 
 func can_build_base_colony_ship(base_id: String) -> bool:
-	return bases.can_build_colony_ship(base_id)
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		return false
+	if not has_established_base(bid):
+		return false
+	return bases.can_build_colony_ship(bid)
 
 
 func get_build_cost_text(unit_type: String) -> String:
