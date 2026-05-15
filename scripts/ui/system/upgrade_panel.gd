@@ -17,7 +17,7 @@ const UPGRADE_INFO: Dictionary = {
 	},
 	"MiningShipUpgradeButton": {
 		"title": "MiningShip Upgrade I",
-		"desc": "MiningShips carry 25% more cargo. Applies to newly launched mining missions.",
+		"desc": "MiningShips carry 25% more cargo.",
 	},
 }
 
@@ -115,14 +115,8 @@ func _on_button_hover_entered(button: Button) -> void:
 		return
 
 	hover_title_label.text = str(info.get("title", ""))
-
-	if _is_upgrade_bought(button.name):
-		hover_desc_label.text = "Already installed."
-		hover_cost_label.text = ""
-	else:
-		hover_desc_label.text = str(info.get("desc", ""))
-		hover_cost_label.text = _build_cost_text(button.name)
-
+	hover_desc_label.text = _build_upgrade_hover_description(button.name)
+	hover_cost_label.text = ""
 	hover_info_panel.visible = true
 	call_deferred("_fit_height_to_content")
 
@@ -143,25 +137,89 @@ func _is_upgrade_bought(button_name: String) -> bool:
 	return false
 
 
-func _build_cost_text(button_name: String) -> String:
-	var resources := GameSession.get_base_resources(BASE_ID)
+func _storage_upgrade_capacity_delta_percent() -> int:
+	return int(
+		round(
+			float(BaseStore.STORAGE_UPGRADE_I_CAPACITY_BONUS)
+			/ float(max(1, BaseStore.INITIAL_STORAGE_CAPACITY))
+			* 100.0
+		)
+	)
+
+
+func _scan_speed_upgrade_delta_percent() -> int:
+	return int(round((1.0 - BaseStore.SCAN_DRONE_UPGRADE_I_DURATION_MULTIPLIER) * 100.0))
+
+
+func _cargo_capacity_upgrade_delta_percent() -> int:
+	return int(
+		round((BaseStore.MINING_SHIP_UPGRADE_I_CARGO_CAPACITY_MULTIPLIER - 1.0) * 100.0)
+	)
+
+
+func _build_upgrade_hover_description(button_name: String) -> String:
+	var bought := _is_upgrade_bought(button_name)
+	var lines: PackedStringArray = []
+
 	match button_name:
 		"StorageUpgradeButton":
-			return _format_cost_lines(GameSession.get_base_storage_upgrade_i_cost(), resources)
+			if bought:
+				lines.append("Status:")
+				lines.append("Already installed.")
+				lines.append("Effects:")
+				lines.append("+%d%% Base Storage Capacity" % _storage_upgrade_capacity_delta_percent())
+			else:
+				var cost := GameSession.get_base_storage_upgrade_i_cost()
+				lines.append("Cost:")
+				lines.append_array(_format_cost_required_amount_lines(cost))
+				lines.append("Effects:")
+				lines.append("+%d%% Base Storage Capacity" % _storage_upgrade_capacity_delta_percent())
+				lines.append("Applies immediately.")
+
 		"ScanDroneUpgradeButton":
-			return _format_cost_lines(GameSession.get_scan_drone_upgrade_i_cost(), resources)
+			if bought:
+				lines.append("Status:")
+				lines.append("Already installed.")
+				lines.append("Effects:")
+				lines.append("+%d%% Scan Speed" % _scan_speed_upgrade_delta_percent())
+			else:
+				var cost_s := GameSession.get_scan_drone_upgrade_i_cost()
+				lines.append("Cost:")
+				lines.append_array(_format_cost_required_amount_lines(cost_s))
+				lines.append("Effects:")
+				lines.append("+%d%% Scan Speed" % _scan_speed_upgrade_delta_percent())
+				lines.append("Applies to newly launched scans.")
+
 		"MiningShipUpgradeButton":
-			return _format_cost_lines(GameSession.get_mining_ship_upgrade_i_cost(), resources)
-	return ""
+			if bought:
+				lines.append("Status:")
+				lines.append("Already installed.")
+				lines.append("Effects:")
+				lines.append(
+					"+%d%% Cargo Capacity" % _cargo_capacity_upgrade_delta_percent()
+				)
+			else:
+				var cost_m := GameSession.get_mining_ship_upgrade_i_cost()
+				lines.append("Cost:")
+				lines.append_array(_format_cost_required_amount_lines(cost_m))
+				lines.append("Effects:")
+				lines.append(
+					"+%d%% Cargo Capacity" % _cargo_capacity_upgrade_delta_percent()
+				)
+				lines.append("Applies to newly launched mining missions.")
+
+		_:
+			return str(UPGRADE_INFO.get(button_name, {}).get("desc", ""))
+
+	return "\n".join(lines)
 
 
-func _format_cost_lines(cost: Dictionary, available: Dictionary) -> String:
-	var lines: PackedStringArray = []
+func _format_cost_required_amount_lines(cost: Dictionary) -> PackedStringArray:
+	var out: PackedStringArray = []
 	for res_id: Variant in cost.keys():
 		var need := int(cost.get(res_id, 0))
-		var have := int(available.get(res_id, 0))
-		lines.append("%s: %d / %d" % [_format_title(str(res_id)), have, need])
-	return "\n".join(lines)
+		out.append("%s: %d" % [_format_title(str(res_id)), need])
+	return out
 
 
 func _format_title(value: String) -> String:

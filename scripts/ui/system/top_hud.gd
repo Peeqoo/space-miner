@@ -50,7 +50,7 @@ func refresh_from_game_session() -> void:
 	mining_ship_label.text = "MS %d" % ships
 
 	colony_ship_label.text = "CS 0"
-	jobs_label.text = "Jobs 0"
+	jobs_label.text = "JBS 0"
 
 
 func _connect_widget_hover(widget: Control, kind: String) -> void:

@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://uqkmyvdqw7f7"]
 
 [ext_resource type="Script" uid="uid://bc4fthjt74n78" path="res://scripts/ui/galaxy/galaxy_map_hud.gd" id="1_thtu1"]
-[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/pixeloperator_hbsc_label_settings.tres" id="2_g1njk"]
-[ext_resource type="LabelSettings" uid="uid://4xgvxn82u0y7" path="res://scenes/ui/font_labels/pixeloperator_label_settings.tres" id="3_0qajj"]
-[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/pixeloperator8_label_settings.tres" id="4_3tpsn"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/titel_label.tres" id="2_g1njk"]
+[ext_resource type="LabelSettings" uid="uid://b7bsxvpf2qqlj" path="res://scenes/ui/font_labels/titel_label_small.tres" id="3_0qajj"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="4_3tpsn"]
 [ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="5_0qajj"]
 
 [node name="GalaxyMapHUD" type="Control" unique_id=198924309]

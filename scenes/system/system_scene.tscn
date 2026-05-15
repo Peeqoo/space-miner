@@ -128,5 +128,4 @@ offset_top = -5.0
 offset_right = 178.00023
 offset_bottom = 91.0
 
-[node name="TopHudHoverPanel" parent="UI" unique_id=1234562001 instance=ExtResource("17_hrum5")]
-visible = false
+[node name="TopHudHoverPanel" parent="UI" unique_id=1002840814 instance=ExtResource("17_hrum5")]

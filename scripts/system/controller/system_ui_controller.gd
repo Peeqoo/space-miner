@@ -18,6 +18,26 @@ var top_hud_hover_panel: Control = null
 
 const _TOP_HUD_HOVER_SIDE_MARGIN := 12.0
 
+## Mirrors `AutomationController.DRONE_MINING_BONUS_PER_UNIT` × 100 (read-only duplicate for UI strings).
+const _SCAN_DRONE_MINING_SUPPORT_YIELD_PERCENT_PER_DRONE := 2
+
+## Mirrors `AutomationController.MiningShipStatus` order (read-only; do not change automation enums here).
+const _MS_RT_TO_TARGET := 0
+const _MS_RT_MINING := 1
+const _MS_RT_TO_BASE := 2
+const _MS_RT_UNLOADING := 3
+const _MS_RT_WAITING_STORAGE := 4
+
+const _SCAN_PHRASE_ORDER: Array[String] = ["traveling", "scanning", "returning", "idle"]
+const _MINING_PHRASE_ORDER: Array[String] = [
+	"traveling",
+	"mining",
+	"returning",
+	"unloading",
+	"waiting for storage",
+	"active",
+]
+
 
 func setup(
 	p_system_definition: SystemDefinition,
@@ -260,12 +280,16 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	if bool(info["is_home_base"]):
 		info["active_scan_drone_count"] = 0
 		info["active_mining_ship_count"] = 0
+		info["scan_drone_supporting_count"] = 0
+		info["mining_ship_mining_count"] = 0
 		info["mining_bonus"] = 0.0
 		info["can_recall_drone"] = false
 		info["can_recall_mining_ship"] = false
 	else:
 		info["active_scan_drone_count"] = _get_active_scan_drone_count(object_id)
 		info["active_mining_ship_count"] = _get_active_mining_ship_count(object_id)
+		info["scan_drone_supporting_count"] = _get_orbiting_drone_count(object_id)
+		info["mining_ship_mining_count"] = _get_mining_ship_mining_status_count(object_id)
 		info["mining_bonus"] = _get_mining_bonus_for_object(object_id)
 		info["can_recall_drone"] = _get_orbiting_drone_count(object_id) > 0
 		info["can_recall_mining_ship"] = _get_active_mining_ship_count(object_id) > 0
@@ -512,6 +536,26 @@ func _get_assigned_mining_ship_count(object_id: String) -> int:
 	return 0
 
 
+func _get_mining_ship_mining_status_count(object_id: String) -> int:
+	if object_id.is_empty() or automation_controller == null:
+		return 0
+
+	var count := 0
+
+	for uid_var: Variant in automation_controller.mining_ship_runtime_by_unit_id.keys():
+		var rt: Dictionary = automation_controller.mining_ship_runtime_by_unit_id[uid_var]
+
+		if str(rt.get("target_id", "")) != object_id:
+			continue
+
+		var st := int(rt.get("status", _MS_RT_TO_TARGET))
+
+		if st == AutomationController.MiningShipStatus.MINING:
+			count += 1
+
+	return count
+
+
 func _get_mining_bonus_for_object(object_id: String) -> float:
 	if object_id.is_empty():
 		return 0.0
@@ -678,6 +722,191 @@ func _on_top_hud_hover_cleared() -> void:
 		top_hud_hover_panel.call("clear")
 
 
+func _hover_display_name_for_object_id(object_id: String) -> String:
+	if object_id.is_empty():
+		return ""
+	if spawner != null:
+		var node := spawner.get_spawned_object(object_id)
+		if node is SystemBody:
+			return (node as SystemBody).display_name
+		if node is PointOfInterest:
+			return (node as PointOfInterest).display_name
+	return object_id.capitalize()
+
+
+func _hover_scan_drone_status_phrase(unit: AutomationUnit) -> String:
+	if unit == null or not is_instance_valid(unit):
+		return "idle"
+	match unit.state:
+		AutomationUnit.State.WORKING:
+			return "scanning"
+		AutomationUnit.State.RETURNING:
+			return "returning"
+		AutomationUnit.State.TRAVEL_TO_TARGET, AutomationUnit.State.APPROACH_ORBIT:
+			return "traveling"
+		_:
+			return "idle"
+
+
+func _hover_mining_ship_status_phrase(status: int) -> String:
+	match status:
+		_MS_RT_MINING:
+			return "mining"
+		_MS_RT_TO_BASE:
+			return "returning"
+		_MS_RT_TO_TARGET:
+			return "traveling"
+		_MS_RT_UNLOADING:
+			return "unloading"
+		_MS_RT_WAITING_STORAGE:
+			return "waiting for storage"
+		_:
+			return "active"
+
+
+func _hover_mining_ship_group_object_id(runtime: Dictionary, status: int) -> String:
+	if status == _MS_RT_UNLOADING or status == _MS_RT_WAITING_STORAGE:
+		return BaseStore.BASE_EARTH
+	return str(runtime.get("target_id", ""))
+
+
+func _hover_unique_object_ids_sorted(count_map: Dictionary) -> Array[String]:
+	var ids: Dictionary = {}
+	for key_variant: Variant in count_map.keys():
+		var key_str := str(key_variant)
+		var sep := key_str.find("|")
+		if sep < 0:
+			continue
+		var oid := key_str.substr(0, sep)
+		if oid.is_empty():
+			continue
+		ids[oid] = true
+	var out: Array[String] = []
+	for id_variant: Variant in ids.keys():
+		out.append(str(id_variant))
+	out.sort_custom(
+		func(a: String, b: String) -> bool:
+			var da := _hover_display_name_for_object_id(a).to_lower()
+			var db := _hover_display_name_for_object_id(b).to_lower()
+			if da == db:
+				return a < b
+			return da < db
+	)
+	return out
+
+
+func _hover_append_aggregate_lines(
+	details: Array,
+	count_map: Dictionary,
+	phrase_order: Array[String]
+) -> void:
+	for oid: String in _hover_unique_object_ids_sorted(count_map):
+		var disp := _hover_display_name_for_object_id(oid)
+		for phrase: String in phrase_order:
+			var compound := "%s|%s" % [oid, phrase]
+			if not count_map.has(compound):
+				continue
+			var n: int = int(count_map[compound])
+			if n <= 0:
+				continue
+			details.append("%s: %d %s" % [disp, n, phrase])
+
+
+func _hover_effect_scan_speed_percent(duration_multiplier: float) -> int:
+	return 100 + int(round((1.0 - duration_multiplier) * 100.0))
+
+
+func _hover_append_scan_drone_supporting_lines(details: Array) -> void:
+	if automation_controller == null:
+		return
+
+	for tid: String in _hover_sorted_scan_assignment_targets():
+		var n_sup := automation_controller.get_orbiting_drone_count(tid)
+
+		if n_sup <= 0:
+			continue
+
+		var disp := _hover_display_name_for_object_id(tid)
+		var yield_pct := n_sup * _SCAN_DRONE_MINING_SUPPORT_YIELD_PERCENT_PER_DRONE
+		details.append("%s: %d supporting mining (+%d%%)" % [disp, n_sup, yield_pct])
+
+
+func _hover_sorted_scan_assignment_targets() -> Array[String]:
+	var seen: Dictionary = {}
+
+	if automation_controller != null:
+		for v: Variant in automation_controller.scan_drone_target_by_unit_id.values():
+			var s := str(v)
+
+			if s.is_empty():
+				continue
+
+			seen[s] = true
+
+	var out: Array[String] = []
+
+	for id_variant: Variant in seen.keys():
+		out.append(str(id_variant))
+
+	out.sort_custom(
+		func(a: String, b: String) -> bool:
+			var da := _hover_display_name_for_object_id(a).to_lower()
+			var db := _hover_display_name_for_object_id(b).to_lower()
+
+			if da == db:
+				return a < b
+
+			return da < db
+	)
+
+	return out
+
+
+func _hover_build_scan_drone_mission_activity() -> Dictionary:
+	var count_map: Dictionary = {}
+
+	if automation_controller == null:
+		return count_map
+
+	for unit_id_variant: Variant in automation_controller.scan_drone_target_by_unit_id.keys():
+		var tid: String = str(automation_controller.scan_drone_target_by_unit_id[unit_id_variant])
+
+		if tid.is_empty():
+			continue
+
+		var unit := instance_from_id(int(unit_id_variant)) as AutomationUnit
+
+		if unit == null or not is_instance_valid(unit):
+			continue
+
+		if unit.is_available():
+			continue
+
+		var phrase := _hover_scan_drone_status_phrase(unit)
+		var compound := "%s|%s" % [tid, phrase]
+		count_map[compound] = int(count_map.get(compound, 0)) + 1
+
+	return count_map
+
+
+func _hover_build_mining_ship_activity() -> Dictionary:
+	var count_map: Dictionary = {}
+	if automation_controller == null:
+		return count_map
+	for unit_id_variant: Variant in automation_controller.mining_ship_runtime_by_unit_id.keys():
+		var rt: Dictionary = automation_controller.mining_ship_runtime_by_unit_id[unit_id_variant]
+		if rt.is_empty():
+			continue
+		var st: int = int(rt.get("status", _MS_RT_TO_TARGET))
+		var phrase := _hover_mining_ship_status_phrase(st)
+		var oid := _hover_mining_ship_group_object_id(rt, st)
+		if oid.is_empty():
+			continue
+		var compound := "%s|%s" % [oid, phrase]
+		count_map[compound] = int(count_map.get(compound, 0)) + 1
+	return count_map
+
+
 func _build_hover_details(kind: String) -> Dictionary:
 	var base_id: String = BaseStore.BASE_EARTH
 	var details: Array = []
@@ -686,49 +915,73 @@ func _build_hover_details(kind: String) -> Dictionary:
 
 	match kind:
 		"storage":
-			var used := GameSession.get_base_storage_used(base_id)
-			var cap := GameSession.get_base_storage_capacity(base_id)
-			var free := GameSession.get_base_storage_free(base_id)
 			title = "Storage"
-			details.append("Used: %d / %d" % [used, cap])
-			details.append("Free: %d" % free)
-			var resources := GameSession.get_base_resources(base_id)
-			for res_id: Variant in resources.keys():
-				var amt := int(resources.get(res_id, 0))
-				if amt > 0:
-					details.append("%s: %d" % [str(res_id).capitalize(), amt])
-			hint = "Base storage capacity."
+			var resources_s: Dictionary = GameSession.get_base_resources(base_id)
+			var keys_sorted: Array = resources_s.keys()
+			keys_sorted.sort()
+			var has_any := false
+			for res_id: Variant in keys_sorted:
+				var amt_s := int(resources_s.get(res_id, 0))
+				if amt_s <= 0:
+					continue
+				has_any = true
+				details.append("%s: %d" % [str(res_id).capitalize(), amt_s])
+			if not has_any:
+				details.append("No resources stored.")
+			details.append("Effects:")
+			var cap_s := GameSession.get_base_storage_capacity(base_id)
+			var cap_pct_s := int(
+				round(
+					float(cap_s)
+					/ float(max(1, BaseStore.INITIAL_STORAGE_CAPACITY))
+					* 100.0
+				)
+			)
+			details.append("Storage Capacity: %d%%" % cap_pct_s)
+			hint = "Storage capacity."
 
 		"scan_drones":
-			var total := GameSession.get_base_drone_count(base_id)
-			var busy := 0
+			var total_sd := GameSession.get_base_drone_count(base_id)
+			var busy_sd := 0
 			if automation_controller != null:
-				busy = automation_controller.scan_drone_target_by_unit_id.size()
-			var idle := maxi(0, total - busy)
-			var upgrade_str := "Installed" if GameSession.is_scan_drone_upgrade_i_bought(base_id) else "Not installed"
+				busy_sd = automation_controller.scan_drone_target_by_unit_id.size()
+			var idle_sd := maxi(0, total_sd - busy_sd)
 			title = "ScanDrones"
-			details = [
-				"Total: %d" % total,
-				"Idle: %d" % idle,
-				"Busy: %d" % busy,
-				"Speed Upgrade: %s" % upgrade_str,
-			]
+			details.append("Total: %d" % total_sd)
+			details.append("Base: %d" % idle_sd)
+			_hover_append_scan_drone_supporting_lines(details)
+			var scan_mission := _hover_build_scan_drone_mission_activity()
+			if not scan_mission.is_empty():
+				_hover_append_aggregate_lines(details, scan_mission, _SCAN_PHRASE_ORDER)
+			details.append("Effects:")
+			details.append(
+				"Mining Support: +%d%% Mining Yield per ScanDrone"
+				% _SCAN_DRONE_MINING_SUPPORT_YIELD_PERCENT_PER_DRONE
+			)
+			var scan_mult: float = GameSession.get_scan_drone_scan_duration_multiplier(base_id)
+			details.append(
+				"Scan Speed: %d%%" % _hover_effect_scan_speed_percent(scan_mult)
+			)
 			hint = "Used for scanning unknown objects."
 
 		"mining_ships":
-			var total := GameSession.get_base_mining_ship_count(base_id)
-			var busy := 0
+			var total_ms := GameSession.get_base_mining_ship_count(base_id)
+			var busy_ms := 0
 			if automation_controller != null:
-				busy = automation_controller.mining_ship_runtime_by_unit_id.size()
-			var idle := maxi(0, total - busy)
-			var upgrade_str := "Installed" if GameSession.is_mining_ship_upgrade_i_bought(base_id) else "Not installed"
+				busy_ms = automation_controller.mining_ship_runtime_by_unit_id.size()
+			var idle_ms := maxi(0, total_ms - busy_ms)
 			title = "MiningShips"
-			details = [
-				"Total: %d" % total,
-				"Idle: %d" % idle,
-				"Active: %d" % busy,
-				"Cargo Upgrade: %s" % upgrade_str,
-			]
+			details.append("Total: %d" % total_ms)
+			details.append("Base: %d" % idle_ms)
+			var mining_activity := _hover_build_mining_ship_activity()
+			if not mining_activity.is_empty():
+				_hover_append_aggregate_lines(details, mining_activity, _MINING_PHRASE_ORDER)
+			details.append("Effects:")
+			var cargo_mult: float = GameSession.get_mining_ship_cargo_capacity_multiplier(base_id)
+			var cargo_pct := int(round(cargo_mult * 100.0))
+			details.append("Cargo Capacity: %d%%" % cargo_pct)
+			if GameSession.is_mining_ship_upgrade_i_bought(base_id):
+				details.append("Applies to newly launched mining missions.")
 			hint = "Used for automated resource extraction."
 
 		"colony_ships":

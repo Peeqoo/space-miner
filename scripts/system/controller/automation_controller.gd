@@ -441,11 +441,18 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 
 	selected_runtime["loop_active"] = false
 
-	if selected_status == MiningShipStatus.MINING or selected_status == MiningShipStatus.TO_TARGET:
-		selected_runtime["status"] = MiningShipStatus.TO_BASE
-		selected_runtime["extract_remainder"] = 0.0
-		selected_runtime["mining_extract_remainders"] = {} as Dictionary
-		selected_ship.recall_to_base(home_base_node)
+	match selected_status:
+		MiningShipStatus.MINING, MiningShipStatus.TO_TARGET:
+			selected_runtime["status"] = MiningShipStatus.TO_BASE
+			selected_runtime["extract_remainder"] = 0.0
+			selected_runtime["mining_extract_remainders"] = {} as Dictionary
+			selected_ship.recall_to_base(home_base_node)
+		MiningShipStatus.TO_BASE:
+			selected_ship.recall_to_base(home_base_node)
+		MiningShipStatus.UNLOADING:
+			_mining_ship_enter_waiting_for_storage(selected_ship, selected_runtime)
+		_:
+			pass
 
 	mining_ship_runtime_by_unit_id[unit_id] = selected_runtime
 	_request_automation_state_changed()
@@ -816,6 +823,13 @@ func _process(delta: float) -> void:
 				var snap_total_ul: int = _cargo_resources_total(snap_ul)
 				var cargo_total_ul: int = _cargo_resources_total(cargo_res_ul)
 
+				if cargo_total_ul > 0 and GameSession.get_base_storage_free(base_id_ul) <= 0:
+					runtime["cargo_resources"] = cargo_res_ul
+					_mining_ship_enter_waiting_for_storage(unit, runtime)
+					mining_ship_runtime_by_unit_id[unit_id] = runtime
+					_request_automation_state_changed()
+					continue
+
 				if snap_total_ul > 0 and unload_dur_ul > 1e-5:
 					var xfer_rate_total: float = float(snap_total_ul) / unload_dur_ul
 
@@ -1025,6 +1039,25 @@ func _on_mining_ship_returned_to_base(unit: AutomationUnit) -> void:
 		unit.transfer_orbit_to_base(unit.base_node)
 
 	_request_automation_state_changed()
+
+
+## Cargo stays on the ship; clears staged unload so we are not stuck in UNLOADING while storage is full.
+func _mining_ship_enter_waiting_for_storage(unit: AutomationUnit, runtime: Dictionary) -> void:
+	var base_id_wait: String = str(runtime.get("base_id", BASE_ID_EARTH))
+	var home_wait: Node2D = _get_target_node(base_id_wait)
+	var cargo_merged: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
+
+	runtime["cargo_resources"] = cargo_merged
+	runtime["current_cargo"] = float(_cargo_resources_total(cargo_merged))
+	runtime["unload_xfer_buffers"] = {} as Dictionary
+	runtime["unload_cargo_snapshot"] = {} as Dictionary
+	runtime["unload_timer"] = 0.0
+	runtime["mining_extract_remainders"] = {} as Dictionary
+	runtime["extract_remainder"] = 0.0
+	runtime["status"] = MiningShipStatus.WAITING_FOR_STORAGE
+
+	if unit != null and is_instance_valid(unit) and home_wait != null:
+		unit.transfer_orbit_to_base(home_wait)
 
 
 func _release_mining_ship_runtime(unit_id: int) -> void:

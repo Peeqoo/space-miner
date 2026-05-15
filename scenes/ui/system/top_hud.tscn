@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c1nagkqv1c68n"]
 
-[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/pixeloperator8_label_settings.tres" id="1_5ygps"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="1_5ygps"]
 [ext_resource type="Script" uid="uid://dwegen5xjg5yf" path="res://scripts/ui/system/top_hud.gd" id="1_script"]
 
 [node name="TopHUD" type="PanelContainer" unique_id=1772545870]
@@ -55,7 +55,7 @@ stretch_mode = 5
 
 [node name="StorageLabel" type="Label" parent="Margin/Root/StorageWidget/StorageMargin/StorageRow" unique_id=107]
 layout_mode = 2
-text = "Storage 0/100"
+text = "STS 0/100"
 label_settings = ExtResource("1_5ygps")
 
 [node name="SeparatorA" type="VSeparator" parent="Margin/Root" unique_id=108]
@@ -187,5 +187,5 @@ stretch_mode = 5
 
 [node name="JobsLabel" type="Label" parent="Margin/Root/JobsWidget/JobsMargin/JobsRow" unique_id=131]
 layout_mode = 2
-text = "Jobs: 0"
+text = "JBS: 0"
 label_settings = ExtResource("1_5ygps")

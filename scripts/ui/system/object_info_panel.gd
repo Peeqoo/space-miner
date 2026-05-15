@@ -84,6 +84,7 @@ func show_empty() -> void:
 	type_label.text = "Typ: -"
 	scan_status_label.text = "Scanstatus: -"
 	distance_label.text = "Distanz: -"
+	resource_title_label.text = "Resources"
 
 	_clear_resource_rows()
 
@@ -132,6 +133,7 @@ func show_poi_info(info: Dictionary) -> void:
 func _apply_info(info: Dictionary) -> void:
 	current_object_id = str(info.get("id", ""))
 
+	resource_title_label.text = "Resources"
 	preview_texture.texture = info.get("preview_texture", null) as Texture2D
 	name_label.text = "Name: %s" % str(info.get("display_name", "Unknown"))
 
@@ -238,17 +240,34 @@ func _get_visible_resource_count(info: Dictionary) -> int:
 
 
 func _apply_automation_status(info: Dictionary) -> void:
-	var drone_count: int = int(info.get("active_scan_drone_count", 0))
-	var mining_ship_count: int = int(info.get("active_mining_ship_count", 0))
+	var drone_supporting: int = int(info.get("scan_drone_supporting_count", 0))
+	var drone_total_assigned: int = int(info.get("active_scan_drone_count", 0))
+	var drone_on_mission: int = maxi(0, drone_total_assigned - drone_supporting)
+
+	var mining_mining_count: int = int(info.get("mining_ship_mining_count", 0))
 	var mining_bonus: float = float(info.get("mining_bonus", 0.0))
 
-	drone_orbit_label.visible = drone_count > 0
-	mine_orbit_label.visible = mining_ship_count > 0
-	mining_bonus_label.visible = absf(mining_bonus) > 1e-5
+	var drone_line_visible: bool = drone_supporting > 0 or drone_on_mission > 0
+	var mine_line_visible: bool = mining_mining_count > 0
+	var activity_any: bool = drone_line_visible or mine_line_visible
 
-	drone_orbit_label.text = "Drone: %d" % drone_count
-	mine_orbit_label.text = "MiningShips: %d" % mining_ship_count
-	mining_bonus_label.text = "Mining Bonus: +%d%%" % int(round(mining_bonus * 100.0))
+	drone_orbit_label.visible = drone_line_visible
+	mine_orbit_label.visible = mine_line_visible
+	mining_bonus_label.visible = activity_any
+
+	var drone_parts: PackedStringArray = []
+
+	if drone_supporting > 0:
+		drone_parts.append("%d supporting" % drone_supporting)
+
+	if drone_on_mission > 0:
+		drone_parts.append("%d on mission" % drone_on_mission)
+
+	drone_orbit_label.text = "ScanDrones: %s" % ", ".join(drone_parts)
+	mine_orbit_label.text = "MiningShips: %d mining" % mining_mining_count
+
+	var bonus_pct: int = int(round(mining_bonus * 100.0))
+	mining_bonus_label.text = "Local Effects\nMining Yield Bonus: +%d%%" % bonus_pct
 
 
 func _apply_resources(info: Dictionary) -> void:
@@ -410,14 +429,14 @@ func _clear_resource_rows() -> void:
 func _build_percent_text(resource_entry: Dictionary) -> String:
 	# Preferred new scan_info_builder format from ScannedResourceEntry.
 	if resource_entry.has("richness_percent"):
-		return "%d%%" % int(resource_entry.get("richness_percent", 0))
+		return "Richness: %d%%" % int(resource_entry.get("richness_percent", 0))
 
 	# Compatibility with older/local formats.
 	if resource_entry.has("percent"):
-		return "%d%%" % int(resource_entry.get("percent", 0))
+		return "Richness: %d%%" % int(resource_entry.get("percent", 0))
 
 	if resource_entry.has("abundance_percent"):
-		return "%d%%" % int(resource_entry.get("abundance_percent", 0))
+		return "Richness: %d%%" % int(resource_entry.get("abundance_percent", 0))
 
 	return "--"
 
