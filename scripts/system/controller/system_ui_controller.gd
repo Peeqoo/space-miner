@@ -609,6 +609,12 @@ func _update_top_hud() -> void:
 	if top_hud != null and top_hud.has_method("refresh_from_game_session"):
 		top_hud.call("refresh_from_game_session")
 
+	if top_hud != null and top_hud.has_method("set_jobs_count"):
+		var job_n: int = 0
+		if automation_controller != null:
+			job_n = automation_controller.get_active_job_count_for_base(_primary_base_body_id.strip_edges())
+		top_hud.call("set_jobs_count", job_n)
+
 
 func _clear_top_hud_hover_panel() -> void:
 	if top_hud_hover_panel != null and top_hud_hover_panel.has_method("clear"):
@@ -949,8 +955,8 @@ func _build_hover_details(kind: String) -> Dictionary:
 			var scan_jobs := 0
 			var mining_jobs := 0
 			if automation_controller != null:
-				scan_jobs = automation_controller.scan_drone_target_by_unit_id.size()
-				mining_jobs = automation_controller.mining_ship_runtime_by_unit_id.size()
+				scan_jobs = automation_controller.get_active_scan_job_count_for_session_base(base_id)
+				mining_jobs = automation_controller.get_active_mining_job_count_for_session_base(base_id)
 			title = "Jobs"
 			details = [
 				"Active: %d" % (scan_jobs + mining_jobs),

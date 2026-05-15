@@ -28,6 +28,9 @@ var idle_mining_ships: Array[AutomationUnit] = []
 
 var starting_units_initialized: bool = false
 
+## Primary-base body id for this SystemScene instance (`BaseStore` key). Set in `ensure_starting_units`.
+var _session_primary_base_body_id: String = ""
+
 enum MiningShipStatus {
 	TO_TARGET,
 	MINING,
@@ -48,10 +51,12 @@ var _automation_state_emit_scheduled: bool = false
 
 func setup(
 	p_automation_root: Node2D,
-	p_spawner: SystemSpawner
+	p_spawner: SystemSpawner,
+	p_session_primary_base_body_id: String = "",
 ) -> void:
 	automation_root = p_automation_root
 	spawner = p_spawner
+	_session_primary_base_body_id = p_session_primary_base_body_id.strip_edges()
 	set_process(true)
 
 
@@ -62,6 +67,7 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 	starting_units_initialized = true
 
 	var base_id: String = primary_base_id.strip_edges()
+	_session_primary_base_body_id = base_id
 	if base_id.is_empty():
 		push_warning("AutomationController: ensure_starting_units — kein gültiger primary_base_id, Start-Einheiten übersprungen.")
 		return
@@ -100,6 +106,28 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 
 	if ships_to_spawn > 0 or drones_to_spawn > 0:
 		_request_automation_state_changed()
+
+
+## Active ScanDrone + MiningShip automation missions tracked by this controller for TopHUD (`base_id` = primary body id).
+## Only matches the session base from `ensure_starting_units`; other ids return 0 (no accidental cross-system totals).
+func get_active_job_count_for_base(base_id: String) -> int:
+	if base_id.strip_edges() != _session_primary_base_body_id.strip_edges():
+		return 0
+	if base_id.strip_edges().is_empty():
+		return 0
+	return scan_drone_target_by_unit_id.size() + mining_ship_runtime_by_unit_id.size()
+
+
+func get_active_scan_job_count_for_session_base(base_id: String) -> int:
+	if base_id.strip_edges() != _session_primary_base_body_id.strip_edges() or base_id.strip_edges().is_empty():
+		return 0
+	return scan_drone_target_by_unit_id.size()
+
+
+func get_active_mining_job_count_for_session_base(base_id: String) -> int:
+	if base_id.strip_edges() != _session_primary_base_body_id.strip_edges() or base_id.strip_edges().is_empty():
+		return 0
+	return mining_ship_runtime_by_unit_id.size()
 
 
 func spawn_idle_drone_at_base(base_id: String = BASE_ID_EARTH) -> void:

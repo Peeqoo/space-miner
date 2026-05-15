@@ -43,6 +43,10 @@ func set_primary_base_body_id(body_id: String) -> void:
 	refresh_from_game_session()
 
 
+func set_jobs_count(count: int) -> void:
+	jobs_label.text = "JBS %d" % maxi(0, count)
+
+
 func _effective_display_base_id() -> String:
 	return _primary_base_body_id.strip_edges()
 
@@ -57,7 +61,7 @@ func refresh_from_game_session() -> void:
 		scan_drone_label.text = "SD 0"
 		mining_ship_label.text = "MS 0"
 		colony_ship_label.text = "CS 0"
-		jobs_label.text = "JBS 0"
+		set_jobs_count(0)
 		return
 
 	var used: int = GameSession.get_base_storage_used(bid)
@@ -71,7 +75,6 @@ func refresh_from_game_session() -> void:
 	mining_ship_label.text = "MS %d" % ships
 
 	colony_ship_label.text = "CS 0"
-	jobs_label.text = "JBS 0"
 
 
 func _connect_widget_hover(widget: Control, kind: String) -> void:

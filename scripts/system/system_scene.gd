@@ -76,6 +76,8 @@ func _setup_controllers() -> void:
 		spawner
 	)
 
+	automation_controller.setup($WorldRoot/AutomationRoot, spawner, _resolved_start_body_id)
+
 	system_ui.setup(
 		system_definition,
 		selection,
@@ -89,11 +91,6 @@ func _setup_controllers() -> void:
 		get_node_or_null("UI/TopHudHoverPanel"),
 		$UI/StoragePanel,
 		_resolved_start_body_id,
-	)
-
-	automation_controller.setup(
-		$WorldRoot/AutomationRoot,
-		spawner
 	)
 
 
