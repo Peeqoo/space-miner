@@ -2,16 +2,13 @@
 
 [ext_resource type="Script" uid="uid://c47slblyf7ptx" path="res://scripts/galaxy/galaxy_map.gd" id="1_cmndk"]
 [ext_resource type="Script" uid="uid://ss3qyoy1r1ff" path="res://scripts/system/orbit_guides_renderer.gd" id="2_3keem"]
-[ext_resource type="Script" uid="uid://teq1shx3il5t" path="res://scripts/galaxy/galaxy_system_node.gd" id="2_4q7h0"]
 [ext_resource type="Texture2D" uid="uid://cn81be8jcq534" path="res://assets/sprites/backgrounds/large 1024x1024/Blue Nebula/Blue_Nebula_06-1024x1024.png" id="2_ng86b"]
 [ext_resource type="Texture2D" uid="uid://cw2y76phvw6o8" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_07-1024x1024.png" id="3_ng86b"]
-[ext_resource type="Resource" path="res://data/galaxy_systems/solar_system.tres" id="3_uta3y"]
-[ext_resource type="Texture2D" uid="uid://57vt4pp8oxrp" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Sun/1.png" id="4_4q7h0"]
-[ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="4_5o4t4"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="5_vdcto"]
-[ext_resource type="Texture2D" uid="uid://dju1ifeecd3nj" path="res://assets/sprites/planets/PlanetsFull/Suns/13.png" id="6_uta3y"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/controller/system_camera_controller.gd" id="8_c6cuc"]
 [ext_resource type="PackedScene" uid="uid://uqkmyvdqw7f7" path="res://scenes/ui/galaxy/galaxy_map_hud.tscn" id="12_qe3vx"]
+[ext_resource type="Resource" uid="uid://dn42w0galaxydef" path="res://data/galaxy/galaxy_map_definition.tres" id="13_galaxydef"]
+[ext_resource type="PackedScene" uid="uid://c6galaxysysnode1" path="res://scenes/galaxy/galaxy_system_node.tscn" id="14_sysnode"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_qe3vx"]
 blend_mode = 1
@@ -19,14 +16,11 @@ blend_mode = 1
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_6483b"]
 blend_mode = 1
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_uta3y"]
-radius = 96.76776
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_5o4t4"]
-radius = 27.073973
-
 [node name="GalaxyMap" type="Node2D" unique_id=1430231750]
 script = ExtResource("1_cmndk")
+galaxy_definition = ExtResource("13_galaxydef")
+system_node_scene = ExtResource("14_sysnode")
+start_center_system_id = ""
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=969977791]
 
@@ -66,32 +60,12 @@ region_rect = Rect2(0, 0, 5000, 5000)
 [node name="OrbitGuidesLayer" type="Node2D" parent="BackgroundRoot" unique_id=1149961043]
 script = ExtResource("2_3keem")
 
+[node name="TransitRouteRoot" type="Node2D" parent="." unique_id=-1153374643]
+unique_name_in_owner = true
+z_index = 10
+
 [node name="SystemsRoot" type="Node2D" parent="." unique_id=1622724227]
-
-[node name="SolarSystem" type="Node2D" parent="SystemsRoot" unique_id=2132108268]
-script = ExtResource("2_4q7h0")
-system_definition = ExtResource("3_uta3y")
-
-[node name="Sprite2D" type="Sprite2D" parent="SystemsRoot/SolarSystem" unique_id=512826962]
-texture = ExtResource("4_4q7h0")
-
-[node name="Area2D" type="Area2D" parent="SystemsRoot/SolarSystem" unique_id=1623095258]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SystemsRoot/SolarSystem/Area2D" unique_id=1727745553]
-shape = SubResource("CircleShape2D_uta3y")
-
-[node name="ProximaSystem" type="Node2D" parent="SystemsRoot" unique_id=1253771322]
-position = Vector2(400, 200)
-script = ExtResource("2_4q7h0")
-system_definition = ExtResource("4_5o4t4")
-
-[node name="Sprite2D" type="Sprite2D" parent="SystemsRoot/ProximaSystem" unique_id=671326141]
-texture = ExtResource("6_uta3y")
-
-[node name="Area2D" type="Area2D" parent="SystemsRoot/ProximaSystem" unique_id=1802702614]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SystemsRoot/ProximaSystem/Area2D" unique_id=1652831142]
-shape = SubResource("CircleShape2D_5o4t4")
+z_index = 20
 
 [node name="CameraRoot" type="Node2D" parent="." unique_id=1767825043]
 

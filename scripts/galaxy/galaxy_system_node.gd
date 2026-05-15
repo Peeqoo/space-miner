@@ -5,6 +5,7 @@ extends Node2D
 @onready var area: Area2D = $Area2D
 @onready var collision_shape: CollisionShape2D = $Area2D/CollisionShape2D
 @onready var selection_ring: CanvasItem = get_node_or_null("SelectionRing") as CanvasItem
+@onready var body_sprite: Sprite2D = get_node_or_null("Sprite2D") as Sprite2D
 
 
 func _ready() -> void:
@@ -19,7 +20,35 @@ func _ready() -> void:
 		circle.radius = 24.0
 		collision_shape.shape = circle
 
+	_apply_star_presentation()
 	set_selected(false)
+	apply_progression_state()
+
+
+func _apply_star_presentation() -> void:
+	if system_definition == null:
+		return
+	if body_sprite != null:
+		if system_definition.star_texture != null:
+			body_sprite.texture = system_definition.star_texture
+		body_sprite.scale = system_definition.star_scale
+	if collision_shape != null and collision_shape.shape is CircleShape2D:
+		var circle: CircleShape2D = collision_shape.shape as CircleShape2D
+		var vr: float = system_definition.star_visual_radius
+		if vr > 0.0:
+			circle.radius = clamp(sqrt(vr) * 4.4, 18.0, 120.0)
+
+
+func apply_progression_state() -> void:
+	if system_definition == null:
+		return
+
+	var is_unlocked: bool = GameSession.is_system_unlocked(system_definition.id)
+	var canvas: CanvasItem = body_sprite if body_sprite != null else self
+	if is_unlocked:
+		canvas.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	else:
+		canvas.modulate = Color(0.55, 0.55, 0.55, 0.55)
 
 
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:

@@ -1,6 +1,12 @@
 extends Control
 class_name GalaxyMapHUD
 
+## Must match `galaxy_map.gd` access constants.
+const ACCESS_CURRENT := "current"
+const ACCESS_READY := "ready"
+const ACCESS_LOCKED := "locked"
+const ACCESS_UNREACHABLE := "unreachable"
+
 signal enter_requested
 
 @onready var title_label: Label = $TopBar/Margin/Row/TitleLabel
@@ -40,7 +46,10 @@ func show_no_selection_state() -> void:
 	known_planets_value_label.text = "0"
 	known_resources_value_label.text = "Unknown"
 	info_text_label.text = "Kein System ausgewählt."
+	header_label.text = "SYSTEM"
+	scan_title_label.text = "SCANDATEN"
 	enter_button.disabled = true
+	enter_button.text = "Enter"
 
 
 func show_system_info(
@@ -49,14 +58,48 @@ func show_system_info(
 	known_resources_text: String,
 	info_text: String,
 	can_enter: bool,
+	access_state: String,
 ) -> void:
-	var display_text: String = system_name
-
-	system_name_label.text = display_text
+	system_name_label.text = system_name
 	known_planets_value_label.text = str(max(known_planets_count, 0))
-	known_resources_value_label.text = known_resources_text if not known_resources_text.is_empty() else "Unknown"
+	header_label.text = _header_text_for_access(access_state)
+
+	if access_state == ACCESS_LOCKED:
+		scan_title_label.text = "STATUS"
+		known_resources_value_label.text = "Unknown"
+	else:
+		scan_title_label.text = "SCANDATEN"
+		known_resources_value_label.text = known_resources_text if not known_resources_text.is_empty() else "Unknown"
+
 	info_text_label.text = info_text if not info_text.is_empty() else "Keine Beschreibung verfügbar."
 	enter_button.disabled = not can_enter
+	_apply_enter_button_caption(can_enter, access_state)
+
+
+func _header_text_for_access(access_state: String) -> String:
+	match access_state:
+		ACCESS_CURRENT:
+			return "CURRENT SYSTEM"
+		ACCESS_READY:
+			return "READY"
+		ACCESS_LOCKED:
+			return "LOCKED"
+		ACCESS_UNREACHABLE:
+			return "UNREACHABLE"
+		_:
+			return "SYSTEM"
+
+
+func _apply_enter_button_caption(can_enter: bool, access_state: String) -> void:
+	if can_enter:
+		enter_button.text = "ENTER"
+		return
+	if access_state == ACCESS_LOCKED:
+		enter_button.text = "LOCKED"
+	elif access_state == ACCESS_UNREACHABLE:
+		enter_button.text = "UNREACHABLE"
+	else:
+		enter_button.text = "Enter"
 
 
 func _on_enter_button_pressed() -> void:

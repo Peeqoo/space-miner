@@ -3,7 +3,6 @@
 extends Node2D
 
 @export var system_definition: SystemDefinition
-@export var start_body_id: String = "earth"
 
 @onready var camera: SystemCameraController = $CameraRoot/SystemCamera2D
 
@@ -13,6 +12,8 @@ extends Node2D
 @onready var system_ui: SystemUIController = $SystemUIController
 @onready var automation_controller: AutomationController = $AutomationController
 
+var _resolved_start_body_id: String = ""
+
 
 func _ready() -> void:
 	_resolve_active_system_definition()
@@ -20,6 +21,9 @@ func _ready() -> void:
 	if system_definition != null:
 		GameSession.set_current_system(system_definition)
 
+	_resolved_start_body_id = _resolve_start_body_id()
+
+	_setup_navigation_hud()
 	_setup_controllers()
 
 	spawner.spawn_from_definition(system_definition)
@@ -43,14 +47,29 @@ func _unhandled_input(event: InputEvent) -> void:
 func _finish_initial_setup() -> void:
 	await get_tree().process_frame
 
-	# Earth is spawned at this point — safe to ensure starting units.
-	automation_controller.ensure_starting_units()
+	automation_controller.ensure_starting_units(_resolved_start_body_id)
 
-	var start_node := spawner.get_spawned_object(start_body_id) as Node2D
+	var start_node: Node2D = null
+	if not _resolved_start_body_id.is_empty():
+		start_node = spawner.get_spawned_object(_resolved_start_body_id) as Node2D
 	if start_node != null:
 		camera.set_focus_target(start_node, true)
 
 	system_ui.update_all()
+
+
+func _setup_navigation_hud() -> void:
+	var nav := get_node_or_null("UI/NavigationHUD") as NavigationHUD
+	if nav == null:
+		return
+	if not nav.galaxy_requested.is_connected(_on_navigation_galaxy_requested):
+		nav.galaxy_requested.connect(_on_navigation_galaxy_requested)
+
+
+func _on_navigation_galaxy_requested() -> void:
+	if system_definition != null:
+		GameSession.set_current_system(system_definition)
+	SceneFlow.goto_galaxy()
 
 
 func _setup_controllers() -> void:
@@ -150,3 +169,47 @@ func _resolve_active_system_definition() -> void:
 
 	GameSession.ensure_default_system_loaded()
 	system_definition = GameSession.current_system_definition
+
+
+func _has_body_id(body_id: String) -> bool:
+	if system_definition == null:
+		return false
+	var needle: String = body_id.strip_edges()
+	if needle.is_empty():
+		return false
+	for body_def in system_definition.bodies:
+		if body_def == null:
+			continue
+		if body_def.id == needle:
+			return true
+	return false
+
+
+func _get_first_body_id() -> String:
+	if system_definition == null:
+		return ""
+	for body_def in system_definition.bodies:
+		if body_def == null:
+			continue
+		if not body_def.id.is_empty():
+			return body_def.id
+	return ""
+
+
+func _resolve_start_body_id() -> String:
+	if system_definition == null:
+		return ""
+
+	var explicit_id: String = system_definition.start_body_id.strip_edges()
+	if not explicit_id.is_empty():
+		if _has_body_id(explicit_id):
+			return explicit_id
+		push_warning(
+			"SystemScene: start_body_id '%s' unbekannt in System '%s', verwende ersten Body."
+			% [explicit_id, system_definition.id]
+		)
+
+	var fallback_id: String = _get_first_body_id()
+	if fallback_id.is_empty():
+		push_warning("SystemScene: Kein Körper in System '%s' — kein Start-Fokus." % system_definition.id)
+	return fallback_id

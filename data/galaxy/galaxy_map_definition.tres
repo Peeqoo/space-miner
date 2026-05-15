@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="GalaxyMapDefinition" format=3 uid="uid://bo76cqxlgwh66"]
+
+[ext_resource type="Script" uid="uid://d1vf43rlweetx" path="res://resources/definitions/galaxy_map_definition.gd" id="1_def"]
+[ext_resource type="Script" uid="uid://bd7kcydknytel" path="res://resources/definitions/galaxy_map_system_entry.gd" id="2_ent"]
+[ext_resource type="Script" uid="uid://dmmu3x2dysdq8" path="res://resources/definitions/galaxy_transit_route_definition.gd" id="3_rt"]
+[ext_resource type="Resource" uid="uid://cam66sjyghlas" path="res://data/galaxy_systems/solar_system.tres" id="4_sol"]
+[ext_resource type="Resource" uid="uid://diuo6smelwwxc" path="res://data/galaxy_systems/proxima_system.tres" id="5_prx"]
+
+[sub_resource type="Resource" id="Resource_solar_entry"]
+script = ExtResource("2_ent")
+system_definition = ExtResource("4_sol")
+
+[sub_resource type="Resource" id="Resource_prox_entry"]
+script = ExtResource("2_ent")
+system_definition = ExtResource("5_prx")
+map_position = Vector2(400, 200)
+
+[sub_resource type="Resource" id="Resource_route_sp"]
+script = ExtResource("3_rt")
+from_system_id = "solar-system"
+to_system_id = "proxima"
+
+[resource]
+script = ExtResource("1_def")
+systems = Array[ExtResource("2_ent")]([SubResource("Resource_solar_entry"), SubResource("Resource_prox_entry")])
+transit_routes = Array[ExtResource("3_rt")]([SubResource("Resource_route_sp")])

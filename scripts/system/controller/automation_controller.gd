@@ -55,20 +55,26 @@ func setup(
 	set_process(true)
 
 
-func ensure_starting_units() -> void:
+func ensure_starting_units(primary_base_id: String = "") -> void:
 	if starting_units_initialized:
 		return
 
 	starting_units_initialized = true
 
-	var base_node := _get_target_node(BASE_ID_EARTH)
+	var base_id: String = primary_base_id.strip_edges()
+	if base_id.is_empty():
+		push_warning("AutomationController: ensure_starting_units — kein gültiger primary_base_id, Start-Einheiten übersprungen.")
+		return
+
+	var base_node := _get_target_node(base_id)
 
 	if base_node == null:
+		push_warning("AutomationController: Start-Basis-Knoten '%s' nicht gefunden, Start-Einheiten übersprungen." % base_id)
 		return
 
 	# BaseStore is the source of truth for fleet counts.
 	# Spawn idle visual units to match — handles both first load and scene reloads.
-	var ships_to_spawn := GameSession.get_base_mining_ship_count(BASE_ID_EARTH) - idle_mining_ships.size()
+	var ships_to_spawn := GameSession.get_base_mining_ship_count(base_id) - idle_mining_ships.size()
 
 	for i in ships_to_spawn:
 		var unit := _spawn_unit(MINING_SHIP_SCENE)
@@ -80,7 +86,7 @@ func ensure_starting_units() -> void:
 		unit.start_orbiting_base(base_node)
 		idle_mining_ships.append(unit)
 
-	var drones_to_spawn := GameSession.get_base_drone_count(BASE_ID_EARTH) - idle_drones.size()
+	var drones_to_spawn := GameSession.get_base_drone_count(base_id) - idle_drones.size()
 
 	for i in drones_to_spawn:
 		var unit := _spawn_unit(DRONE_SCENE)

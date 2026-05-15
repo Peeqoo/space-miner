@@ -878,7 +878,7 @@ func _build_hover_details(kind: String) -> Dictionary:
 				details.append("No resources stored.")
 			details.append("Effects:")
 			details.append(
-				"Base Storage Capacity: %d%%" % GameSession.get_base_storage_capacity_percent(base_id)
+				"Storage Capacity: %d%%" % GameSession.get_base_storage_capacity_percent(base_id)
 			)
 			hint = "Storage capacity."
 
@@ -890,12 +890,12 @@ func _build_hover_details(kind: String) -> Dictionary:
 			var idle_sd := maxi(0, total_sd - busy_sd)
 			title = "ScanDrones"
 			details.append("Total: %d" % total_sd)
-			details.append("Idle: %d" % idle_sd)
+			details.append("Base: %d" % idle_sd)
 			_hover_append_simple_object_count_lines(details, _hover_scan_drone_counts_by_target())
 			details.append("Effects:")
 			details.append("Scan Speed: %d%%" % GameSession.get_scan_drone_scan_speed_percent(base_id))
 			details.append(
-				"Mining Support: +%d%% Mining Yield per supporting ScanDrone"
+				"Mining Support: +%d%% Mining Yield per ScanDrone"
 				% GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(base_id)
 			)
 			hint = "Used for scanning unknown objects."
@@ -908,7 +908,7 @@ func _build_hover_details(kind: String) -> Dictionary:
 			var idle_ms := maxi(0, total_ms - busy_ms)
 			title = "MiningShips"
 			details.append("Total: %d" % total_ms)
-			details.append("Idle: %d" % idle_ms)
+			details.append("Base: %d" % idle_ms)
 			_hover_append_simple_object_count_lines(details, _hover_mining_ship_counts_by_group_object())
 			details.append("Effects:")
 			details.append(

@@ -16,6 +16,8 @@ extends Resource
 @export_group("Entry")
 @export var entry_spawn_radius: float = 220.0
 @export var entry_spawn_angle_degrees: float = 0.0
+## Preferred body id for camera focus and starting automation orbit (must match a `bodies[].id`).
+@export var start_body_id: String = ""
 
 @export_group("Presentation")
 @export var earth_target_body_diameter_px: float = 46.0

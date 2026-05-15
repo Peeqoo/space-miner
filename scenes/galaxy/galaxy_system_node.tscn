@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://cvaiwgjjugf7k"]
+
+[ext_resource type="Script" path="res://scripts/galaxy/galaxy_system_node.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_default"]
+radius = 48.0
+
+[node name="GalaxySystemNode" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.65, 0.65)
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("CircleShape2D_default")

@@ -4,6 +4,8 @@ extends Node
 
 const DEFAULT_SYSTEM_PATH := "res://data/galaxy_systems/solar_system.tres"
 const START_SYSTEM_ID: String = "solar-system"
+## Default locked neighbour for Phase 6.1b (must match `SystemDefinition.id` on the map).
+const PROXIMA_SYSTEM_ID: String = "proxima"
 
 const SCAN_UNKNOWN := ObjectScanStore.SCAN_UNKNOWN
 const SCAN_BASIC := ObjectScanStore.SCAN_BASIC
@@ -27,8 +29,15 @@ var scanner := ScannerStore.new()
 ## Phase 5.5: data-driven upgrade tiers (`data/upgrades/*.tres`).
 var upgrade_catalog: UpgradeCatalog = null
 
+## Phase 6.1b: session-only galaxy progression (no savegame).
+var discovered_system_ids: Array[String] = []
+var unlocked_system_ids: Array[String] = []
+var _galaxy_progression_seeded: bool = false
+
 signal object_remaining_resources_changed(system_id: String, object_id: String)
 signal base_resources_changed(base_id: String)
+## Emitted when `discovered_system_ids` or `unlocked_system_ids` change (not during initial seed).
+signal galaxy_progression_changed()
 
 
 # --------------------------------------------------
@@ -48,6 +57,7 @@ func _ready() -> void:
 
 func ensure_boot_state() -> void:
 	ensure_default_system_loaded()
+	ensure_galaxy_progression_boot()
 
 	if current_system_id.is_empty():
 		current_system_id = START_SYSTEM_ID
@@ -76,6 +86,64 @@ func set_current_system(system_definition: SystemDefinition) -> void:
 
 	current_system_definition = system_definition
 	current_system_id = system_definition.id
+
+
+# --------------------------------------------------
+# Galaxy progression (Phase 6.1b)
+# --------------------------------------------------
+
+func ensure_galaxy_progression_boot() -> void:
+	if _galaxy_progression_seeded:
+		return
+	_galaxy_progression_seeded = true
+	_seed_default_galaxy_progression()
+
+
+func _seed_default_galaxy_progression() -> void:
+	discovered_system_ids.clear()
+	unlocked_system_ids.clear()
+	discovered_system_ids.append(START_SYSTEM_ID)
+	unlocked_system_ids.append(START_SYSTEM_ID)
+	discovered_system_ids.append(PROXIMA_SYSTEM_ID)
+
+
+func is_system_discovered(system_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return false
+	return discovered_system_ids.has(sid)
+
+
+func is_system_unlocked(system_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return false
+	return unlocked_system_ids.has(sid)
+
+
+func discover_system(system_id: String) -> void:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return
+	if discovered_system_ids.has(sid):
+		return
+	discovered_system_ids.append(sid)
+	galaxy_progression_changed.emit()
+
+
+func unlock_system(system_id: String) -> void:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return
+	var changed: bool = false
+	if not discovered_system_ids.has(sid):
+		discovered_system_ids.append(sid)
+		changed = true
+	if not unlocked_system_ids.has(sid):
+		unlocked_system_ids.append(sid)
+		changed = true
+	if changed:
+		galaxy_progression_changed.emit()
 
 
 # --------------------------------------------------
