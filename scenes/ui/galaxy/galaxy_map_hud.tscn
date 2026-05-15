@@ -159,3 +159,5 @@ layout_mode = 2
 theme_override_fonts/font = ExtResource("5_0qajj")
 theme_override_font_sizes/font_size = 8
 text = "Enter"
+
+[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/EnterButton" to="." method="_on_enter_button_pressed"]

@@ -24,9 +24,6 @@ signal enter_requested
 
 
 func _ready() -> void:
-	if not enter_button.pressed.is_connected(_on_enter_button_pressed):
-		enter_button.pressed.connect(_on_enter_button_pressed)
-
 	title_label.text = "GALAXY MAP"
 	current_system_title_label.text = "Aktuelles System:"
 	header_label.text = "SYSTEM"

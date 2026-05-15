@@ -1,11 +1,12 @@
-## TopHUD — compact status bar showing global game stats.
+## TopHUD — compact status bar for the active system's primary base (body id = `base_id` in BaseStore).
 ## Emits hover_requested and hover_cleared signals for the TopHudHoverPanel.
 extends PanelContainer
 
 signal hover_requested(kind: String, screen_position: Vector2)
 signal hover_cleared
 
-const BASE_ID: String = "earth"
+var _primary_base_body_id: String = ""
+var _warned_empty_primary_base: bool = false
 
 @onready var storage_label: Label = $Margin/Root/StorageWidget/StorageMargin/StorageRow/StorageLabel
 @onready var scan_drone_label: Label = $Margin/Root/ScanDroneWidget/ScanDroneMargin/ScanDroneRow/ScanDroneLabel
@@ -30,23 +31,43 @@ func _ready() -> void:
 	if not GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.connect(_on_resources_changed)
 
-	refresh_from_game_session()
-
 
 func _exit_tree() -> void:
 	if GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.disconnect(_on_resources_changed)
 
 
+func set_primary_base_body_id(body_id: String) -> void:
+	_primary_base_body_id = body_id.strip_edges()
+	_warned_empty_primary_base = false
+	refresh_from_game_session()
+
+
+func _effective_display_base_id() -> String:
+	return _primary_base_body_id.strip_edges()
+
+
 func refresh_from_game_session() -> void:
-	var used: int = GameSession.get_base_storage_used(BASE_ID)
-	var cap: int = GameSession.get_base_storage_capacity(BASE_ID)
+	var bid: String = _effective_display_base_id()
+	if bid.is_empty():
+		if not _warned_empty_primary_base:
+			push_warning("TopHUD: Keine primäre base_id — Anzeige 0.")
+			_warned_empty_primary_base = true
+		storage_label.text = "STR 0/0"
+		scan_drone_label.text = "SD 0"
+		mining_ship_label.text = "MS 0"
+		colony_ship_label.text = "CS 0"
+		jobs_label.text = "JBS 0"
+		return
+
+	var used: int = GameSession.get_base_storage_used(bid)
+	var cap: int = GameSession.get_base_storage_capacity(bid)
 	storage_label.text = "STR %d/%d" % [used, cap]
 
-	var drones: int = GameSession.get_base_drone_count(BASE_ID)
+	var drones: int = GameSession.get_base_drone_count(bid)
 	scan_drone_label.text = "SD %d" % drones
 
-	var ships: int = GameSession.get_base_mining_ship_count(BASE_ID)
+	var ships: int = GameSession.get_base_mining_ship_count(bid)
 	mining_ship_label.text = "MS %d" % ships
 
 	colony_ship_label.text = "CS 0"
@@ -79,5 +100,8 @@ func _get_hover_anchor_screen_position(widget: Control) -> Vector2:
 	return Vector2(center_x, top_y)
 
 
-func _on_resources_changed(_base_id: String) -> void:
+func _on_resources_changed(emitted_base_id: String) -> void:
+	var bid: String = _effective_display_base_id()
+	if not bid.is_empty() and emitted_base_id != bid:
+		return
 	refresh_from_game_session()

@@ -23,8 +23,8 @@ func _ready() -> void:
 
 	_resolved_start_body_id = _resolve_start_body_id()
 
-	_setup_navigation_hud()
 	_setup_controllers()
+	_connect_system_scene_signals()
 
 	spawner.spawn_from_definition(system_definition)
 	orbit_guides.update_orbit_guides()
@@ -58,20 +58,6 @@ func _finish_initial_setup() -> void:
 	system_ui.update_all()
 
 
-func _setup_navigation_hud() -> void:
-	var nav := get_node_or_null("UI/NavigationHUD") as NavigationHUD
-	if nav == null:
-		return
-	if not nav.galaxy_requested.is_connected(_on_navigation_galaxy_requested):
-		nav.galaxy_requested.connect(_on_navigation_galaxy_requested)
-
-
-func _on_navigation_galaxy_requested() -> void:
-	if system_definition != null:
-		GameSession.set_current_system(system_definition)
-	SceneFlow.goto_galaxy()
-
-
 func _setup_controllers() -> void:
 	spawner.setup(
 		$WorldRoot/StarRoot,
@@ -102,6 +88,7 @@ func _setup_controllers() -> void:
 		$UI/TopHUD,
 		get_node_or_null("UI/TopHudHoverPanel"),
 		$UI/StoragePanel,
+		_resolved_start_body_id,
 	)
 
 	automation_controller.setup(
@@ -109,10 +96,29 @@ func _setup_controllers() -> void:
 		spawner
 	)
 
-	spawner.body_spawned.connect(selection.register_body)
-	spawner.poi_spawned.connect(selection.register_poi)
+
+func _connect_system_scene_signals() -> void:
+	_connect_navigation_hud_signal()
+
+	if selection != null:
+		spawner.body_spawned.connect(selection.register_body)
+		spawner.poi_spawned.connect(selection.register_poi)
 
 	_wire_camera_follow_to_selection()
+
+
+func _connect_navigation_hud_signal() -> void:
+	var nav := get_node_or_null("UI/NavigationHUD") as NavigationHUD
+	if nav == null:
+		return
+	if not nav.galaxy_requested.is_connected(_on_navigation_galaxy_requested):
+		nav.galaxy_requested.connect(_on_navigation_galaxy_requested)
+
+
+func _on_navigation_galaxy_requested() -> void:
+	if system_definition != null:
+		GameSession.set_current_system(system_definition)
+	SceneFlow.goto_galaxy()
 
 
 func _wire_camera_follow_to_selection() -> void:

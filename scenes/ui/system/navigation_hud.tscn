@@ -22,3 +22,5 @@ layout_mode = 2
 theme_override_fonts/font = ExtResource("2_6vyar")
 theme_override_font_sizes/font_size = 14
 text = "GALAXY"
+
+[connection signal="pressed" from="GalaxyButton" to="." method="_on_galaxy_button_pressed"]

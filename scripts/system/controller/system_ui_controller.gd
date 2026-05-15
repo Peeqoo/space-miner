@@ -17,6 +17,9 @@ var storage_panel: Control = null
 var top_hud: Control = null
 var top_hud_hover_panel: Control = null
 
+## Primary celestial body id for fleet/storage TopHUD hovers (= `BaseStore` key).
+var _primary_base_body_id: String = ""
+
 var _storage_context_base_id: String = ""
 
 const _TOP_HUD_HOVER_SIDE_MARGIN := 12.0
@@ -41,6 +44,7 @@ func setup(
 	p_top_hud: Control = null,
 	p_top_hud_hover_panel: Control = null,
 	p_storage_panel: Control = null,
+	p_primary_base_body_id: String = "",
 ) -> void:
 	system_definition = p_system_definition
 	selection = p_selection
@@ -55,6 +59,10 @@ func setup(
 	top_hud = p_top_hud
 	top_hud_hover_panel = p_top_hud_hover_panel
 	storage_panel = p_storage_panel
+	_primary_base_body_id = p_primary_base_body_id.strip_edges()
+
+	if top_hud != null and top_hud.has_method("set_primary_base_body_id"):
+		top_hud.call("set_primary_base_body_id", _primary_base_body_id)
 
 	if object_info_panel != null:
 		object_info_panel.visible = false
@@ -87,7 +95,11 @@ func _process(_delta: float) -> void:
 	if spawner == null:
 		return
 
-	var base_node := spawner.get_spawned_object(BaseStore.BASE_EARTH) as Node2D
+	var base_ref: String = _primary_base_body_id.strip_edges()
+	if base_ref.is_empty():
+		return
+
+	var base_node := spawner.get_spawned_object(base_ref) as Node2D
 	if base_node == null:
 		return
 
@@ -856,7 +868,16 @@ func _hover_append_simple_object_count_lines(details: Array, counts_by_object: D
 
 
 func _build_hover_details(kind: String) -> Dictionary:
-	var base_id: String = BaseStore.BASE_EARTH
+	var base_id: String = _primary_base_body_id.strip_edges()
+	if base_id.is_empty() and (
+		kind == "storage" or kind == "scan_drones" or kind == "mining_ships"
+	):
+		return {
+			"title": "—",
+			"details": ["Keine Basis-Kontext-ID für dieses System."],
+			"hint": "",
+		}
+
 	var details: Array = []
 	var title: String = ""
 	var hint: String = ""

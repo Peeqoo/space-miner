@@ -36,11 +36,7 @@ func _ready() -> void:
 	_refresh_system_node_progression_visuals()
 	_refresh_transit_routes()
 
-	if not GameSession.galaxy_progression_changed.is_connected(_on_galaxy_progression_changed):
-		GameSession.galaxy_progression_changed.connect(_on_galaxy_progression_changed)
-
-	if hud != null and not hud.enter_requested.is_connected(_on_enter_pressed):
-		hud.enter_requested.connect(_on_enter_pressed)
+	_connect_galaxy_map_signals()
 
 	GameSession.ensure_default_system_loaded()
 	_update_current_system_display()
@@ -51,6 +47,17 @@ func _ready() -> void:
 		hud.show_no_selection_state()
 
 	call_deferred("_apply_start_camera_target")
+	call_deferred("_debug_unlock_proxima")
+	
+func _debug_unlock_proxima() -> void:
+	GameSession.unlock_system("proxima")
+
+func _connect_galaxy_map_signals() -> void:
+	if not GameSession.galaxy_progression_changed.is_connected(_on_galaxy_progression_changed):
+		GameSession.galaxy_progression_changed.connect(_on_galaxy_progression_changed)
+
+	if hud != null and not hud.enter_requested.is_connected(_on_enter_pressed):
+		hud.enter_requested.connect(_on_enter_pressed)
 
 
 func _unhandled_input(event: InputEvent) -> void:
