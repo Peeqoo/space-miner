@@ -691,9 +691,10 @@ func _complete_scan_mission(target_id: String) -> void:
 	if definition == null:
 		return
 
-	var visible_resources: Array = _get_visible_resource_entries_for_scanner(
+	var visible_resources: Array = _get_visible_resource_entries_for_scan_state(
 		definition,
-		GameSession.get_active_scanner_tier()
+		GameSession.get_active_scanner_tier(),
+		GameSession.SCAN_BASIC
 	)
 
 	GameSession.ensure_object_resources_initialized(
@@ -1310,32 +1311,47 @@ func _get_definition_from_target_node(target_node: Node2D) -> Resource:
 	return null
 
 
-func _get_visible_resource_entries_for_scanner(definition: Resource, scanner_tier: String) -> Array:
+func _get_visible_resource_entries_for_scan_state(
+	definition: Resource,
+	scanner_tier: String,
+	scan_state: String
+) -> Array:
 	var result: Array = []
 
 	if definition == null:
 		return result
 
-	result.append_array(_get_resource_entries_for_tier(
-		definition,
-		&"get_basic_scan_resources",
-		GameSession.SCANNER_BASIC,
-		scanner_tier
-	))
+	var rank: int = GameSession.scan_state_rank(scan_state)
 
-	result.append_array(_get_resource_entries_for_tier(
-		definition,
-		&"get_deep_scan_resources",
-		GameSession.SCANNER_DEEP,
-		scanner_tier
-	))
+	if rank >= GameSession.scan_state_rank(GameSession.SCAN_BASIC):
+		result.append_array(
+			_get_resource_entries_for_tier(
+				definition,
+				&"get_basic_scan_resources",
+				GameSession.SCANNER_BASIC,
+				scanner_tier
+			)
+		)
 
-	result.append_array(_get_resource_entries_for_tier(
-		definition,
-		&"get_special_scan_resources",
-		GameSession.SCANNER_SPECIAL,
-		scanner_tier
-	))
+	if rank >= GameSession.scan_state_rank(GameSession.SCAN_DEEP):
+		result.append_array(
+			_get_resource_entries_for_tier(
+				definition,
+				&"get_deep_scan_resources",
+				GameSession.SCANNER_DEEP,
+				scanner_tier
+			)
+		)
+
+	if rank >= GameSession.scan_state_rank(GameSession.SCAN_SPECIAL):
+		result.append_array(
+			_get_resource_entries_for_tier(
+				definition,
+				&"get_special_scan_resources",
+				GameSession.SCANNER_SPECIAL,
+				scanner_tier
+			)
+		)
 
 	return result
 

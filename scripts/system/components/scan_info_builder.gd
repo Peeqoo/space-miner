@@ -39,21 +39,38 @@ static func build_scan_info(
 		if bool(definition.get("scan_basic_reveal_type")):
 			visible_type = object_type_value
 
-		visible_resources.append_array(_filter_resources_for_scanner(
-			scanner_tier,
-			GameSession.SCANNER_BASIC,
-			_get_layer_entries(definition, "get_basic_scan_resources")
-		))
-		visible_resources.append_array(_filter_resources_for_scanner(
-			scanner_tier,
-			GameSession.SCANNER_DEEP,
-			_get_layer_entries(definition, "get_deep_scan_resources")
-		))
-		visible_resources.append_array(_filter_resources_for_scanner(
-			scanner_tier,
-			GameSession.SCANNER_SPECIAL,
-			_get_layer_entries(definition, "get_special_scan_resources")
-		))
+		var state_rank: int = GameSession.scan_state_rank(scan_state)
+
+		if state_rank >= GameSession.scan_state_rank(GameSession.SCAN_BASIC):
+			visible_resources.append_array(
+				_filter_resources_for_scanner(
+					scanner_tier,
+					GameSession.SCANNER_BASIC,
+					_get_layer_entries(definition, "get_basic_scan_resources")
+				)
+			)
+
+		if state_rank >= GameSession.scan_state_rank(GameSession.SCAN_DEEP):
+			visible_resources.append_array(
+				_filter_resources_for_scanner(
+					scanner_tier,
+					GameSession.SCANNER_DEEP,
+					_get_layer_entries(definition, "get_deep_scan_resources")
+				)
+			)
+
+		if state_rank >= GameSession.scan_state_rank(GameSession.SCAN_SPECIAL):
+			visible_resources.append_array(
+				_filter_resources_for_scanner(
+					scanner_tier,
+					GameSession.SCANNER_SPECIAL,
+					_get_layer_entries(definition, "get_special_scan_resources")
+				)
+			)
+
+	var hidden_count := 0
+	if scan_state != GameSession.SCAN_UNKNOWN:
+		hidden_count = maxi(0, _total_defined_resource_slots(definition) - visible_resources.size())
 
 	return {
 		"id": object_id,
@@ -61,7 +78,7 @@ static func build_scan_info(
 		object_type_key: visible_type,
 		"scan_state": scan_state,
 		"resources_visible": visible_resources,
-		"resources_hidden_count": _count_hidden_resource_slots(scanner_tier, definition),
+		"resources_hidden_count": hidden_count,
 		"is_scanned": scan_state != GameSession.SCAN_UNKNOWN,
 	}
 
@@ -157,23 +174,14 @@ static func _get_layer_entries(definition: Resource, method_name: StringName) ->
 	return definition.call(method_name)
 
 
-static func _count_hidden_resource_slots(scanner_tier: String, definition: Resource) -> int:
-	var hidden_count := 0
-
-	match scanner_tier:
-		GameSession.SCANNER_BASIC:
-			hidden_count += _get_layer_entries(definition, "get_deep_scan_resources").size()
-			hidden_count += _get_layer_entries(definition, "get_special_scan_resources").size()
-			hidden_count += _get_scan_hidden_slots_after_special(definition)
-
-		GameSession.SCANNER_DEEP:
-			hidden_count += _get_layer_entries(definition, "get_special_scan_resources").size()
-			hidden_count += _get_scan_hidden_slots_after_special(definition)
-
-		GameSession.SCANNER_SPECIAL:
-			hidden_count += _get_scan_hidden_slots_after_special(definition)
-
-	return hidden_count
+static func _total_defined_resource_slots(definition: Resource) -> int:
+	if definition == null:
+		return 0
+	var n: int = _get_layer_entries(definition, "get_basic_scan_resources").size()
+	n += _get_layer_entries(definition, "get_deep_scan_resources").size()
+	n += _get_layer_entries(definition, "get_special_scan_resources").size()
+	n += _get_scan_hidden_slots_after_special(definition)
+	return n
 
 
 static func _get_scan_hidden_slots_after_special(definition: Resource) -> int:

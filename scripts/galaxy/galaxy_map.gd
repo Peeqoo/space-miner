@@ -56,8 +56,20 @@ func _connect_galaxy_map_signals() -> void:
 	if not GameSession.galaxy_progression_changed.is_connected(_on_galaxy_progression_changed):
 		GameSession.galaxy_progression_changed.connect(_on_galaxy_progression_changed)
 
+	if not GameSession.base_resources_changed.is_connected(_on_base_resources_changed_galaxy_refresh):
+		GameSession.base_resources_changed.connect(_on_base_resources_changed_galaxy_refresh)
+
 	if hud != null and not hud.enter_requested.is_connected(_on_enter_pressed):
 		hud.enter_requested.connect(_on_enter_pressed)
+
+	if hud != null and not hud.colonization_deploy_requested.is_connected(_on_colon_deploy_requested):
+		hud.colonization_deploy_requested.connect(_on_colon_deploy_requested)
+
+	if hud != null and not hud.colonization_cancel_requested.is_connected(_on_colon_cancel_requested):
+		hud.colonization_cancel_requested.connect(_on_colon_cancel_requested)
+
+	if hud != null and not hud.colonization_dev_complete_requested.is_connected(_on_colon_dev_complete_requested):
+		hud.colonization_dev_complete_requested.connect(_on_colon_dev_complete_requested)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -124,6 +136,60 @@ func _update_hud_for_selected_system(system_def: SystemDefinition) -> void:
 		can_enter,
 		access_state,
 	)
+	hud.update_colonization_preview(system_def, access_state)
+
+
+func _on_colon_deploy_requested() -> void:
+	if selected_system == null:
+		return
+
+	var src := GameSession.get_colonization_source_base_id().strip_edges()
+	var tid := selected_system.id.strip_edges()
+	var body := selected_system.start_body_id.strip_edges()
+
+	if src.is_empty() or tid.is_empty() or body.is_empty():
+		return
+
+	var op_id := GameSession.start_colonization_operation(src, tid, body)
+	if op_id.is_empty():
+		_update_hud_for_selected_system(selected_system)
+		return
+
+	_update_hud_for_selected_system(selected_system)
+
+
+func _on_colon_cancel_requested() -> void:
+	if selected_system == null:
+		return
+
+	var rec := GameSession.get_pending_colonization_operation_for_system(selected_system.id)
+	if rec.is_empty():
+		return
+
+	var oid := str(rec.get("operation_id", "")).strip_edges()
+	if oid.is_empty():
+		return
+
+	if not GameSession.cancel_colonization_operation(oid):
+		return
+
+	_update_hud_for_selected_system(selected_system)
+
+
+func _on_colon_dev_complete_requested() -> void:
+	if selected_system == null:
+		return
+
+	var rec := GameSession.get_pending_colonization_operation_for_system(selected_system.id)
+	if rec.is_empty():
+		return
+
+	var oid := str(rec.get("operation_id", "")).strip_edges()
+	if oid.is_empty():
+		return
+
+	GameSession.complete_colonization_operation(oid)
+	_update_hud_for_selected_system(selected_system)
 
 
 func _are_systems_directly_connected(a_id: String, b_id: String) -> bool:
@@ -308,6 +374,11 @@ func _apply_start_camera_target() -> void:
 func _on_galaxy_progression_changed() -> void:
 	_refresh_system_node_progression_visuals()
 	_refresh_transit_routes()
+	if selected_system != null:
+		_update_hud_for_selected_system(selected_system)
+
+
+func _on_base_resources_changed_galaxy_refresh(_base_id: String) -> void:
 	if selected_system != null:
 		_update_hud_for_selected_system(selected_system)
 

@@ -430,6 +430,49 @@ func has_pending_colonization_to_system(system_id: String) -> bool:
 	return false
 
 
+func get_pending_colonization_operation_for_system(system_id: String) -> Dictionary:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return {}
+
+	for rec_variant: Variant in _colonization_operations.values():
+		if rec_variant == null or not rec_variant is Dictionary:
+			continue
+		var d: Dictionary = rec_variant as Dictionary
+		if str(d.get("status", "")).strip_edges() != "pending":
+			continue
+		if str(d.get("target_system_id", "")).strip_edges() == sid:
+			return d.duplicate(true)
+
+	return {}
+
+
+func get_colonization_source_base_id() -> String:
+	var candidates: Array[String] = []
+
+	for bid_var: Variant in _established_base_records.keys():
+		var bid: String = str(bid_var).strip_edges()
+		if bid.is_empty():
+			continue
+		if not has_established_base(bid):
+			continue
+		if bases.get_colony_ship_count(bid) < 1:
+			continue
+		candidates.append(bid)
+
+	if candidates.is_empty():
+		return ""
+
+	var earth_id: String = BaseStore.BASE_EARTH
+	for c in candidates:
+		var cid: String = str(c).strip_edges()
+		if cid == earth_id:
+			return earth_id
+
+	candidates.sort()
+	return candidates[0]
+
+
 func _allocate_colonization_operation_id() -> String:
 	var id_str: String = "colony_%d" % _next_colonization_operation_id
 	_next_colonization_operation_id += 1

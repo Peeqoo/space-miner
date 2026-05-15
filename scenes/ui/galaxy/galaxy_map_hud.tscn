@@ -60,7 +60,7 @@ text = "Sol-System"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="GalaxyInfoPanel" type="PanelContainer" parent="." unique_id=603520267]
-custom_minimum_size = Vector2(160, 150)
+custom_minimum_size = Vector2(164, 360)
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 1.0
@@ -152,7 +152,52 @@ label_settings = ExtResource("4_3tpsn")
 autowrap_mode = 3
 
 [node name="FillSpace" type="Control" parent="GalaxyInfoPanel/Margin/Root" unique_id=893414396]
+custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
+
+[node name="ColonizationDividerA" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=892001001]
+layout_mode = 2
+
+[node name="ColonizationTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=892001002]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "Kolonisation"
+label_settings = ExtResource("2_g1njk")
+
+[node name="ColonizationStatusLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=892001003]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 6
+text = ""
+label_settings = ExtResource("4_3tpsn")
+autowrap_mode = 3
+
+[node name="ColonizationDeployButton" type="Button" parent="GalaxyInfoPanel/Margin/Root" unique_id=892001004]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_0qajj")
+theme_override_font_sizes/font_size = 7
+disabled = true
+text = "ColonyShip entsenden"
+
+[node name="ColonizationSecondaryRow" type="HBoxContainer" parent="GalaxyInfoPanel/Margin/Root" unique_id=892001005]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ColonizationCancelButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ColonizationSecondaryRow" unique_id=892001006]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_0qajj")
+theme_override_font_sizes/font_size = 6
+size_flags_horizontal = 3
+disabled = true
+text = "Kolonisierung abbrechen"
+
+[node name="ColonizationDevButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ColonizationSecondaryRow" unique_id=892001007]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("5_0qajj")
+theme_override_font_sizes/font_size = 6
+size_flags_horizontal = 3
+disabled = true
+text = "DEV: Ankunft simulieren"
 
 [node name="EnterButton" type="Button" parent="GalaxyInfoPanel/Margin/Root" unique_id=131344656]
 layout_mode = 2
@@ -161,3 +206,6 @@ theme_override_font_sizes/font_size = 8
 text = "Enter"
 
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/EnterButton" to="." method="_on_enter_button_pressed"]
+[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationDeployButton" to="." method="_on_colon_deploy_pressed"]
+[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSecondaryRow/ColonizationCancelButton" to="." method="_on_colon_cancel_pressed"]
+[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSecondaryRow/ColonizationDevButton" to="." method="_on_colon_dev_pressed"]
