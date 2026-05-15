@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/upgrade_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mining_ship_0_base"
+category = &"mining_ship"
+level = 0
+title = "MiningShip Base"
+purchasable = false
+cargo_capacity_percent = 100
+note = "Base MiningShip effects."

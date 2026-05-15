@@ -245,7 +245,10 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var drone_on_mission: int = maxi(0, drone_total_assigned - drone_supporting)
 
 	var mining_mining_count: int = int(info.get("mining_ship_mining_count", 0))
-	var mining_bonus: float = float(info.get("mining_bonus", 0.0))
+	var per_drone_pct: int = GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(
+		BaseStore.BASE_EARTH
+	)
+	var bonus_pct: int = drone_supporting * per_drone_pct
 
 	var drone_line_visible: bool = drone_supporting > 0 or drone_on_mission > 0
 	var mine_line_visible: bool = mining_mining_count > 0
@@ -266,7 +269,6 @@ func _apply_automation_status(info: Dictionary) -> void:
 	drone_orbit_label.text = "ScanDrones: %s" % ", ".join(drone_parts)
 	mine_orbit_label.text = "MiningShips: %d mining" % mining_mining_count
 
-	var bonus_pct: int = int(round(mining_bonus * 100.0))
 	mining_bonus_label.text = "Local Effects: Mining Yield Bonus: +%d%%" % bonus_pct
 
 

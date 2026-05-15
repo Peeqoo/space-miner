@@ -16,6 +16,7 @@ const DEFAULT_MINING_DURATION: float = 999999.0
 const DEFAULT_MINING_CARGO_CAPACITY: int = 20
 const DEFAULT_MINING_RATE_PER_SECOND: float = 2.0
 const DEFAULT_MINING_UNLOAD_DURATION: float = 2.0
+## Deprecated: yield per supporting scan drone now comes from `GameSession` / upgrade data.
 const DRONE_MINING_BONUS_PER_UNIT: float = 0.02
 
 var automation_root: Node2D
@@ -460,7 +461,10 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 
 
 func get_mining_bonus_for_target(target_id: String) -> float:
-	return float(get_orbiting_drone_count(target_id)) * DRONE_MINING_BONUS_PER_UNIT
+	var per_pct := float(
+		GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(BASE_ID_EARTH)
+	)
+	return float(get_orbiting_drone_count(target_id)) * per_pct / 100.0
 
 
 func get_assigned_mining_ship_count(target_id: String) -> int:

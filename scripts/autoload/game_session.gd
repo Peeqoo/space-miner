@@ -24,6 +24,9 @@ var automation := AutomationStore.new()
 
 var scanner := ScannerStore.new()
 
+## Phase 5.5: data-driven upgrade tiers (`data/upgrades/*.tres`).
+var upgrade_catalog: UpgradeCatalog = null
+
 signal object_remaining_resources_changed(system_id: String, object_id: String)
 signal base_resources_changed(base_id: String)
 
@@ -33,6 +36,9 @@ signal base_resources_changed(base_id: String)
 # --------------------------------------------------
 
 func _ready() -> void:
+	upgrade_catalog = UpgradeCatalog.new()
+	upgrade_catalog.load_all()
+	bases.set_upgrade_catalog(upgrade_catalog)
 	ensure_default_system_loaded()
 
 
@@ -243,20 +249,85 @@ func get_base_storage_free(base_id: String = BaseStore.BASE_EARTH) -> int:
 	return bases.get_storage_free(base_id)
 
 
-func can_buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return bases.can_buy_storage_upgrade_i(base_id)
+func get_base_upgrade_level(base_id: String, category: StringName) -> int:
+	return bases.get_upgrade_level(base_id, category)
 
 
-func buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	if not bases.buy_storage_upgrade_i(base_id):
+func get_current_upgrade_definition(base_id: String, category: StringName) -> UpgradeDefinition:
+	if upgrade_catalog == null:
+		return null
+	return upgrade_catalog.get_current_definition(category, bases.get_upgrade_level(base_id, category))
+
+
+func get_next_upgrade_definition(base_id: String, category: StringName) -> UpgradeDefinition:
+	if upgrade_catalog == null:
+		return null
+	return upgrade_catalog.get_next_definition(category, bases.get_upgrade_level(base_id, category))
+
+
+func has_next_base_upgrade(base_id: String, category: StringName) -> bool:
+	if upgrade_catalog == null:
 		return false
+	return upgrade_catalog.has_next_level(category, bases.get_upgrade_level(base_id, category))
 
+
+func can_buy_next_base_upgrade(base_id: String, category: StringName) -> bool:
+	var nxt := get_next_upgrade_definition(base_id, category)
+	if nxt == null:
+		return false
+	return bases.can_afford_upgrade(base_id, nxt)
+
+
+func buy_next_base_upgrade(base_id: String, category: StringName) -> bool:
+	var nxt := get_next_upgrade_definition(base_id, category)
+	if nxt == null:
+		return false
+	if not bases.buy_next_upgrade(base_id, nxt):
+		return false
 	base_resources_changed.emit(base_id)
 	return true
 
 
-func get_base_storage_upgrade_i_cost() -> Dictionary:
-	return bases.get_storage_upgrade_i_cost()
+func get_base_storage_capacity_percent(base_id: String = BaseStore.BASE_EARTH) -> int:
+	var base0 := upgrade_catalog.get_definition(&"storage", 0) if upgrade_catalog != null else null
+	var units0 := BaseStore.INITIAL_STORAGE_CAPACITY
+	if base0 != null and base0.storage_capacity_units >= 0:
+		units0 = base0.storage_capacity_units
+	var cur := get_base_storage_capacity(base_id)
+	return int(round(float(cur) / float(maxi(1, units0)) * 100.0))
+
+
+func get_scan_drone_scan_speed_percent(base_id: String = BaseStore.BASE_EARTH) -> int:
+	var def := get_current_upgrade_definition(base_id, &"scan_drone")
+	if def != null and def.scan_speed_percent >= 0:
+		return def.scan_speed_percent
+	return 100 + int(round((1.0 - get_scan_drone_scan_duration_multiplier(base_id)) * 100.0))
+
+
+func get_scan_drone_mining_yield_bonus_per_support_drone_percent(base_id: String = BaseStore.BASE_EARTH) -> int:
+	var def := get_current_upgrade_definition(base_id, &"scan_drone")
+	if def != null and def.mining_yield_bonus_per_support_drone_percent >= 0:
+		return def.mining_yield_bonus_per_support_drone_percent
+	return 2
+
+
+func get_mining_ship_cargo_capacity_percent(base_id: String = BaseStore.BASE_EARTH) -> int:
+	var def := get_current_upgrade_definition(base_id, &"mining_ship")
+	if def != null and def.cargo_capacity_percent >= 0:
+		return def.cargo_capacity_percent
+	return int(round(get_mining_ship_cargo_capacity_multiplier(base_id) * 100.0))
+
+
+func can_buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return can_buy_next_base_upgrade(base_id, &"storage")
+
+
+func buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return buy_next_base_upgrade(base_id, &"storage")
+
+
+func get_base_storage_upgrade_i_cost(base_id: String = BaseStore.BASE_EARTH) -> Dictionary:
+	return bases.get_storage_upgrade_i_cost(base_id)
 
 
 func is_base_storage_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
@@ -264,23 +335,19 @@ func is_base_storage_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) ->
 
 
 func can_buy_scan_drone_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return bases.can_buy_scan_drone_upgrade_i(base_id)
+	return can_buy_next_base_upgrade(base_id, &"scan_drone")
 
 
 func buy_scan_drone_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	if not bases.buy_scan_drone_upgrade_i(base_id):
-		return false
-
-	base_resources_changed.emit(base_id)
-	return true
+	return buy_next_base_upgrade(base_id, &"scan_drone")
 
 
 func is_scan_drone_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
 	return bases.is_scan_drone_upgrade_i_bought(base_id)
 
 
-func get_scan_drone_upgrade_i_cost() -> Dictionary:
-	return bases.get_scan_drone_upgrade_i_cost()
+func get_scan_drone_upgrade_i_cost(base_id: String = BaseStore.BASE_EARTH) -> Dictionary:
+	return bases.get_scan_drone_upgrade_i_cost(base_id)
 
 
 func get_scan_drone_scan_duration_multiplier(base_id: String = BaseStore.BASE_EARTH) -> float:
@@ -288,23 +355,19 @@ func get_scan_drone_scan_duration_multiplier(base_id: String = BaseStore.BASE_EA
 
 
 func can_buy_mining_ship_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return bases.can_buy_mining_ship_upgrade_i(base_id)
+	return can_buy_next_base_upgrade(base_id, &"mining_ship")
 
 
 func buy_mining_ship_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	if not bases.buy_mining_ship_upgrade_i(base_id):
-		return false
-
-	base_resources_changed.emit(base_id)
-	return true
+	return buy_next_base_upgrade(base_id, &"mining_ship")
 
 
 func is_mining_ship_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
 	return bases.is_mining_ship_upgrade_i_bought(base_id)
 
 
-func get_mining_ship_upgrade_i_cost() -> Dictionary:
-	return bases.get_mining_ship_upgrade_i_cost()
+func get_mining_ship_upgrade_i_cost(base_id: String = BaseStore.BASE_EARTH) -> Dictionary:
+	return bases.get_mining_ship_upgrade_i_cost(base_id)
 
 
 func get_mining_ship_cargo_capacity_multiplier(base_id: String = BaseStore.BASE_EARTH) -> float:

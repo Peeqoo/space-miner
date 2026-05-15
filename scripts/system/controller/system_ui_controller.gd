@@ -18,9 +18,6 @@ var top_hud_hover_panel: Control = null
 
 const _TOP_HUD_HOVER_SIDE_MARGIN := 12.0
 
-## Mirrors `AutomationController.DRONE_MINING_BONUS_PER_UNIT` × 100 (read-only duplicate for UI strings).
-const _SCAN_DRONE_MINING_SUPPORT_YIELD_PERCENT_PER_DRONE := 2
-
 ## Mirrors `AutomationController.MiningShipStatus` order (read-only; do not change automation enums here).
 const _MS_RT_TO_TARGET := 0
 const _MS_RT_MINING := 1
@@ -812,13 +809,13 @@ func _hover_append_aggregate_lines(
 			details.append("%s: %d %s" % [disp, n, phrase])
 
 
-func _hover_effect_scan_speed_percent(duration_multiplier: float) -> int:
-	return 100 + int(round((1.0 - duration_multiplier) * 100.0))
-
-
 func _hover_append_scan_drone_supporting_lines(details: Array) -> void:
 	if automation_controller == null:
 		return
+
+	var per_drone_pct: int = GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(
+		BaseStore.BASE_EARTH
+	)
 
 	for tid: String in _hover_sorted_scan_assignment_targets():
 		var n_sup := automation_controller.get_orbiting_drone_count(tid)
@@ -827,7 +824,7 @@ func _hover_append_scan_drone_supporting_lines(details: Array) -> void:
 			continue
 
 		var disp := _hover_display_name_for_object_id(tid)
-		var yield_pct := n_sup * _SCAN_DRONE_MINING_SUPPORT_YIELD_PERCENT_PER_DRONE
+		var yield_pct := n_sup * per_drone_pct
 		details.append("%s: %d supporting mining (+%d%%)" % [disp, n_sup, yield_pct])
 
 
@@ -929,15 +926,9 @@ func _build_hover_details(kind: String) -> Dictionary:
 			if not has_any:
 				details.append("No resources stored.")
 			details.append("Effects:")
-			var cap_s := GameSession.get_base_storage_capacity(base_id)
-			var cap_pct_s := int(
-				round(
-					float(cap_s)
-					/ float(max(1, BaseStore.INITIAL_STORAGE_CAPACITY))
-					* 100.0
-				)
+			details.append(
+				"Base Storage Capacity: %d%%" % GameSession.get_base_storage_capacity_percent(base_id)
 			)
-			details.append("Storage Capacity: %d%%" % cap_pct_s)
 			hint = "Storage capacity."
 
 		"scan_drones":
@@ -948,20 +939,17 @@ func _build_hover_details(kind: String) -> Dictionary:
 			var idle_sd := maxi(0, total_sd - busy_sd)
 			title = "ScanDrones"
 			details.append("Total: %d" % total_sd)
-			details.append("Base: %d" % idle_sd)
+			details.append("Idle: %d" % idle_sd)
 			_hover_append_scan_drone_supporting_lines(details)
 			var scan_mission := _hover_build_scan_drone_mission_activity()
 			if not scan_mission.is_empty():
 				_hover_append_aggregate_lines(details, scan_mission, _SCAN_PHRASE_ORDER)
 			details.append("Effects:")
 			details.append(
-				"Mining Support: +%d%% Mining Yield per ScanDrone"
-				% _SCAN_DRONE_MINING_SUPPORT_YIELD_PERCENT_PER_DRONE
+				"Mining Support: +%d%% Mining Yield per supporting ScanDrone"
+				% GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(base_id)
 			)
-			var scan_mult: float = GameSession.get_scan_drone_scan_duration_multiplier(base_id)
-			details.append(
-				"Scan Speed: %d%%" % _hover_effect_scan_speed_percent(scan_mult)
-			)
+			details.append("Scan Speed: %d%%" % GameSession.get_scan_drone_scan_speed_percent(base_id))
 			hint = "Used for scanning unknown objects."
 
 		"mining_ships":
@@ -972,15 +960,16 @@ func _build_hover_details(kind: String) -> Dictionary:
 			var idle_ms := maxi(0, total_ms - busy_ms)
 			title = "MiningShips"
 			details.append("Total: %d" % total_ms)
-			details.append("Base: %d" % idle_ms)
+			details.append("Idle: %d" % idle_ms)
 			var mining_activity := _hover_build_mining_ship_activity()
 			if not mining_activity.is_empty():
 				_hover_append_aggregate_lines(details, mining_activity, _MINING_PHRASE_ORDER)
 			details.append("Effects:")
-			var cargo_mult: float = GameSession.get_mining_ship_cargo_capacity_multiplier(base_id)
-			var cargo_pct := int(round(cargo_mult * 100.0))
-			details.append("Cargo Capacity: %d%%" % cargo_pct)
-			if GameSession.is_mining_ship_upgrade_i_bought(base_id):
+			details.append(
+				"Cargo Capacity: %d%%" % GameSession.get_mining_ship_cargo_capacity_percent(base_id)
+			)
+			var ms_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(base_id, &"mining_ship")
+			if ms_def != null and ms_def.applies_to_new_jobs_only:
 				details.append("Applies to newly launched mining missions.")
 			hint = "Used for automated resource extraction."
 

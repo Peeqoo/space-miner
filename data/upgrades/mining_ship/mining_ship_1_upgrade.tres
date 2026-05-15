@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/upgrade_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mining_ship_1_upgrade"
+category = &"mining_ship"
+level = 1
+title = "MiningShip Upgrade I"
+purchasable = true
+cost = {
+"Iron": 40,
+"Aluminum": 20,
+"Copper": 10
+}
+cargo_capacity_percent = 125
+applies_to_new_jobs_only = true
+note = "Applies to newly launched mining missions."

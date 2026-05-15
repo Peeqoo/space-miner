@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/upgrade_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"scan_drone_1_upgrade"
+category = &"scan_drone"
+level = 1
+title = "ScanDrone Upgrade I"
+purchasable = true
+cost = {
+"Iron": 20,
+"Copper": 15
+}
+scan_speed_percent = 125
+scan_duration_multiplier = 0.75
+mining_yield_bonus_per_support_drone_percent = 2
+applies_to_new_jobs_only = true
+note = "Applies to newly launched scans."
