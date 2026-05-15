@@ -5,11 +5,11 @@ extends PanelContainer
 signal open_production_requested
 signal open_upgrades_requested
 signal open_storage_requested
+signal close_requested
 
 @onready var base_name_label: Label = $Margin/Root/MainRow/MetaColumn/BaseNameLabel
 @onready var status_label: Label = $Margin/Root/MainRow/MetaColumn/StatusLabel
 @onready var population_label: Label = $Margin/Root/MainRow/MetaColumn/PopulationLabel
-@onready var status_text_label: Label = $Margin/Root/StatusTextLabel
 
 @onready var close_base_panel_button: Button = $Margin/Root/HeaderRow/CloseBasePanelButton
 @onready var open_production_button: Button = $Margin/Root/ManagementButtonSection/OpenProductionButton
@@ -93,13 +93,10 @@ func refresh_from_game_session() -> void:
 	call_deferred("_fit_height_to_content")
 
 
-func set_status_text(text: String) -> void:
-	if status_text_label != null:
-		status_text_label.text = text
-
 
 func _on_close_base_panel_pressed() -> void:
 	hide_panel()
+	close_requested.emit()
 
 
 func _on_open_production_pressed() -> void:

@@ -66,6 +66,7 @@ func setup(
 			base_management_panel.visible = false
 
 	_connect_ui_signals()
+	_hide_base_subpanels()
 	update_all()
 
 
@@ -157,7 +158,22 @@ func update_base_panel() -> void:
 	else:
 		base_management_panel.visible = false
 
-	_on_storage_panel_close_requested()
+	_hide_base_subpanels()
+
+
+func _hide_base_subpanels() -> void:
+	_clear_top_hud_hover_panel()
+	if production_panel != null:
+		production_panel.visible = false
+	if upgrade_panel != null:
+		upgrade_panel.visible = false
+	if storage_panel != null:
+		storage_panel.visible = false
+	_storage_context_base_id = ""
+
+
+func _on_base_management_close_requested() -> void:
+	_hide_base_subpanels()
 
 
 func _connect_ui_signals() -> void:
@@ -214,6 +230,10 @@ func _connect_ui_signals() -> void:
 		if base_management_panel.has_signal("open_storage_requested"):
 			if not base_management_panel.open_storage_requested.is_connected(_on_base_open_storage):
 				base_management_panel.open_storage_requested.connect(_on_base_open_storage)
+
+		if base_management_panel.has_signal("close_requested"):
+			if not base_management_panel.close_requested.is_connected(_on_base_management_close_requested):
+				base_management_panel.close_requested.connect(_on_base_management_close_requested)
 
 	if production_panel != null:
 		if production_panel.has_signal("build_scan_drone_requested"):

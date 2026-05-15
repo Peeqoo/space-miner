@@ -9,8 +9,8 @@ const _BT_FONT: FontFile = preload("res://assets/fonts/PixelOperator8.ttf")
 
 ## Row layout: fixed-width discard columns; HBox separation matches compact tabular rows.
 const _ROW_SEP := 6
-const _BT_DISCARD10_MIN := Vector2(26, 12)
-const _BT_DISCARD_ALL_MIN := Vector2(26, 12)
+const _BT_DISCARD10_MIN := Vector2(35, 12)
+const _BT_DISCARD_ALL_MIN := Vector2(35, 12)
 
 @onready var close_button: Button = $Margin/Root/HeaderRow/CloseButton
 @onready var resource_list: VBoxContainer = $Margin/Root/ResourceList
