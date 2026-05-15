@@ -359,6 +359,32 @@ func spend_resource(base_id: String, resource_id: String, amount: int) -> bool:
 	return true
 
 
+## Removes up to `amount` from base storage (player discard). Returns amount actually removed.
+func remove_resource(base_id: String, resource_id: String, amount: int) -> int:
+	if amount <= 0:
+		return 0
+
+	var current := get_resource_amount(base_id, resource_id)
+
+	if current <= 0:
+		return 0
+
+	var removed: int = mini(current, amount)
+	var base := get_base(base_id)
+	var resources: Dictionary = base.get("resources", {})
+	var after: int = current - removed
+
+	if after <= 0:
+		resources.erase(resource_id)
+	else:
+		resources[resource_id] = after
+
+	base["resources"] = resources
+	bases[base_id] = base
+
+	return removed
+
+
 func can_afford(base_id: String, cost: Dictionary) -> bool:
 	for resource_id in cost:
 		var needed: int = int(cost[resource_id])

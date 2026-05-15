@@ -201,6 +201,19 @@ func spend_base_resource(base_id: String, resource_id: String, amount: int) -> b
 	return spent_ok
 
 
+func remove_base_resource(base_id: String, resource_id: String, amount: int) -> int:
+	var removed: int = bases.remove_resource(base_id, resource_id, amount)
+
+	if removed > 0:
+		base_resources_changed.emit(base_id)
+
+	return removed
+
+
+func discard_base_resource(base_id: String, resource_id: String, amount: int) -> int:
+	return remove_base_resource(base_id, resource_id, amount)
+
+
 func get_base_population(base_id: String) -> int:
 	return bases.get_population(base_id)
 

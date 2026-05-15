@@ -17,6 +17,7 @@
 [ext_resource type="PackedScene" uid="uid://u2v1nk1sj5ys" path="res://scenes/ui/system/production_panel.tscn" id="15_dc3br"]
 [ext_resource type="PackedScene" uid="uid://cskhh5rueuc4r" path="res://scenes/ui/system/upgrade_panel.tscn" id="16_06sa2"]
 [ext_resource type="PackedScene" uid="uid://dacjs0jlq1mhg" path="res://scenes/ui/system/top_hud_hover_panel.tscn" id="17_hrum5"]
+[ext_resource type="PackedScene" uid="uid://bocekpsnvfpgx" path="res://scenes/ui/system/storage_panel.tscn" id="18_storage"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_e0kxw"]
 blend_mode = 1
@@ -111,21 +112,30 @@ offset_bottom = -7.0
 [node name="TopHUD" parent="UI" unique_id=1772545870 instance=ExtResource("14_hrum5")]
 
 [node name="ProductionPanel" parent="UI" unique_id=55424944 instance=ExtResource("15_dc3br")]
+visible = true
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 8.0
-offset_top = -5.0
 offset_right = 178.00023
-offset_bottom = 91.0
+offset_bottom = 95.99933
 
 [node name="UpgradePanel" parent="UI" unique_id=576152500 instance=ExtResource("16_06sa2")]
+visible = true
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 8.0
-offset_top = -5.0
 offset_right = 178.00023
-offset_bottom = 91.0
+offset_bottom = 95.99933
+
+[node name="StoragePanel" parent="UI" unique_id=761745785 instance=ExtResource("18_storage")]
+visible = true
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 8.0
+offset_right = 178.00023
+offset_bottom = 95.99933
 
 [node name="TopHudHoverPanel" parent="UI" unique_id=1002840814 instance=ExtResource("17_hrum5")]

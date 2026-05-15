@@ -4,6 +4,7 @@ extends PanelContainer
 
 signal open_production_requested
 signal open_upgrades_requested
+signal open_storage_requested
 
 @onready var base_name_label: Label = $Margin/Root/MainRow/MetaColumn/BaseNameLabel
 @onready var status_label: Label = $Margin/Root/MainRow/MetaColumn/StatusLabel
@@ -13,6 +14,7 @@ signal open_upgrades_requested
 @onready var close_base_panel_button: Button = $Margin/Root/HeaderRow/CloseBasePanelButton
 @onready var open_production_button: Button = $Margin/Root/ManagementButtonSection/OpenProductionButton
 @onready var open_upgrade_button: Button = $Margin/Root/ManagementButtonSection/OpenUpgradeButton
+@onready var open_storage_button: Button = $Margin/Root/ManagementButtonSection/OpenStorageButton
 
 var current_system_id: String = ""
 var current_body_id: String = ""
@@ -29,6 +31,7 @@ func _ready() -> void:
 	_connect_button(close_base_panel_button, _on_close_base_panel_pressed)
 	_connect_button(open_production_button, _on_open_production_pressed)
 	_connect_button(open_upgrade_button, _on_open_upgrade_pressed)
+	_connect_button(open_storage_button, _on_open_storage_pressed)
 
 	if not GameSession.base_resources_changed.is_connected(_on_game_session_base_resources_changed):
 		GameSession.base_resources_changed.connect(_on_game_session_base_resources_changed)
@@ -68,6 +71,10 @@ func get_hold_base_body_id() -> String:
 	return _held_base_body_id
 
 
+func get_managed_base_id() -> String:
+	return _get_current_base_id()
+
+
 func refresh_while_hold_open() -> void:
 	if not _hold_open_across_selections:
 		return
@@ -101,6 +108,10 @@ func _on_open_production_pressed() -> void:
 
 func _on_open_upgrade_pressed() -> void:
 	open_upgrades_requested.emit()
+
+
+func _on_open_storage_pressed() -> void:
+	open_storage_requested.emit()
 
 
 func _connect_button(button: Button, callback: Callable) -> void:

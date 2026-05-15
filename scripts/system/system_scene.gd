@@ -82,6 +82,7 @@ func _setup_controllers() -> void:
 		$UI/UpgradePanel,
 		$UI/TopHUD,
 		get_node_or_null("UI/TopHudHoverPanel"),
+		$UI/StoragePanel,
 	)
 
 	automation_controller.setup(
