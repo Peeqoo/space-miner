@@ -235,6 +235,18 @@ func _format_title(value: String) -> String:
 
 
 func _fit_height_to_content() -> void:
+	if hover_info_panel.visible:
+		call_deferred("_fit_height_to_content_after_hover_layout")
+	else:
+		_apply_panel_body_height_fit()
+
+
+func _fit_height_to_content_after_hover_layout() -> void:
+	await get_tree().process_frame
+	_apply_panel_body_height_fit()
+
+
+func _apply_panel_body_height_fit() -> void:
 	var fixed_width := custom_minimum_size.x
 	if fixed_width <= 0.0:
 		fixed_width = size.x

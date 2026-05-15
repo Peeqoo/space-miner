@@ -21,7 +21,6 @@ theme_override_constants/margin_bottom = 6
 
 [node name="Root" type="VBoxContainer" parent="Margin" unique_id=321256555]
 layout_mode = 2
-theme_override_constants/separation = 4
 
 [node name="HeaderRow" type="HBoxContainer" parent="Margin/Root" unique_id=351253018]
 layout_mode = 2
@@ -73,6 +72,7 @@ layout_mode = 2
 [node name="HoverInfoPanel" type="PanelContainer" parent="Margin/Root" unique_id=727633661]
 visible = false
 layout_mode = 2
+size_flags_vertical = 0
 mouse_filter = 2
 
 [node name="HoverInfoMargin" type="MarginContainer" parent="Margin/Root/HoverInfoPanel" unique_id=1744748221]
@@ -84,20 +84,28 @@ theme_override_constants/margin_bottom = 4
 
 [node name="HoverInfoRoot" type="VBoxContainer" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin" unique_id=1215354662]
 layout_mode = 2
+size_flags_vertical = 0
 
 [node name="HoverTitleLabel" type="Label" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=2104255076]
 layout_mode = 2
+size_flags_vertical = 0
+custom_minimum_size = Vector2(0, 0)
 text = "Upgrade Info"
 label_settings = ExtResource("2_ho75l")
 
 [node name="HoverDescLabel" type="Label" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1090442496]
 layout_mode = 2
+size_flags_vertical = 0
+custom_minimum_size = Vector2(0, 0)
 text = "Hover an upgrade to see details."
 label_settings = ExtResource("4_a5r5f")
 autowrap_mode = 3
 
 [node name="HoverCostLabel" type="Label" parent="Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137934]
+visible = false
 layout_mode = 2
+size_flags_vertical = 0
+custom_minimum_size = Vector2(0, 0)
 text = "Cost: -"
 label_settings = ExtResource("4_a5r5f")
 autowrap_mode = 3

@@ -267,7 +267,7 @@ func _apply_automation_status(info: Dictionary) -> void:
 	mine_orbit_label.text = "MiningShips: %d mining" % mining_mining_count
 
 	var bonus_pct: int = int(round(mining_bonus * 100.0))
-	mining_bonus_label.text = "Local Effects\nMining Yield Bonus: +%d%%" % bonus_pct
+	mining_bonus_label.text = "Local Effects: Mining Yield Bonus: +%d%%" % bonus_pct
 
 
 func _apply_resources(info: Dictionary) -> void:
