@@ -35,7 +35,12 @@ var unlocked_system_ids: Array[String] = []
 var _galaxy_progression_seeded: bool = false
 
 ## Phase 6.3e: bases that truly exist (`BaseStore.get_base` auto-inserts placeholders — NOT established).
+## Mirrors keys in `_established_base_records` for quick membership checks / compatibility.
 var _established_base_ids: Dictionary = {}
+
+## Phase 6.4: `base_id` -> record. Geography for colony bases (`system_id`, `body_id`).
+## Later, `base_id` may diverge from `body_id` (e.g. named settlement id); callers should use accessors.
+var _established_base_records: Dictionary = {}
 
 signal object_remaining_resources_changed(system_id: String, object_id: String)
 signal base_resources_changed(base_id: String)
@@ -174,8 +179,23 @@ func can_leave_current_system() -> bool:
 
 
 # --------------------------------------------------
-# Established bases (Phase 6.3e)
+# Established bases (Phase 6.3e–6.4)
 # --------------------------------------------------
+
+func mark_base_established_at(base_id: String, system_id: String, body_id: String) -> void:
+	var bid := base_id.strip_edges()
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
+	if bid.is_empty():
+		push_warning("GameSession.mark_base_established_at: empty base_id ignored")
+		return
+	if sid.is_empty() or bod.is_empty():
+		push_warning(
+			"GameSession.mark_base_established_at: empty system_id or body_id ignored (base_id=%s)"
+			% bid
+		)
+		return
+	_apply_established_base_record(bid, sid, bod)
 
 
 func mark_base_established(base_id: String) -> void:
@@ -183,36 +203,134 @@ func mark_base_established(base_id: String) -> void:
 	if bid.is_empty():
 		push_warning("GameSession.mark_base_established: empty base_id ignored")
 		return
-	_established_base_ids[bid] = true
+
+	if bid == BaseStore.BASE_EARTH:
+		mark_base_established_at(bid, START_SYSTEM_ID, BaseStore.BASE_EARTH)
+		return
+
+	var cur_sys_id := current_system_id.strip_edges()
+	if current_system_definition != null and cur_sys_id != "":
+		var start_body_in_def: String = current_system_definition.start_body_id.strip_edges()
+		if start_body_in_def == bid:
+			mark_base_established_at(bid, cur_sys_id, bid)
+			return
+
+	push_warning(
+		(
+			"GameSession.mark_base_established('%s'): could not derive system/body mapping; "
+			+ "use mark_base_established_at(base_id, system_id, body_id)."
+		)
+		% bid
+	)
+
+
+func get_established_base_record(base_id: String) -> Dictionary:
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		return {}
+	var rec_variant: Variant = _established_base_records.get(bid, null)
+	if rec_variant == null:
+		return {}
+	if rec_variant is Dictionary:
+		var rec_dict: Dictionary = rec_variant as Dictionary
+		return rec_dict.duplicate(true)
+	return {}
+
+
+func get_established_base_body_id(base_id: String) -> String:
+	var rec := get_established_base_record(base_id)
+	return str(rec.get("body_id", "")).strip_edges()
+
+
+func get_established_base_system_id(base_id: String) -> String:
+	var rec := get_established_base_record(base_id)
+	return str(rec.get("system_id", "")).strip_edges()
+
+
+## Colony foundation (Phase 6.4): no ColonyShip-, travel-, or habitability checks yet.
+## Returns true only when a *new* base was established (`base_id` == `body_id` for now — may diverge later).
+func establish_base_at_body(system_id: String, body_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
+
+	if sid.is_empty():
+		push_warning("GameSession.establish_base_at_body: empty system_id")
+		return false
+	if bod.is_empty():
+		push_warning("GameSession.establish_base_at_body: empty body_id")
+		return false
+
+	## Colony placeholder: canonical BaseStore slot id mirrors body until dedicated settlement ids exist.
+	var base_id := bod
+	if has_established_base(base_id):
+		return false
+
+	bases.get_base(base_id)
+	mark_base_established_at(base_id, sid, bod)
+	return true
 
 
 func has_established_base(base_id: String) -> bool:
 	var bid := base_id.strip_edges()
 	if bid.is_empty():
 		return false
-	return _established_base_ids.has(bid)
+	var rec_variant: Variant = _established_base_records.get(bid, null)
+	if rec_variant != null and rec_variant is Dictionary:
+		return bool((rec_variant as Dictionary).get("established", false))
+	return bool(_established_base_ids.get(bid, false))
 
 
 func has_established_base_in_system(system_id: String) -> bool:
-	var sid := system_id.strip_edges()
-	if sid.is_empty():
-		return false
-	if current_system_definition != null and current_system_definition.id == sid:
-		var start_b: String = current_system_definition.start_body_id.strip_edges()
-		if not start_b.is_empty() and has_established_base(start_b):
-			return true
-	# No global body→system map; extend when multiple bases per system exist.
-	return false
+	return not get_established_base_id_for_system(system_id.strip_edges()).is_empty()
 
 
 func get_established_base_id_for_system(system_id: String) -> String:
-	if not has_established_base_in_system(system_id):
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
 		return ""
-	if current_system_definition != null and current_system_definition.id == system_id:
+
+	for bid_var: Variant in _established_base_records.keys():
+		var bid: String = str(bid_var).strip_edges()
+		if bid.is_empty():
+			continue
+		var rec_variant: Variant = _established_base_records[bid_var]
+		if rec_variant == null or not rec_variant is Dictionary:
+			continue
+		var rec_dict: Dictionary = rec_variant as Dictionary
+		if not bool(rec_dict.get("established", false)):
+			continue
+		var rec_sid: String = str(rec_dict.get("system_id", "")).strip_edges()
+		if rec_sid == sid:
+			# TODO(multi-base-per-system): deterministic selection when >1 bases share a system_id.
+			return bid
+
+	# Deprecated fallback: Session-only heuristic before Phase 6.4 records existed.
+	if current_system_definition != null and current_system_definition.id == sid:
 		var start_b: String = current_system_definition.start_body_id.strip_edges()
-		if has_established_base(start_b):
+		if not start_b.is_empty() and has_established_base(start_b):
+			push_warning(
+				(
+					"GameSession.get_established_base_id_for_system('%s'): "
+					+ "matched via legacy current_system/start_body_id heuristic; prefer Base records."
+				)
+				% sid
+			)
 			return start_b
+
 	return ""
+
+
+func _apply_established_base_record(base_id: String, system_id: String, body_id: String) -> void:
+	_established_base_ids[base_id] = true
+
+	## Design note: Today `body_id` is the celestial id; tomorrow `base_id` may encode a colony key.
+	var rec: Dictionary = {
+		"base_id": base_id,
+		"system_id": system_id.strip_edges(),
+		"body_id": body_id.strip_edges(),
+		"established": true,
+	}
+	_established_base_records[base_id] = rec
 
 
 # --------------------------------------------------

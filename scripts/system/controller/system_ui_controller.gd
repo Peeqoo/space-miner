@@ -85,11 +85,28 @@ func update_all() -> void:
 	_update_top_hud()
 
 
+## Session focus / spawn reference from `SystemScene` (`start_body_id`). Economy uses established base when present.
+func _current_system_definition_id() -> String:
+	if system_definition == null:
+		return ""
+	return system_definition.id.strip_edges()
+
+
+## BaseStore / UI economy key: established base in this system, else start/focus body (economy usually gated then).
+func _economy_body_id_for_ui() -> String:
+	var sid := _current_system_definition_id()
+	if not sid.is_empty():
+		var est := GameSession.get_established_base_id_for_system(sid).strip_edges()
+		if not est.is_empty():
+			return est
+	return _primary_base_body_id.strip_edges()
+
+
 func _session_primary_base_established() -> bool:
-	var bid := _primary_base_body_id.strip_edges()
-	if bid.is_empty():
+	var sid := _current_system_definition_id()
+	if sid.is_empty():
 		return false
-	return GameSession.has_established_base(bid)
+	return not GameSession.get_established_base_id_for_system(sid).is_empty()
 
 
 func _apply_session_economy_gate() -> void:
@@ -106,7 +123,7 @@ func _apply_session_economy_gate() -> void:
 
 
 func _sync_production_upgrade_economy_body_ids() -> void:
-	var bid := _primary_base_body_id.strip_edges()
+	var bid := _economy_body_id_for_ui().strip_edges()
 	if bid.is_empty():
 		return
 	if production_panel != null and production_panel.has_method("set_economy_body_id"):
@@ -126,7 +143,7 @@ func _process(_delta: float) -> void:
 	if spawner == null:
 		return
 
-	var base_ref: String = _primary_base_body_id.strip_edges()
+	var base_ref: String = _economy_body_id_for_ui().strip_edges()
 	if base_ref.is_empty():
 		return
 
@@ -331,7 +348,7 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	info["preview_texture"] = _get_preview_texture(selected_node)
 	info["distance_text"] = "-"  # Overwritten every frame by _process().
 
-	info["mining_yield_upgrade_base_id"] = _primary_base_body_id.strip_edges()
+	info["mining_yield_upgrade_base_id"] = _economy_body_id_for_ui().strip_edges()
 
 	info["can_scan_with_drone"] = _can_scan_selected_object(selected_node, scan_state)
 	info["can_mine_with_ship"] = _can_mine_selected_object(selected_node, scan_state)
@@ -379,8 +396,8 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	if not info.has("lore_text"):
 		info["lore_text"] = "Keine Beschreibung verfügbar."
 
-	var pb_gate: String = _primary_base_body_id.strip_edges()
-	if pb_gate.is_empty() or not GameSession.has_established_base(pb_gate):
+	var sys_gate_id := _current_system_definition_id()
+	if sys_gate_id.is_empty() or GameSession.get_established_base_id_for_system(sys_gate_id).is_empty():
 		info["system_economy_blocked_reason"] = "Keine Basis in diesem System errichtet."
 		info["can_scan_with_drone"] = false
 		info["can_mine_with_ship"] = false
@@ -485,7 +502,7 @@ func _on_build_drone_requested() -> void:
 	if not _session_primary_base_established():
 		return
 
-	var bid_bd: String = _primary_base_body_id.strip_edges()
+	var bid_bd: String = _economy_body_id_for_ui().strip_edges()
 	if bid_bd.is_empty():
 		return
 
@@ -500,7 +517,7 @@ func _on_build_mining_ship_requested() -> void:
 	if not _session_primary_base_established():
 		return
 
-	var bid_ms: String = _primary_base_body_id.strip_edges()
+	var bid_ms: String = _economy_body_id_for_ui().strip_edges()
 	if bid_ms.is_empty():
 		return
 
@@ -597,14 +614,14 @@ func _has_available_mining_ship() -> bool:
 
 
 func _get_base_drone_count() -> int:
-	var bid_bc: String = _primary_base_body_id.strip_edges()
+	var bid_bc: String = _economy_body_id_for_ui().strip_edges()
 	if bid_bc.is_empty():
 		return 0
 	return GameSession.get_base_drone_count(bid_bc)
 
 
 func _get_base_mining_ship_count() -> int:
-	var bid_bm: String = _primary_base_body_id.strip_edges()
+	var bid_bm: String = _economy_body_id_for_ui().strip_edges()
 	if bid_bm.is_empty():
 		return 0
 	return GameSession.get_base_mining_ship_count(bid_bm)
@@ -685,13 +702,16 @@ func _get_mining_bonus_for_object(object_id: String) -> float:
 
 
 func _update_top_hud() -> void:
+	if top_hud != null and top_hud.has_method("set_primary_base_body_id"):
+		top_hud.call("set_primary_base_body_id", _economy_body_id_for_ui())
+
 	if top_hud != null and top_hud.has_method("refresh_from_game_session"):
 		top_hud.call("refresh_from_game_session")
 
 	if top_hud != null and top_hud.has_method("set_jobs_count"):
 		var job_n: int = 0
 		if automation_controller != null:
-			job_n = automation_controller.get_active_job_count_for_base(_primary_base_body_id.strip_edges())
+			job_n = automation_controller.get_active_job_count_for_base(_economy_body_id_for_ui().strip_edges())
 		top_hud.call("set_jobs_count", job_n)
 
 
@@ -907,7 +927,7 @@ func _hover_display_name_for_object_id(object_id: String) -> String:
 
 func _hover_mining_ship_group_object_id(runtime: Dictionary, status: int) -> String:
 	if status == _MS_RT_UNLOADING or status == _MS_RT_WAITING_STORAGE:
-		return BaseStore.BASE_EARTH
+		return _economy_body_id_for_ui().strip_edges()
 	return str(runtime.get("target_id", ""))
 
 
@@ -961,7 +981,7 @@ func _hover_append_simple_object_count_lines(details: Array, counts_by_object: D
 
 
 func _build_hover_details(kind: String) -> Dictionary:
-	var base_id: String = _primary_base_body_id.strip_edges()
+	var base_id: String = _economy_body_id_for_ui().strip_edges()
 	if base_id.is_empty() and (
 		kind == "storage" or kind == "scan_drones" or kind == "mining_ships"
 	):
