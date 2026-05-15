@@ -24,6 +24,8 @@ var is_docked: bool = false
 var _hold_open_across_selections: bool = false
 var _held_base_body_id: String = ""
 
+var _economy_actions_enabled: bool = true
+
 
 func _ready() -> void:
 	visible = false
@@ -75,6 +77,16 @@ func get_managed_base_id() -> String:
 	return _get_current_base_id()
 
 
+func set_economy_actions_enabled(enabled: bool) -> void:
+	_economy_actions_enabled = enabled
+	if open_production_button != null:
+		open_production_button.disabled = not enabled
+	if open_upgrade_button != null:
+		open_upgrade_button.disabled = not enabled
+	if open_storage_button != null:
+		open_storage_button.disabled = not enabled
+
+
 func refresh_while_hold_open() -> void:
 	if not _hold_open_across_selections:
 		return
@@ -100,14 +112,20 @@ func _on_close_base_panel_pressed() -> void:
 
 
 func _on_open_production_pressed() -> void:
+	if not _economy_actions_enabled:
+		return
 	open_production_requested.emit()
 
 
 func _on_open_upgrade_pressed() -> void:
+	if not _economy_actions_enabled:
+		return
 	open_upgrades_requested.emit()
 
 
 func _on_open_storage_pressed() -> void:
+	if not _economy_actions_enabled:
+		return
 	open_storage_requested.emit()
 
 

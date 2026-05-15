@@ -81,7 +81,38 @@ func setup(
 func update_all() -> void:
 	update_object_info()
 	update_base_panel()
+	_apply_session_economy_gate()
 	_update_top_hud()
+
+
+func _session_primary_base_established() -> bool:
+	var bid := _primary_base_body_id.strip_edges()
+	if bid.is_empty():
+		return false
+	return GameSession.has_established_base(bid)
+
+
+func _apply_session_economy_gate() -> void:
+	var ok := _session_primary_base_established()
+	if base_management_panel != null and base_management_panel.has_method("set_economy_actions_enabled"):
+		base_management_panel.call("set_economy_actions_enabled", ok)
+	if not ok:
+		if production_panel != null:
+			production_panel.visible = false
+		if upgrade_panel != null:
+			upgrade_panel.visible = false
+	else:
+		_sync_production_upgrade_economy_body_ids()
+
+
+func _sync_production_upgrade_economy_body_ids() -> void:
+	var bid := _primary_base_body_id.strip_edges()
+	if bid.is_empty():
+		return
+	if production_panel != null and production_panel.has_method("set_economy_body_id"):
+		production_panel.call("set_economy_body_id", bid)
+	if upgrade_panel != null and upgrade_panel.has_method("set_economy_body_id"):
+		upgrade_panel.call("set_economy_body_id", bid)
 
 
 func _process(_delta: float) -> void:
@@ -300,6 +331,8 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	info["preview_texture"] = _get_preview_texture(selected_node)
 	info["distance_text"] = "-"  # Overwritten every frame by _process().
 
+	info["mining_yield_upgrade_base_id"] = _primary_base_body_id.strip_edges()
+
 	info["can_scan_with_drone"] = _can_scan_selected_object(selected_node, scan_state)
 	info["can_mine_with_ship"] = _can_mine_selected_object(selected_node, scan_state)
 	info["is_home_base"] = selected_node is SystemBody and _selected_body_has_base(selected_node as SystemBody)
@@ -345,6 +378,20 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 
 	if not info.has("lore_text"):
 		info["lore_text"] = "Keine Beschreibung verfügbar."
+
+	var pb_gate: String = _primary_base_body_id.strip_edges()
+	if pb_gate.is_empty() or not GameSession.has_established_base(pb_gate):
+		info["system_economy_blocked_reason"] = "Keine Basis in diesem System errichtet."
+		info["can_scan_with_drone"] = false
+		info["can_mine_with_ship"] = false
+		info["can_recall_drone"] = false
+		info["can_recall_mining_ship"] = false
+		if not bool(info.get("is_home_base", false)):
+			info["active_scan_drone_count"] = 0
+			info["active_mining_ship_count"] = 0
+			info["scan_drone_supporting_count"] = 0
+			info["mining_ship_mining_count"] = 0
+			info["mining_bonus"] = 0.0
 
 	return info
 
@@ -435,7 +482,14 @@ func _on_build_drone_requested() -> void:
 	if automation_controller == null:
 		return
 
-	automation_controller.spawn_idle_drone_at_base(BaseStore.BASE_EARTH)
+	if not _session_primary_base_established():
+		return
+
+	var bid_bd: String = _primary_base_body_id.strip_edges()
+	if bid_bd.is_empty():
+		return
+
+	automation_controller.spawn_idle_drone_at_base(bid_bd)
 	update_all()
 
 
@@ -443,12 +497,22 @@ func _on_build_mining_ship_requested() -> void:
 	if automation_controller == null:
 		return
 
-	automation_controller.spawn_idle_mining_ship_at_base(BaseStore.BASE_EARTH)
+	if not _session_primary_base_established():
+		return
+
+	var bid_ms: String = _primary_base_body_id.strip_edges()
+	if bid_ms.is_empty():
+		return
+
+	automation_controller.spawn_idle_mining_ship_at_base(bid_ms)
 	update_all()
 
 
 func _on_object_scan_requested(object_id: String) -> void:
 	if object_id.is_empty():
+		return
+
+	if not _session_primary_base_established():
 		return
 
 	if automation_controller == null:
@@ -466,6 +530,9 @@ func _on_object_mining_requested(object_id: String) -> void:
 	if object_id.is_empty():
 		return
 
+	if not _session_primary_base_established():
+		return
+
 	if automation_controller == null:
 		return
 
@@ -481,6 +548,9 @@ func _on_recall_drone_requested(object_id: String) -> void:
 	if object_id.is_empty():
 		return
 
+	if not _session_primary_base_established():
+		return
+
 	if automation_controller == null:
 		return
 
@@ -490,6 +560,9 @@ func _on_recall_drone_requested(object_id: String) -> void:
 
 func _on_recall_mining_ship_requested(object_id: String) -> void:
 	if object_id.is_empty():
+		return
+
+	if not _session_primary_base_established():
 		return
 
 	if automation_controller == null:
@@ -524,11 +597,17 @@ func _has_available_mining_ship() -> bool:
 
 
 func _get_base_drone_count() -> int:
-	return GameSession.get_base_drone_count(BaseStore.BASE_EARTH)
+	var bid_bc: String = _primary_base_body_id.strip_edges()
+	if bid_bc.is_empty():
+		return 0
+	return GameSession.get_base_drone_count(bid_bc)
 
 
 func _get_base_mining_ship_count() -> int:
-	return GameSession.get_base_mining_ship_count(BaseStore.BASE_EARTH)
+	var bid_bm: String = _primary_base_body_id.strip_edges()
+	if bid_bm.is_empty():
+		return 0
+	return GameSession.get_base_mining_ship_count(bid_bm)
 
 
 func _get_orbiting_drone_count(object_id: String) -> int:
@@ -720,6 +799,9 @@ func _get_hover_position_next_to_panel(panel: Control, screen_position: Vector2)
 
 
 func _on_base_open_production() -> void:
+	if not _session_primary_base_established():
+		return
+	_sync_production_upgrade_economy_body_ids()
 	_clear_top_hud_hover_panel()
 	if upgrade_panel != null:
 		upgrade_panel.visible = false
@@ -733,6 +815,9 @@ func _on_base_open_production() -> void:
 
 
 func _on_base_open_upgrades() -> void:
+	if not _session_primary_base_established():
+		return
+	_sync_production_upgrade_economy_body_ids()
 	_clear_top_hud_hover_panel()
 	if production_panel != null:
 		production_panel.visible = false
@@ -746,6 +831,8 @@ func _on_base_open_upgrades() -> void:
 
 
 func _on_base_open_storage() -> void:
+	if not _session_primary_base_established():
+		return
 	_clear_top_hud_hover_panel()
 	if production_panel != null:
 		production_panel.visible = false

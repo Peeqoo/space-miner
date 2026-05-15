@@ -8,7 +8,6 @@ signal automation_state_changed
 const DRONE_SCENE: PackedScene = preload("res://scenes/automation/drone.tscn")
 const MINING_SHIP_SCENE: PackedScene = preload("res://scenes/automation/mining_ship.tscn")
 
-const BASE_ID_EARTH: String = "earth"
 const DEFAULT_SCAN_DURATION: float = 2.0
 # Work duration is intentionally huge: mining completes when internal cargo fills,
 # not when AutomationUnit.work_timer runs out.
@@ -41,12 +40,28 @@ enum MiningShipStatus {
 
 var mining_ship_runtime_by_unit_id: Dictionary = {}
 
-## Scan drones keep a logical assignment from launch until they return idle at Earth (`returned_to_base`).
+## Scan drones keep a logical assignment from launch until idle at session primary base (`returned_to_base`).
 ## Mirrors mining runtime: used for UI mission counts independent of orbit position / AutomationStore lifecycle.
 var scan_drone_target_by_unit_id: Dictionary = {}
 
 ## Coalesces automation_state_changed emits to at most once per idle frame (fewer UI rebuilds).
 var _automation_state_emit_scheduled: bool = false
+
+
+func _get_session_base_id() -> String:
+	var sid: String = _session_primary_base_body_id.strip_edges()
+	if not sid.is_empty():
+		return sid
+	push_warning("AutomationController: missing session primary base id, falling back to BaseStore.BASE_EARTH")
+	return BaseStore.BASE_EARTH
+
+
+## Prefer explicit `runtime["base_id"]`, then session basis; `_get_session_base_id()` warns if needed.
+func _runtime_base_id_with_session_fallback(runtime: Dictionary) -> String:
+	var from_rt: String = str(runtime.get("base_id", "")).strip_edges()
+	if not from_rt.is_empty():
+		return from_rt
+	return _get_session_base_id()
 
 
 func setup(
@@ -70,6 +85,13 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 	_session_primary_base_body_id = base_id
 	if base_id.is_empty():
 		push_warning("AutomationController: ensure_starting_units — kein gültiger primary_base_id, Start-Einheiten übersprungen.")
+		return
+
+	if not GameSession.has_established_base(base_id):
+		push_warning(
+			"AutomationController: ensure_starting_units — keine etablierte Basis für base_id=%s, keine Start-Einheiten."
+			% base_id
+		)
 		return
 
 	var base_node := _get_target_node(base_id)
@@ -130,8 +152,18 @@ func get_active_mining_job_count_for_session_base(base_id: String) -> int:
 	return mining_ship_runtime_by_unit_id.size()
 
 
-func spawn_idle_drone_at_base(base_id: String = BASE_ID_EARTH) -> void:
-	var base_node := _get_target_node(base_id)
+func spawn_idle_drone_at_base(base_id: String = "") -> void:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	if not GameSession.has_established_base(bid):
+		push_warning(
+			"AutomationController: spawn_idle_drone_at_base aborted — no established base for base_id=%s" % bid
+		)
+		return
+
+	var base_node := _get_target_node(bid)
 
 	if base_node == null:
 		return
@@ -148,8 +180,18 @@ func spawn_idle_drone_at_base(base_id: String = BASE_ID_EARTH) -> void:
 	_request_automation_state_changed()
 
 
-func spawn_idle_mining_ship_at_base(base_id: String = BASE_ID_EARTH) -> void:
-	var base_node := _get_target_node(base_id)
+func spawn_idle_mining_ship_at_base(base_id: String = "") -> void:
+	var bid_s: String = base_id.strip_edges()
+	if bid_s.is_empty():
+		bid_s = _get_session_base_id()
+
+	if not GameSession.has_established_base(bid_s):
+		push_warning(
+			"AutomationController: spawn_idle_mining_ship_at_base aborted — no established base for base_id=%s" % bid_s
+		)
+		return
+
+	var base_node := _get_target_node(bid_s)
 
 	if base_node == null:
 		return
@@ -170,6 +212,13 @@ func launch_scan_drone(target_id: String) -> void:
 	if target_id.is_empty():
 		return
 
+	var session_bid_ls: String = _get_session_base_id()
+	if not GameSession.has_established_base(session_bid_ls):
+		push_warning(
+			"AutomationController: cannot start scan, no established base for base_id=%s" % session_bid_ls
+		)
+		return
+
 	var target_node := _get_target_node(target_id)
 
 	if target_node == null:
@@ -180,7 +229,7 @@ func launch_scan_drone(target_id: String) -> void:
 	if unit == null:
 		return
 
-	var mission_id := GameSession.create_scan_mission(BASE_ID_EARTH, target_id)
+	var mission_id := GameSession.create_scan_mission(session_bid_ls, target_id)
 
 	_disconnect_unit_signals(unit)
 
@@ -196,7 +245,7 @@ func launch_scan_drone(target_id: String) -> void:
 
 	unit.work_duration = (
 		DEFAULT_SCAN_DURATION
-		* GameSession.get_scan_drone_scan_duration_multiplier(BASE_ID_EARTH)
+		* GameSession.get_scan_drone_scan_duration_multiplier(session_bid_ls)
 	)
 
 	unit.start_mission_to_node(target_node)
@@ -206,6 +255,13 @@ func launch_scan_drone(target_id: String) -> void:
 
 func launch_mining_ship(target_id: String) -> bool:
 	if target_id.is_empty():
+		return false
+
+	var session_bid_lm: String = _get_session_base_id()
+	if not GameSession.has_established_base(session_bid_lm):
+		push_warning(
+			"AutomationController: cannot start mining, no established base for base_id=%s" % session_bid_lm
+		)
 		return false
 
 	var target_node := _get_target_node(target_id)
@@ -239,19 +295,21 @@ func launch_mining_ship(target_id: String) -> bool:
 
 	_ensure_returned_to_base_connected(unit)
 
+	var mining_base_id: String = _get_session_base_id()
+
 	var cargo_cap_mission: int = maxi(
 		1,
 		int(
 			round(
 				float(DEFAULT_MINING_CARGO_CAPACITY)
-				* GameSession.get_mining_ship_cargo_capacity_multiplier(BASE_ID_EARTH)
+				* GameSession.get_mining_ship_cargo_capacity_multiplier(mining_base_id)
 			)
 		)
 	)
 
 	mining_ship_runtime_by_unit_id[unit.get_instance_id()] = {
 		"system_id": system_id,
-		"base_id": BASE_ID_EARTH,
+		"base_id": mining_base_id,
 		"target_id": target_id,
 		"cargo_resources": {} as Dictionary,
 		"mining_extract_remainders": {} as Dictionary,
@@ -403,7 +461,14 @@ func recall_one_drone_from_target(target_id: String) -> bool:
 	if target_id.is_empty():
 		return false
 
-	var home_base_node := _get_target_node(BASE_ID_EARTH)
+	var session_bid_rd: String = _get_session_base_id()
+	if not GameSession.has_established_base(session_bid_rd):
+		push_warning(
+			"AutomationController: recall drone aborted — no established base for base_id=%s" % session_bid_rd
+		)
+		return false
+
+	var home_base_node := _get_target_node(session_bid_rd)
 
 	if home_base_node == null:
 		return false
@@ -434,7 +499,15 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 	if target_id.is_empty():
 		return false
 
-	var home_base_node := _get_target_node(BASE_ID_EARTH)
+	var session_bid_rm: String = _get_session_base_id()
+	if not GameSession.has_established_base(session_bid_rm):
+		push_warning(
+			"AutomationController: recall mining ship aborted — no established base for base_id=%s"
+			% session_bid_rm
+		)
+		return false
+
+	var home_base_node := _get_target_node(session_bid_rm)
 
 	if home_base_node == null:
 		return false
@@ -495,8 +568,11 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 
 
 func get_mining_bonus_for_target(target_id: String) -> float:
+	var bonus_base_id: String = _get_session_base_id()
+	if not GameSession.has_established_base(bonus_base_id):
+		return 0.0
 	var per_pct := float(
-		GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(BASE_ID_EARTH)
+		GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(bonus_base_id)
 	)
 	return float(get_orbiting_drone_count(target_id)) * per_pct / 100.0
 
@@ -577,10 +653,10 @@ func _on_mining_ship_arrived_at_target(unit: AutomationUnit) -> void:
 	var target_node := _get_target_node(target_id)
 
 	if target_node == null:
-		var earth_node := _get_target_node(BASE_ID_EARTH)
+		var home_fallback: Node2D = _get_target_node(_get_session_base_id())
 
-		if earth_node != null:
-			unit.recall_to_base(earth_node)
+		if home_fallback != null:
+			unit.recall_to_base(home_fallback)
 
 		_request_automation_state_changed()
 		return
@@ -675,7 +751,9 @@ func _process(delta: float) -> void:
 				if cargo_total_min >= cargo_cap_min:
 					runtime["mining_extract_remainders"] = {} as Dictionary
 					runtime["extract_remainder"] = 0.0
-					var home_full_c: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+					var home_full_c: Node2D = _get_target_node(
+						_runtime_base_id_with_session_fallback(runtime)
+					)
 
 					if home_full_c != null:
 						runtime["status"] = MiningShipStatus.TO_BASE
@@ -700,7 +778,9 @@ func _process(delta: float) -> void:
 					runtime["extract_remainder"] = 0.0
 
 					if cargo_total_min > 0:
-						var home_empty_src: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+						var home_empty_src: Node2D = _get_target_node(
+							_runtime_base_id_with_session_fallback(runtime)
+						)
 
 						if home_empty_src != null:
 							runtime["status"] = MiningShipStatus.TO_BASE
@@ -725,7 +805,7 @@ func _process(delta: float) -> void:
 					runtime["extract_remainder"] = 0.0
 
 					if cargo_total_min > 0:
-						var home_ws: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+						var home_ws: Node2D = _get_target_node(_runtime_base_id_with_session_fallback(runtime))
 
 						if home_ws != null:
 							runtime["status"] = MiningShipStatus.TO_BASE
@@ -812,7 +892,7 @@ func _process(delta: float) -> void:
 				if cargo_total_min >= cargo_cap_min:
 					runtime["mining_extract_remainders"] = {} as Dictionary
 					runtime["extract_remainder"] = 0.0
-					var home_cap: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+					var home_cap: Node2D = _get_target_node(_runtime_base_id_with_session_fallback(runtime))
 
 					if home_cap != null:
 						runtime["status"] = MiningShipStatus.TO_BASE
@@ -830,7 +910,7 @@ func _process(delta: float) -> void:
 					runtime["extract_remainder"] = 0.0
 
 					if cargo_total_min > 0:
-						var home_pc: Node2D = _get_target_node(str(runtime.get("base_id", BASE_ID_EARTH)))
+						var home_pc: Node2D = _get_target_node(_runtime_base_id_with_session_fallback(runtime))
 
 						if home_pc != null:
 							runtime["status"] = MiningShipStatus.TO_BASE
@@ -844,7 +924,7 @@ func _process(delta: float) -> void:
 				mining_ship_runtime_by_unit_id[unit_id] = runtime
 
 			MiningShipStatus.UNLOADING:
-				var base_id_ul: String = str(runtime.get("base_id", BASE_ID_EARTH))
+				var base_id_ul: String = _runtime_base_id_with_session_fallback(runtime)
 				var unload_timer_ul: float = float(runtime.get("unload_timer", 0.0))
 				var unload_dur_ul: float = float(
 					runtime.get("unload_duration", DEFAULT_MINING_UNLOAD_DURATION)
@@ -966,7 +1046,7 @@ func _process(delta: float) -> void:
 					mining_ship_runtime_by_unit_id[unit_id] = runtime
 
 			MiningShipStatus.WAITING_FOR_STORAGE:
-				var base_ws: String = str(runtime.get("base_id", BASE_ID_EARTH))
+				var base_ws: String = _runtime_base_id_with_session_fallback(runtime)
 				var cargo_ws: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
 
 				var unit_ws: AutomationUnit = instance_from_id(unit_id) as AutomationUnit
@@ -1081,7 +1161,7 @@ func _on_mining_ship_returned_to_base(unit: AutomationUnit) -> void:
 
 ## Cargo stays on the ship; clears staged unload so we are not stuck in UNLOADING while storage is full.
 func _mining_ship_enter_waiting_for_storage(unit: AutomationUnit, runtime: Dictionary) -> void:
-	var base_id_wait: String = str(runtime.get("base_id", BASE_ID_EARTH))
+	var base_id_wait: String = _runtime_base_id_with_session_fallback(runtime)
 	var home_wait: Node2D = _get_target_node(base_id_wait)
 	var cargo_merged: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
 
@@ -1110,7 +1190,7 @@ func _release_mining_ship_runtime(unit_id: int) -> void:
 
 	_disconnect_unit_signals(unit)
 
-	var base_id := str(runtime.get("base_id", BASE_ID_EARTH))
+	var base_id: String = _runtime_base_id_with_session_fallback(runtime)
 	var home_base_node := _get_target_node(base_id)
 
 	if home_base_node != null:
@@ -1130,7 +1210,8 @@ func _get_idle_drone() -> AutomationUnit:
 		if drone.base_node == null or not is_instance_valid(drone.base_node):
 			continue
 
-		if _get_object_id_from_node(drone.base_node) != BASE_ID_EARTH:
+		var session_home: String = _get_session_base_id()
+		if _get_object_id_from_node(drone.base_node) != session_home:
 			continue
 
 		return drone
@@ -1154,7 +1235,8 @@ func _get_idle_mining_ship() -> AutomationUnit:
 		if ship.base_node == null or not is_instance_valid(ship.base_node):
 			continue
 
-		if _get_object_id_from_node(ship.base_node) != BASE_ID_EARTH:
+		var session_ship_home: String = _get_session_base_id()
+		if _get_object_id_from_node(ship.base_node) != session_ship_home:
 			continue
 
 		return ship

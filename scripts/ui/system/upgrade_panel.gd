@@ -3,7 +3,22 @@ extends PanelContainer
 
 signal close_requested
 
-const BASE_ID: String = "earth"
+## Target BaseStore base id (`SystemBody.body_id`). Set by SystemUI from session primary base.
+var _economy_body_id: String = BaseStore.BASE_EARTH
+
+
+func set_economy_body_id(body_id: String) -> void:
+	var bid := body_id.strip_edges()
+	if bid.is_empty():
+		push_warning("UpgradePanel.set_economy_body_id: empty id ignored")
+		return
+	_economy_body_id = bid
+
+
+func _economy_body_id_for_ops() -> String:
+	var bid := _economy_body_id.strip_edges()
+	return bid if not bid.is_empty() else BaseStore.BASE_EARTH
+
 
 @onready var storage_upgrade_button: Button = $Margin/Root/UpgradeList/StorageUpgradeButton
 @onready var scan_drone_upgrade_button: Button = $Margin/Root/UpgradeList/ScanDroneUpgradeButton
@@ -48,8 +63,8 @@ func refresh_from_game_session() -> void:
 func _refresh_upgrade_button(button: Button, category: StringName) -> void:
 	if button == null:
 		return
-	var is_max := not GameSession.has_next_base_upgrade(BASE_ID, category)
-	var can_buy := GameSession.can_buy_next_base_upgrade(BASE_ID, category)
+	var is_max := not GameSession.has_next_base_upgrade(_economy_body_id_for_ops(), category)
+	var can_buy := GameSession.can_buy_next_base_upgrade(_economy_body_id_for_ops(), category)
 	button.disabled = is_max or not can_buy
 	button.text = _upgrade_button_caption(category, is_max)
 
@@ -65,7 +80,7 @@ func _upgrade_button_caption(category: StringName, is_max: bool) -> String:
 				return "MiningShip Max Level"
 			_:
 				return "Max Level"
-	var nxt := GameSession.get_next_upgrade_definition(BASE_ID, category)
+	var nxt := GameSession.get_next_upgrade_definition(_economy_body_id_for_ops(), category)
 	if nxt != null and not nxt.title.is_empty():
 		return nxt.title
 	return "Upgrade"
@@ -78,17 +93,26 @@ func _on_close_pressed() -> void:
 
 
 func _on_storage_upgrade_pressed() -> void:
-	if GameSession.buy_next_base_upgrade(BASE_ID, &"storage"):
+	var oid := _economy_body_id_for_ops()
+	if not GameSession.has_established_base(oid):
+		return
+	if GameSession.buy_next_base_upgrade(oid, &"storage"):
 		refresh_from_game_session()
 
 
 func _on_scan_drone_upgrade_pressed() -> void:
-	if GameSession.buy_next_base_upgrade(BASE_ID, &"scan_drone"):
+	var oid := _economy_body_id_for_ops()
+	if not GameSession.has_established_base(oid):
+		return
+	if GameSession.buy_next_base_upgrade(oid, &"scan_drone"):
 		refresh_from_game_session()
 
 
 func _on_mining_ship_upgrade_pressed() -> void:
-	if GameSession.buy_next_base_upgrade(BASE_ID, &"mining_ship"):
+	var oid := _economy_body_id_for_ops()
+	if not GameSession.has_established_base(oid):
+		return
+	if GameSession.buy_next_base_upgrade(oid, &"mining_ship"):
 		refresh_from_game_session()
 
 
@@ -131,7 +155,7 @@ func _category_from_button(button: Button) -> StringName:
 
 
 func _hover_title_for_category(category: StringName) -> String:
-	if not GameSession.has_next_base_upgrade(BASE_ID, category):
+	if not GameSession.has_next_base_upgrade(_economy_body_id_for_ops(), category):
 		match String(category):
 			"storage":
 				return "Storage Max Level"
@@ -139,7 +163,7 @@ func _hover_title_for_category(category: StringName) -> String:
 				return "ScanDrone Max Level"
 			"mining_ship":
 				return "MiningShip Max Level"
-	var nxt := GameSession.get_next_upgrade_definition(BASE_ID, category)
+	var nxt := GameSession.get_next_upgrade_definition(_economy_body_id_for_ops(), category)
 	if nxt != null and not nxt.title.is_empty():
 		return nxt.title
 	return "Upgrade"
@@ -154,27 +178,27 @@ func _storage_level0_units() -> int:
 
 func _build_upgrade_hover_description(category: StringName) -> String:
 	var lines: PackedStringArray = []
-	var cur: UpgradeDefinition = GameSession.get_current_upgrade_definition(BASE_ID, category)
-	var nxt: UpgradeDefinition = GameSession.get_next_upgrade_definition(BASE_ID, category)
+	var cur: UpgradeDefinition = GameSession.get_current_upgrade_definition(_economy_body_id_for_ops(), category)
+	var nxt: UpgradeDefinition = GameSession.get_next_upgrade_definition(_economy_body_id_for_ops(), category)
 
-	if not GameSession.has_next_base_upgrade(BASE_ID, category):
+	if not GameSession.has_next_base_upgrade(_economy_body_id_for_ops(), category):
 		lines.append("Status:")
 		lines.append("Max Level reached.")
 		lines.append("Effects:")
 		match String(category):
 			"storage":
 				lines.append(
-					"Base Storage Capacity: %d%%" % GameSession.get_base_storage_capacity_percent(BASE_ID)
+					"Base Storage Capacity: %d%%" % GameSession.get_base_storage_capacity_percent(_economy_body_id_for_ops())
 				)
 			"scan_drone":
-				lines.append("Scan Speed: %d%%" % GameSession.get_scan_drone_scan_speed_percent(BASE_ID))
+				lines.append("Scan Speed: %d%%" % GameSession.get_scan_drone_scan_speed_percent(_economy_body_id_for_ops()))
 				lines.append(
 					"Mining Support: +%d%% Mining Yield per supporting ScanDrone"
-					% GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(BASE_ID)
+					% GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(_economy_body_id_for_ops())
 				)
 			"mining_ship":
 				lines.append(
-					"Cargo Capacity: %d%%" % GameSession.get_mining_ship_cargo_capacity_percent(BASE_ID)
+					"Cargo Capacity: %d%%" % GameSession.get_mining_ship_cargo_capacity_percent(_economy_body_id_for_ops())
 				)
 				if cur != null and cur.applies_to_new_jobs_only:
 					lines.append("Applies to newly launched mining missions.")

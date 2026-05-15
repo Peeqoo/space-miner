@@ -49,6 +49,8 @@ var _live_action_cache: Dictionary = {
 	"mining_exhausted": false,
 }
 
+var _economy_block_label: Label = null
+
 
 func _ready() -> void:
 	if not close_base_panel_button.pressed.is_connected(_on_close_base_panel_pressed):
@@ -108,7 +110,11 @@ func show_empty() -> void:
 		"mining_exhausted": false,
 		"scan_state": GameSession.SCAN_UNKNOWN,
 		"visible_resource_count": 0,
+		"system_economy_blocked_reason": "",
 	}
+
+	if _economy_block_label != null and is_instance_valid(_economy_block_label):
+		_economy_block_label.visible = false
 
 	call_deferred("_fit_height_to_content")
 
@@ -161,17 +167,60 @@ func _apply_info(info: Dictionary) -> void:
 		"mining_exhausted": bool(info.get("mining_exhausted", false)),
 		"scan_state": str(info.get("scan_state", GameSession.SCAN_UNKNOWN)),
 		"visible_resource_count": _get_visible_resource_count(info),
+		"system_economy_blocked_reason": str(info.get("system_economy_blocked_reason", "")),
 	}
 
 	_apply_live_action_controls()
 
 
+func _ensure_economy_block_label() -> void:
+	if _economy_block_label != null and is_instance_valid(_economy_block_label):
+		return
+	var root: Node = get_node_or_null("Margin/Root")
+	if root == null:
+		return
+	var grid: Node = root.get_node_or_null("GridContainer")
+	if grid == null:
+		return
+	var lbl := Label.new()
+	lbl.name = "EconomyBlockLabel"
+	lbl.visible = false
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", 6)
+	root.add_child(lbl)
+	root.move_child(lbl, grid.get_index())
+	_economy_block_label = lbl
+
+
 func _apply_live_action_controls() -> void:
+	var block_rs: String = str(_live_action_cache.get("system_economy_blocked_reason", "")).strip_edges()
+	_ensure_economy_block_label()
+
 	var can_scan: bool = bool(_live_action_cache.get("can_scan", false))
 	var can_mine: bool = bool(_live_action_cache.get("can_mine", false))
 	var can_recall_drone: bool = bool(_live_action_cache.get("can_recall_drone", false))
 	var can_recall_mining_ship: bool = bool(_live_action_cache.get("can_recall_mining_ship", false))
 	var is_home_base: bool = bool(_live_action_cache.get("is_home_base", false))
+
+	if not block_rs.is_empty():
+		can_scan = false
+		can_mine = false
+		can_recall_drone = false
+		can_recall_mining_ship = false
+		if _economy_block_label != null:
+			_economy_block_label.text = block_rs
+			_economy_block_label.visible = true
+		scan_with_drone_button.tooltip_text = block_rs
+		send_mining_ship_button.tooltip_text = block_rs
+		recall_drone_button.tooltip_text = block_rs
+		recall_mining_ship_button.tooltip_text = block_rs
+	else:
+		if _economy_block_label != null:
+			_economy_block_label.visible = false
+		scan_with_drone_button.tooltip_text = ""
+		send_mining_ship_button.tooltip_text = ""
+		recall_drone_button.tooltip_text = ""
+		recall_mining_ship_button.tooltip_text = ""
 
 	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false)) or _is_current_object_mining_exhausted()
 	_live_action_cache["mining_exhausted"] = mining_exhausted
@@ -245,8 +294,11 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var drone_on_mission: int = maxi(0, drone_total_assigned - drone_supporting)
 
 	var mining_mining_count: int = int(info.get("mining_ship_mining_count", 0))
+	var upgrade_base_id: String = str(info.get("mining_yield_upgrade_base_id", "")).strip_edges()
+	if upgrade_base_id.is_empty():
+		upgrade_base_id = BaseStore.BASE_EARTH
 	var per_drone_pct: int = GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(
-		BaseStore.BASE_EARTH
+		upgrade_base_id
 	)
 	var bonus_pct: int = drone_supporting * per_drone_pct
 

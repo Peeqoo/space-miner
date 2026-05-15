@@ -6,8 +6,6 @@ signal build_scan_drone_requested
 signal build_mining_ship_requested
 signal close_requested
 
-const BASE_ID: String = "earth"
-
 const BUTTON_INFO: Dictionary = {
 	"BuildScanDroneButton": {
 		"title": "ScanDrone",
@@ -22,6 +20,23 @@ const BUTTON_INFO: Dictionary = {
 		"desc": "Unlocks after stable Phase 4 loop.",
 	},
 }
+
+## Target BaseStore base id (`SystemBody.body_id`). Set by SystemUI from session primary base.
+var _economy_body_id: String = BaseStore.BASE_EARTH
+
+
+func set_economy_body_id(body_id: String) -> void:
+	var bid := body_id.strip_edges()
+	if bid.is_empty():
+		push_warning("ProductionPanel.set_economy_body_id: empty id ignored")
+		return
+	_economy_body_id = bid
+
+
+func _economy_body_id_for_ops() -> String:
+	var bid := _economy_body_id.strip_edges()
+	return bid if not bid.is_empty() else BaseStore.BASE_EARTH
+
 
 @onready var build_scan_drone_button: Button = $Margin/Root/ProductionList/BuildScanDroneButton
 @onready var build_mining_ship_button: Button = $Margin/Root/ProductionList/BuildMiningShipButton
@@ -59,8 +74,9 @@ func _exit_tree() -> void:
 
 
 func refresh_from_game_session() -> void:
-	build_scan_drone_button.disabled = not GameSession.can_build_base_drone(BASE_ID)
-	build_mining_ship_button.disabled = not GameSession.can_build_base_mining_ship(BASE_ID)
+	var oid := _economy_body_id_for_ops()
+	build_scan_drone_button.disabled = not GameSession.can_build_base_drone(oid)
+	build_mining_ship_button.disabled = not GameSession.can_build_base_mining_ship(oid)
 	build_colony_ship_button.disabled = true
 
 
@@ -71,13 +87,19 @@ func _on_close_pressed() -> void:
 
 
 func _on_build_scan_drone_pressed() -> void:
-	if GameSession.build_base_drone(BASE_ID):
+	var oid := _economy_body_id_for_ops()
+	if not GameSession.has_established_base(oid):
+		return
+	if GameSession.build_base_drone(oid):
 		build_scan_drone_requested.emit()
 	refresh_from_game_session()
 
 
 func _on_build_mining_ship_pressed() -> void:
-	if GameSession.build_base_mining_ship(BASE_ID):
+	var oid := _economy_body_id_for_ops()
+	if not GameSession.has_established_base(oid):
+		return
+	if GameSession.build_base_mining_ship(oid):
 		build_mining_ship_requested.emit()
 	refresh_from_game_session()
 
@@ -109,7 +131,7 @@ func _on_button_hover_exited(_button: Button) -> void:
 
 
 func _build_cost_text(button_name: String) -> String:
-	var resources := GameSession.get_base_resources(BASE_ID)
+	var resources := GameSession.get_base_resources(_economy_body_id_for_ops())
 	match button_name:
 		"BuildScanDroneButton":
 			return _format_cost_lines(BaseStore.DRONE_COST, resources)

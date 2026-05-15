@@ -34,6 +34,9 @@ var discovered_system_ids: Array[String] = []
 var unlocked_system_ids: Array[String] = []
 var _galaxy_progression_seeded: bool = false
 
+## Phase 6.3e: bases that truly exist (`BaseStore.get_base` auto-inserts placeholders — NOT established).
+var _established_base_ids: Dictionary = {}
+
 signal object_remaining_resources_changed(system_id: String, object_id: String)
 signal base_resources_changed(base_id: String)
 ## Emitted when `discovered_system_ids` or `unlocked_system_ids` change (not during initial seed).
@@ -48,6 +51,7 @@ func _ready() -> void:
 	upgrade_catalog = UpgradeCatalog.new()
 	upgrade_catalog.load_all()
 	bases.set_upgrade_catalog(upgrade_catalog)
+	mark_base_established(BaseStore.BASE_EARTH)
 	ensure_default_system_loaded()
 
 
@@ -58,6 +62,9 @@ func _ready() -> void:
 func ensure_boot_state() -> void:
 	ensure_default_system_loaded()
 	ensure_galaxy_progression_boot()
+
+	if not has_established_base(BaseStore.BASE_EARTH):
+		mark_base_established(BaseStore.BASE_EARTH)
 
 	if current_system_id.is_empty():
 		current_system_id = START_SYSTEM_ID
@@ -164,6 +171,48 @@ func consume_travel_entry_flag() -> bool:
 
 func can_leave_current_system() -> bool:
 	return true
+
+
+# --------------------------------------------------
+# Established bases (Phase 6.3e)
+# --------------------------------------------------
+
+
+func mark_base_established(base_id: String) -> void:
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		push_warning("GameSession.mark_base_established: empty base_id ignored")
+		return
+	_established_base_ids[bid] = true
+
+
+func has_established_base(base_id: String) -> bool:
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		return false
+	return _established_base_ids.has(bid)
+
+
+func has_established_base_in_system(system_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return false
+	if current_system_definition != null and current_system_definition.id == sid:
+		var start_b: String = current_system_definition.start_body_id.strip_edges()
+		if not start_b.is_empty() and has_established_base(start_b):
+			return true
+	# No global body→system map; extend when multiple bases per system exist.
+	return false
+
+
+func get_established_base_id_for_system(system_id: String) -> String:
+	if not has_established_base_in_system(system_id):
+		return ""
+	if current_system_definition != null and current_system_definition.id == system_id:
+		var start_b: String = current_system_definition.start_body_id.strip_edges()
+		if has_established_base(start_b):
+			return start_b
+	return ""
 
 
 # --------------------------------------------------
