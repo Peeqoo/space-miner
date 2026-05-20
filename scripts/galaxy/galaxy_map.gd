@@ -67,9 +67,6 @@ func _connect_galaxy_map_signals() -> void:
 	if hud != null and not hud.enter_requested.is_connected(_on_enter_pressed):
 		hud.enter_requested.connect(_on_enter_pressed)
 
-	if hud != null and not hud.colonization_deploy_requested.is_connected(_on_colon_deploy_requested):
-		hud.colonization_deploy_requested.connect(_on_colon_deploy_requested)
-
 	if hud != null and not hud.colonization_cancel_requested.is_connected(_on_colon_cancel_requested):
 		hud.colonization_cancel_requested.connect(_on_colon_cancel_requested)
 
@@ -185,25 +182,6 @@ func _update_hud_for_selected_system(system_def: SystemDefinition) -> void:
 		access_state,
 	)
 	hud.update_colonization_preview(system_def, access_state)
-
-
-func _on_colon_deploy_requested() -> void:
-	if selected_system == null:
-		return
-
-	var src := GameSession.get_colonization_source_base_id().strip_edges()
-	var tid := selected_system.id.strip_edges()
-	var body := selected_system.start_body_id.strip_edges()
-
-	if src.is_empty() or tid.is_empty() or body.is_empty():
-		return
-
-	var op_id := GameSession.start_colonization_operation(src, tid, body)
-	if op_id.is_empty():
-		_update_hud_for_selected_system(selected_system)
-		return
-
-	_update_hud_for_selected_system(selected_system)
 
 
 func _on_colon_cancel_requested() -> void:

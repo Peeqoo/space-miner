@@ -8,7 +8,6 @@ const ACCESS_LOCKED := "locked"
 const ACCESS_UNREACHABLE := "unreachable"
 
 signal enter_requested
-signal colonization_deploy_requested
 signal colonization_cancel_requested
 signal colonization_dev_complete_requested
 
@@ -38,9 +37,6 @@ signal colonization_dev_complete_requested
 )
 @onready var colonization_intel_value_label: Label = (
 	$GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer/ColonizationIntelValueLabel
-)
-@onready var colonization_deploy_button: Button = (
-	$GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDeployButton
 )
 @onready var colonization_secondary_row: GridContainer = (
 	$GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow
@@ -199,18 +195,11 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 		_colonization_preview_system_def = null
 		set_process(false)
 		return
-	if not is_instance_valid(colonization_deploy_button):
-		return
 
 	_colonization_preview_system_def = system_def
-
 	_show_colonization_section()
 
-	if is_instance_valid(colonization_deploy_button):
-		colonization_deploy_button.visible = false
-
 	var sid: String = system_def.id.strip_edges()
-	var start_body: String = system_def.start_body_id.strip_edges()
 	var pending_rec: Dictionary = GameSession.get_pending_colonization_operation_for_system(sid)
 
 	if access_state == ACCESS_LOCKED or access_state == ACCESS_UNREACHABLE:
@@ -218,16 +207,14 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 			"Gesperrt",
 			_colonization_target_value_text(system_def, sid),
 			_colonization_ships_count_text(sid),
-			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
+			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
-		colonization_deploy_button.disabled = true
-		colonization_cancel_button.disabled = true
-		colonization_dev_button.disabled = true
+		_set_cancel_dev_disabled()
 		return
 
 	if sid.is_empty():
 		_set_colonization_block()
-		_set_deploy_cancel_dev_disabled()
+		_set_cancel_dev_disabled()
 		return
 
 	if GameSession.has_established_base_in_system(sid):
@@ -242,11 +229,9 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 			state_short,
 			_colonization_target_value_text(system_def, sid),
 			str(ships_n),
-			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
+			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
-		colonization_deploy_button.disabled = true
-		colonization_cancel_button.disabled = true
-		colonization_dev_button.disabled = true
+		_set_cancel_dev_disabled()
 		return
 
 	if not pending_rec.is_empty():
@@ -258,27 +243,14 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 			state_txt,
 			_colonization_target_value_text(system_def, sid),
 			_colonization_ships_count_text(sid),
-			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
+			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
-		if is_instance_valid(colonization_deploy_button):
-			colonization_deploy_button.visible = false
-		colonization_deploy_button.disabled = true
 		colonization_cancel_button.disabled = false
 		colonization_dev_button.disabled = false
 		set_process(true)
 		return
 
 	set_process(false)
-
-	if start_body.is_empty():
-		_set_colonization_block(
-			"-",
-			"-",
-			"0",
-			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
-		)
-		_set_deploy_cancel_dev_disabled()
-		return
 
 	var source_id := GameSession.get_colonization_source_base_id().strip_edges()
 
@@ -287,11 +259,9 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 			"Unkolonisiert",
 			_colonization_target_value_text(system_def, sid),
 			_colonization_ships_count_text(sid),
-			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
+			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
-		colonization_deploy_button.disabled = true
-		colonization_cancel_button.disabled = true
-		colonization_dev_button.disabled = true
+		_set_cancel_dev_disabled()
 		return
 
 	var cs_n: int = GameSession.get_base_colony_ship_count(source_id)
@@ -300,11 +270,9 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 		"Unkolonisiert",
 		_colonization_target_value_text(system_def, sid),
 		str(cs_n),
-		_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
+		_colonization_intel_value_text(system_def, sid, pending_rec),
 	)
-	colonization_deploy_button.disabled = cs_n < 1
-	colonization_cancel_button.disabled = true
-	colonization_dev_button.disabled = true
+	_set_cancel_dev_disabled()
 	set_process(false)
 
 
@@ -356,7 +324,6 @@ func _colonization_intel_value_text(
 	system_def: SystemDefinition,
 	sid: String,
 	pending_rec: Dictionary,
-	start_body: String,
 ) -> String:
 	var body_id := ""
 	if GameSession.has_established_base_in_system(sid):
@@ -365,8 +332,6 @@ func _colonization_intel_value_text(
 			body_id = GameSession.get_established_base_body_id(ebs).strip_edges()
 	elif not pending_rec.is_empty():
 		body_id = str(pending_rec.get("target_body_id", "")).strip_edges()
-	else:
-		body_id = start_body.strip_edges()
 
 	if body_id.is_empty():
 		return "Unbekannt"
@@ -421,8 +386,6 @@ func _show_colonization_section() -> void:
 		colonization_ships_value_label.visible = true
 	if is_instance_valid(colonization_intel_value_label):
 		colonization_intel_value_label.visible = true
-	if is_instance_valid(colonization_deploy_button):
-		colonization_deploy_button.visible = false
 	if is_instance_valid(colonization_secondary_row):
 		colonization_secondary_row.visible = true
 
@@ -437,24 +400,17 @@ func _hide_colonization_section() -> void:
 	if is_instance_valid(colonization_title_label):
 		colonization_title_label.visible = false
 	_set_colonization_block()
-	if is_instance_valid(colonization_deploy_button):
-		colonization_deploy_button.visible = false
 	if is_instance_valid(colonization_secondary_row):
 		colonization_secondary_row.visible = false
 
 
-func _set_deploy_cancel_dev_disabled() -> void:
-	colonization_deploy_button.disabled = true
+func _set_cancel_dev_disabled() -> void:
 	colonization_cancel_button.disabled = true
 	colonization_dev_button.disabled = true
 
 
 func _on_enter_button_pressed() -> void:
 	enter_requested.emit()
-
-
-func _on_colon_deploy_pressed() -> void:
-	colonization_deploy_requested.emit()
 
 
 func _on_colon_cancel_pressed() -> void:

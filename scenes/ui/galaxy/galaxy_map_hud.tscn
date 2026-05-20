@@ -24,8 +24,7 @@ anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -177.0
 offset_top = 42.0
-offset_right = -7.0
-offset_bottom = 275.0
+offset_bottom = 260.0
 
 [node name="Margin" type="MarginContainer" parent="GalaxyInfoPanel" unique_id=1232266166]
 layout_mode = 2
@@ -216,13 +215,6 @@ theme_override_font_sizes/font_size = 4
 disabled = true
 text = "Kolonisierung abbrechen"
 
-[node name="ColonizationDeployButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow" unique_id=892001004]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("5_0qajj")
-theme_override_font_sizes/font_size = 4
-disabled = true
-text = "ColonyShip entsenden"
-
 [node name="ColonizationDevButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow" unique_id=892001007]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("5_0qajj")
@@ -272,6 +264,5 @@ autowrap_mode = 3
 
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/InfoSection/InfoHeaderRow/InfoButton" to="." method="_on_info_button_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationCancelButton" to="." method="_on_colon_cancel_pressed"]
-[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDeployButton" to="." method="_on_colon_deploy_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDevButton" to="." method="_on_colon_dev_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ActionSection/EnterButton" to="." method="_on_enter_button_pressed"]

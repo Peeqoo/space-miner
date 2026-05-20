@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="SystemBodyDefinition" format=3 uid="uid://d3k0wjvywqh0e"]
 
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_ropso"]
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_y2s6n"]
 [ext_resource type="Texture2D" uid="uid://ccv784e2jnc05" path="res://assets/sprites/planets/PlanetsFull/Terran_or_Earth-like/9.png" id="2_dkwxl"]
 
@@ -10,7 +11,7 @@ display_name = "Proxima Centauri B"
 description = "Felsiger Exoplanet mit starker Strahlung und rauem Klima. Gewaltige Stürme und eisige Regionen prägen die Oberfläche des Planeten."
 body_type = "planet"
 orbit_center_id = "star"
-can_build_base = false
+can_build_base = true
 orbit_radius = 140.0
 orbit_speed = 0.32
 orbit_start_angle_degrees = 120.0

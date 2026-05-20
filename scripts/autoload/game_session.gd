@@ -551,19 +551,6 @@ func get_established_base_id_for_system(system_id: String) -> String:
 			# TODO(multi-base-per-system): deterministic selection when >1 bases share a system_id.
 			return bid
 
-	# Deprecated fallback: Session-only heuristic before Phase 6.4 records existed.
-	if current_system_definition != null and current_system_definition.id == sid:
-		var start_b: String = current_system_definition.start_body_id.strip_edges()
-		if not start_b.is_empty() and has_established_base(start_b):
-			push_warning(
-				(
-					"GameSession.get_established_base_id_for_system('%s'): "
-					+ "matched via legacy current_system/start_body_id heuristic; prefer Base records."
-				)
-				% sid
-			)
-			return start_b
-
 	return ""
 
 

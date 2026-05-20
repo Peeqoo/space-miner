@@ -453,6 +453,19 @@ func _apply_colonization_info_to_dict(info: Dictionary, selected_node: Node) -> 
 	)
 
 
+func _body_definition_allows_base(body_id: String) -> bool:
+	var bid := body_id.strip_edges()
+	if bid.is_empty() or system_definition == null:
+		return false
+	for body_def in system_definition.bodies:
+		if body_def == null:
+			continue
+		if str(body_def.id).strip_edges() != bid:
+			continue
+		return body_def.can_build_base
+	return false
+
+
 func _can_scan_selected_object(selected_node: Node, _scan_state: String) -> bool:
 	if selected_node == null:
 		return false
@@ -550,6 +563,8 @@ func _on_colonization_requested(object_id: String) -> void:
 	if GameSession.has_established_base_in_system(sys_id):
 		return
 	if GameSession.has_pending_colonization_to_system(sys_id):
+		return
+	if not _body_definition_allows_base(body_id):
 		return
 
 	var src := GameSession.get_colonization_source_base_id().strip_edges()
