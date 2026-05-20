@@ -249,6 +249,9 @@ func _connect_ui_signals() -> void:
 	):
 		GameSession.object_remaining_resources_changed.connect(_on_object_remaining_resources_changed)
 
+	if not GameSession.base_resources_changed.is_connected(_on_base_resources_changed_ui_refresh):
+		GameSession.base_resources_changed.connect(_on_base_resources_changed_ui_refresh)
+
 	if object_info_panel != null:
 		if object_info_panel.has_signal("scan_requested"):
 			if not object_info_panel.scan_requested.is_connected(_on_object_scan_requested):
@@ -269,6 +272,10 @@ func _connect_ui_signals() -> void:
 		if object_info_panel.has_signal("close_requested"):
 			if not object_info_panel.close_requested.is_connected(_on_object_info_close_requested):
 				object_info_panel.close_requested.connect(_on_object_info_close_requested)
+
+		if object_info_panel.has_signal("colonization_requested"):
+			if not object_info_panel.colonization_requested.is_connected(_on_colonization_requested):
+				object_info_panel.colonization_requested.connect(_on_colonization_requested)
 
 	if base_management_panel != null:
 		if base_management_panel.has_signal("build_drone_requested"):
@@ -396,6 +403,8 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	if not info.has("lore_text"):
 		info["lore_text"] = "Keine Beschreibung verfügbar."
 
+	_apply_colonization_info_to_dict(info, selected_node)
+
 	var sys_gate_id := _current_system_definition_id()
 	if sys_gate_id.is_empty() or GameSession.get_established_base_id_for_system(sys_gate_id).is_empty():
 		info["system_economy_blocked_reason"] = "Keine Basis in diesem System errichtet."
@@ -411,6 +420,37 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 			info["mining_bonus"] = 0.0
 
 	return info
+
+
+func _apply_colonization_info_to_dict(info: Dictionary, selected_node: Node) -> void:
+	var sys_id := _current_system_definition_id()
+	info["system_id"] = sys_id
+	info["object_id"] = _get_object_id(selected_node)
+
+	var is_home: bool = sys_id == GameSession.START_SYSTEM_ID
+	var has_base: bool = GameSession.has_established_base_in_system(sys_id)
+	var pending: bool = GameSession.has_pending_colonization_to_system(sys_id)
+
+	var is_colonizable: bool = false
+	if selected_node is SystemBody:
+		var body := selected_node as SystemBody
+		if body.definition != null and body.definition.can_build_base:
+			is_colonizable = true
+
+	var show_button: bool = (
+		selected_node is SystemBody
+		and not is_home
+		and not has_base
+		and is_colonizable
+	)
+
+	info["colonization_button_visible"] = show_button
+	info["colonization_pending"] = pending and show_button
+	info["colonization_can_start"] = (
+		show_button
+		and not pending
+		and not GameSession.get_colonization_source_base_id().strip_edges().is_empty()
+	)
 
 
 func _can_scan_selected_object(selected_node: Node, _scan_state: String) -> bool:
@@ -493,6 +533,37 @@ func _on_automation_state_changed() -> void:
 
 func _on_object_remaining_resources_changed(_changed_system_id: String, _changed_object_id: String) -> void:
 	update_object_info()
+
+
+func _on_base_resources_changed_ui_refresh(_base_id: String) -> void:
+	update_object_info()
+	_update_top_hud()
+
+
+func _on_colonization_requested(object_id: String) -> void:
+	var sys_id := _current_system_definition_id()
+	var body_id := object_id.strip_edges()
+	if sys_id.is_empty() or body_id.is_empty():
+		return
+	if sys_id == GameSession.START_SYSTEM_ID:
+		return
+	if GameSession.has_established_base_in_system(sys_id):
+		return
+	if GameSession.has_pending_colonization_to_system(sys_id):
+		return
+
+	var src := GameSession.get_colonization_source_base_id().strip_edges()
+	if src.is_empty():
+		update_object_info()
+		return
+
+	var op_id := GameSession.start_colonization_operation(src, sys_id, body_id)
+	if op_id.is_empty():
+		update_object_info()
+		return
+
+	update_object_info()
+	_update_top_hud()
 
 
 func _on_build_drone_requested() -> void:

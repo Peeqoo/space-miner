@@ -53,10 +53,33 @@ signal colonization_dev_complete_requested
 )
 @onready var enter_button: Button = $GalaxyInfoPanel/Margin/Root/ActionSection/EnterButton
 
+var _colonization_preview_system_def: SystemDefinition = null
+
 
 func _ready() -> void:
 	set_current_system_name("-")
 	show_no_selection_state()
+	set_process(false)
+
+
+func _process(_delta: float) -> void:
+	if _colonization_preview_system_def == null:
+		set_process(false)
+		return
+	var sid := _colonization_preview_system_def.id.strip_edges()
+	if sid.is_empty():
+		return
+	var pending_rec := GameSession.get_pending_colonization_operation_for_system(sid)
+	if pending_rec.is_empty():
+		set_process(false)
+		return
+	if not is_instance_valid(colonization_state_value_label):
+		return
+	var op_id := str(pending_rec.get("operation_id", "")).strip_edges()
+	if op_id.is_empty():
+		return
+	var status_txt := GameSession.get_colonization_operation_status_text(op_id)
+	colonization_state_value_label.text = status_txt if not status_txt.is_empty() else "Läuft"
 
 
 func _hide_info_popup() -> void:
@@ -170,16 +193,21 @@ func _access_status_text_for_state(access_state: String) -> String:
 			return ""
 
 
-## Phase 6.4d Colonization preview (nur Value-Labels; keine Ressourcennamen).
+## Phase 6.4d / 6.5 Colonization preview (nur Value-Labels; Start über ObjectInfoPanel).
 func update_colonization_preview(system_def: SystemDefinition, access_state: String) -> void:
 	if system_def == null:
+		_colonization_preview_system_def = null
+		set_process(false)
 		return
 	if not is_instance_valid(colonization_deploy_button):
 		return
 
+	_colonization_preview_system_def = system_def
+
 	_show_colonization_section()
 
-	colonization_deploy_button.visible = true
+	if is_instance_valid(colonization_deploy_button):
+		colonization_deploy_button.visible = false
 
 	var sid: String = system_def.id.strip_edges()
 	var start_body: String = system_def.start_body_id.strip_edges()
@@ -222,17 +250,25 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 		return
 
 	if not pending_rec.is_empty():
+		var op_id := str(pending_rec.get("operation_id", "")).strip_edges()
+		var state_txt := GameSession.get_colonization_operation_status_text(op_id)
+		if state_txt.is_empty():
+			state_txt = "Läuft"
 		_set_colonization_block(
-			"Läuft",
+			state_txt,
 			_colonization_target_value_text(system_def, sid),
 			_colonization_ships_count_text(sid),
 			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
 		)
-		colonization_deploy_button.visible = false
+		if is_instance_valid(colonization_deploy_button):
+			colonization_deploy_button.visible = false
 		colonization_deploy_button.disabled = true
 		colonization_cancel_button.disabled = false
 		colonization_dev_button.disabled = false
+		set_process(true)
 		return
+
+	set_process(false)
 
 	if start_body.is_empty():
 		_set_colonization_block(
@@ -269,6 +305,7 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 	colonization_deploy_button.disabled = cs_n < 1
 	colonization_cancel_button.disabled = true
 	colonization_dev_button.disabled = true
+	set_process(false)
 
 
 func _set_colonization_block(
@@ -288,6 +325,13 @@ func _set_colonization_block(
 
 
 func _colonization_target_value_text(system_def: SystemDefinition, sid: String) -> String:
+	var pending := GameSession.get_pending_colonization_operation_for_system(sid)
+	if not pending.is_empty():
+		var tid := str(pending.get("target_body_id", "")).strip_edges()
+		if not tid.is_empty():
+			var dn := _get_body_display_name(system_def, tid).strip_edges()
+			return dn if not dn.is_empty() else "-"
+		return "-"
 	if not GameSession.has_established_base_in_system(sid):
 		return "-"
 	var eb := GameSession.get_established_base_id_for_system(sid).strip_edges()
@@ -378,12 +422,14 @@ func _show_colonization_section() -> void:
 	if is_instance_valid(colonization_intel_value_label):
 		colonization_intel_value_label.visible = true
 	if is_instance_valid(colonization_deploy_button):
-		colonization_deploy_button.visible = true
+		colonization_deploy_button.visible = false
 	if is_instance_valid(colonization_secondary_row):
 		colonization_secondary_row.visible = true
 
 
 func _hide_colonization_section() -> void:
+	_colonization_preview_system_def = null
+	set_process(false)
 	if is_instance_valid(divider_c):
 		divider_c.visible = false
 	if is_instance_valid(colonization_section):

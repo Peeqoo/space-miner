@@ -12,6 +12,8 @@ const SCAN_BASIC := ObjectScanStore.SCAN_BASIC
 const SCAN_DEEP := ObjectScanStore.SCAN_DEEP
 const SCAN_SPECIAL := ObjectScanStore.SCAN_SPECIAL
 
+const COLONIZATION_OPERATION_DURATION_MS := 60000
+
 const SCANNER_BASIC := ScannerStore.SCANNER_BASIC
 const SCANNER_DEEP := ScannerStore.SCANNER_DEEP
 const SCANNER_SPECIAL := ScannerStore.SCANNER_SPECIAL
@@ -311,6 +313,7 @@ func start_colonization_operation(source_base_id: String, target_system_id: Stri
 		return ""
 
 	var op_id := _allocate_colonization_operation_id()
+	var created_tick: int = Time.get_ticks_msec()
 	var rec: Dictionary = {
 		"operation_id": op_id,
 		"source_base_id": src,
@@ -318,8 +321,10 @@ func start_colonization_operation(source_base_id: String, target_system_id: Stri
 		"target_body_id": tbod,
 		"status": "pending",
 		"reserved_colony_ships": 1,
-		"created_at_tick": Time.get_ticks_msec(),
+		"created_at_tick": created_tick,
 		"completed_at_tick": -1,
+		"duration_ms": COLONIZATION_OPERATION_DURATION_MS,
+		"arrival_at_tick": created_tick + COLONIZATION_OPERATION_DURATION_MS,
 	}
 	_colonization_operations[op_id] = rec
 	base_resources_changed.emit(src)
@@ -445,6 +450,31 @@ func get_pending_colonization_operation_for_system(system_id: String) -> Diction
 			return d.duplicate(true)
 
 	return {}
+
+
+func get_colonization_operation_remaining_ms(operation_id: String) -> int:
+	var rec := get_colonization_operation(operation_id)
+	if rec.is_empty():
+		return 0
+	if str(rec.get("status", "")).strip_edges() != "pending":
+		return 0
+	var arrival: int = int(rec.get("arrival_at_tick", 0))
+	if arrival <= 0:
+		return 0
+	return maxi(0, arrival - Time.get_ticks_msec())
+
+
+func get_colonization_operation_status_text(operation_id: String) -> String:
+	var rec := get_colonization_operation(operation_id)
+	if rec.is_empty():
+		return ""
+	if str(rec.get("status", "")).strip_edges() != "pending":
+		return ""
+	var remaining_ms: int = get_colonization_operation_remaining_ms(operation_id)
+	if remaining_ms <= 0:
+		return "Bereit zur Ankunft"
+	var sec: int = int(ceil(float(remaining_ms) / 1000.0))
+	return "Läuft %ds" % sec
 
 
 func get_colonization_source_base_id() -> String:

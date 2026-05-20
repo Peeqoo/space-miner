@@ -203,6 +203,15 @@ theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 8
 text = "Mining Ship zurück"
 
+[node name="ColonizationButton" type="Button" parent="Margin/Root/GridContainer" unique_id=920113406]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("5_ckpwi")
+theme_override_font_sizes/font_size = 8
+disabled = true
+text = "Kolonisierung starten"
+
 [node name="DividerE" type="HSeparator" parent="Margin/Root" unique_id=1043062862]
 layout_mode = 2
 theme_override_constants/separation = 0

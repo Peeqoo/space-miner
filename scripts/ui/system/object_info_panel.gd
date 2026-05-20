@@ -6,12 +6,15 @@ signal scan_requested(object_id: String)
 signal mining_requested(object_id: String)
 signal recall_drone_requested(object_id: String)
 signal recall_mining_ship_requested(object_id: String)
+signal colonization_requested(object_id: String)
 signal close_requested()
 
 const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/resource_info_row.tscn")
 
 const MINING_BUTTON_TEXT_DEFAULT: String = "Mine"
 const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
+const COLONIZATION_BUTTON_TEXT_DEFAULT: String = "Kolonisierung starten"
+const COLONIZATION_BUTTON_TEXT_RUNNING: String = "Läuft..."
 
 @onready var header_label: Label = $Margin/Root/HBoxContainer/HeaderLabel
 @onready var preview_texture: TextureRect = $Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture
@@ -33,6 +36,7 @@ const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
 @onready var send_mining_ship_button: Button = $Margin/Root/GridContainer/SendMiningShipButton
 @onready var recall_drone_button: Button = $Margin/Root/GridContainer/RecallDroneButton
 @onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
+@onready var colonization_button: Button = $Margin/Root/GridContainer/ColonizationButton
 
 var current_object_id: String = ""
 
@@ -47,6 +51,9 @@ var _live_action_cache: Dictionary = {
 	"can_recall_mining_ship": false,
 	"is_home_base": false,
 	"mining_exhausted": false,
+	"colonization_button_visible": false,
+	"colonization_pending": false,
+	"colonization_can_start": false,
 }
 
 var _economy_block_label: Label = null
@@ -67,6 +74,10 @@ func _ready() -> void:
 
 	if not recall_mining_ship_button.pressed.is_connected(_on_recall_mining_ship_pressed):
 		recall_mining_ship_button.pressed.connect(_on_recall_mining_ship_pressed)
+
+	if colonization_button != null:
+		if not colonization_button.pressed.is_connected(_on_colonization_pressed):
+			colonization_button.pressed.connect(_on_colonization_pressed)
 
 	if not GameSession.object_remaining_resources_changed.is_connected(
 		_on_game_session_object_resources_changed
@@ -99,6 +110,7 @@ func show_empty() -> void:
 	send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
 	_set_action_buttons(false, false, false)
 	_set_recall_buttons(false, false)
+	_apply_colonization_controls()
 
 	_cached_visible_resources.clear()
 	_live_action_cache = {
@@ -111,6 +123,9 @@ func show_empty() -> void:
 		"scan_state": GameSession.SCAN_UNKNOWN,
 		"visible_resource_count": 0,
 		"system_economy_blocked_reason": "",
+		"colonization_button_visible": false,
+		"colonization_pending": false,
+		"colonization_can_start": false,
 	}
 
 	if _economy_block_label != null and is_instance_valid(_economy_block_label):
@@ -168,6 +183,9 @@ func _apply_info(info: Dictionary) -> void:
 		"scan_state": str(info.get("scan_state", GameSession.SCAN_UNKNOWN)),
 		"visible_resource_count": _get_visible_resource_count(info),
 		"system_economy_blocked_reason": str(info.get("system_economy_blocked_reason", "")),
+		"colonization_button_visible": bool(info.get("colonization_button_visible", false)),
+		"colonization_pending": bool(info.get("colonization_pending", false)),
+		"colonization_can_start": bool(info.get("colonization_can_start", false)),
 	}
 
 	_apply_live_action_controls()
@@ -241,7 +259,36 @@ func _apply_live_action_controls() -> void:
 		else:
 			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
 
+	_apply_colonization_controls()
+
 	call_deferred("_fit_height_to_content")
+
+
+func _apply_colonization_controls() -> void:
+	if colonization_button == null:
+		return
+
+	var visible: bool = bool(_live_action_cache.get("colonization_button_visible", false))
+	colonization_button.visible = visible
+	if not visible:
+		colonization_button.disabled = true
+		colonization_button.text = COLONIZATION_BUTTON_TEXT_DEFAULT
+		colonization_button.tooltip_text = ""
+		return
+
+	if bool(_live_action_cache.get("colonization_pending", false)):
+		colonization_button.disabled = true
+		colonization_button.text = COLONIZATION_BUTTON_TEXT_RUNNING
+		colonization_button.tooltip_text = ""
+		return
+
+	var can_start: bool = bool(_live_action_cache.get("colonization_can_start", false))
+	colonization_button.disabled = not can_start
+	colonization_button.text = COLONIZATION_BUTTON_TEXT_DEFAULT
+	if can_start:
+		colonization_button.tooltip_text = ""
+	else:
+		colonization_button.tooltip_text = "Kein ColonyShip verfügbar."
 
 
 func _is_current_object_mining_exhausted() -> bool:
@@ -578,6 +625,15 @@ func _on_recall_mining_ship_pressed() -> void:
 		return
 
 	recall_mining_ship_requested.emit(current_object_id)
+
+
+func _on_colonization_pressed() -> void:
+	if current_object_id.is_empty():
+		return
+	if colonization_button == null or colonization_button.disabled:
+		return
+
+	colonization_requested.emit(current_object_id)
 
 
 func _fit_height_to_content() -> void:
