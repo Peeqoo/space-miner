@@ -194,7 +194,7 @@ func update_base_panel() -> void:
 	if selected_node is SystemBody:
 		var body := selected_node as SystemBody
 
-		if _selected_body_has_base(body):
+		if _selected_body_has_established_base(body):
 			if base_management_panel.has_method("show_for_base"):
 				base_management_panel.call(
 					"show_for_base",
@@ -359,7 +359,10 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 
 	info["can_scan_with_drone"] = _can_scan_selected_object(selected_node, scan_state)
 	info["can_mine_with_ship"] = _can_mine_selected_object(selected_node, scan_state)
-	info["is_home_base"] = selected_node is SystemBody and _selected_body_has_base(selected_node as SystemBody)
+	info["is_home_base"] = (
+		selected_node is SystemBody
+		and _selected_body_has_established_base(selected_node as SystemBody)
+	)
 
 	var mining_exhausted: bool = false
 
@@ -407,7 +410,7 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 
 	var sys_gate_id := _current_system_definition_id()
 	if sys_gate_id.is_empty() or GameSession.get_established_base_id_for_system(sys_gate_id).is_empty():
-		info["system_economy_blocked_reason"] = "Keine Basis in diesem System errichtet."
+		info["system_economy_blocked_reason"] = ""
 		info["can_scan_with_drone"] = false
 		info["can_mine_with_ship"] = false
 		info["can_recall_drone"] = false
@@ -473,7 +476,7 @@ func _can_scan_selected_object(selected_node: Node, _scan_state: String) -> bool
 	if not selected_node is SystemBody and not selected_node is PointOfInterest:
 		return false
 
-	if selected_node is SystemBody and _selected_body_has_base(selected_node as SystemBody):
+	if selected_node is SystemBody and _selected_body_has_established_base(selected_node as SystemBody):
 		return false
 
 	return _has_available_drone()
@@ -486,7 +489,7 @@ func _can_mine_selected_object(selected_node: Node, scan_state: String) -> bool:
 	if not selected_node is SystemBody and not selected_node is PointOfInterest:
 		return false
 
-	if selected_node is SystemBody and _selected_body_has_base(selected_node as SystemBody):
+	if selected_node is SystemBody and _selected_body_has_established_base(selected_node as SystemBody):
 		return false
 
 	if scan_state == GameSession.SCAN_UNKNOWN:
@@ -675,14 +678,26 @@ func _on_recall_mining_ship_requested(object_id: String) -> void:
 	update_object_info()
 
 
-func _selected_body_has_base(body: SystemBody) -> bool:
+func _selected_body_has_established_base(body: SystemBody) -> bool:
 	if body == null:
 		return false
+	var bid := str(body.body_id).strip_edges()
+	return _body_has_established_base(_current_system_definition_id(), bid)
 
-	if body.definition != null:
-		return body.definition.can_build_base
 
-	return false
+func _body_has_established_base(system_id: String, body_id: String) -> bool:
+	var bid := body_id.strip_edges()
+	if bid.is_empty():
+		return false
+	if not GameSession.has_established_base(bid):
+		return false
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return true
+	var rec := GameSession.get_established_base_record(bid)
+	if rec.is_empty():
+		return false
+	return str(rec.get("system_id", "")).strip_edges() == sid
 
 
 func _has_available_drone() -> bool:
@@ -1144,7 +1159,7 @@ func _build_hover_details(kind: String) -> Dictionary:
 			title = "ColonyShips"
 			details = [
 				"Total: %d" % total_cs,
-				"Status: stored (no travel yet — Phase 6.4b).",
+				"Status: stored",
 			]
 			hint = "Used later to establish colonies in other systems."
 

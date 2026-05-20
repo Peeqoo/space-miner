@@ -116,17 +116,9 @@ func _is_screen_over_system_node(screen_px: Vector2) -> bool:
 		if not (child is Node2D):
 			continue
 		var n2 := child as Node2D
-		var r: float = _galaxy_system_node_pick_radius(n2)
-		if n2.global_position.distance_to(world_pt) <= r:
+		if n2.has_method("contains_world_point") and n2.call("contains_world_point", world_pt):
 			return true
 	return false
-
-
-func _galaxy_system_node_pick_radius(node: Node2D) -> float:
-	var cs := node.get_node_or_null("Area2D/CollisionShape2D") as CollisionShape2D
-	if cs != null and cs.shape is CircleShape2D:
-		return (cs.shape as CircleShape2D).radius + 2.0
-	return 36.0
 
 
 func select_system(system_def: SystemDefinition) -> void:
@@ -562,6 +554,8 @@ func _create_system_node(entry: GalaxyMapSystemEntry) -> void:
 	node2d.set("system_definition", entry.system_definition)
 	node2d.position = entry.map_position
 	systems_root.add_child(node2d)
+	if node2d.has_method("refresh_presentation"):
+		node2d.call_deferred("refresh_presentation")
 
 
 func _find_first_system_node_from_definition_entries() -> Node2D:

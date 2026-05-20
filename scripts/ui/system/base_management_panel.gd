@@ -47,13 +47,18 @@ func _exit_tree() -> void:
 
 
 func show_for_base(system_id: String, body_id: String, base_name: String, docked: bool) -> void:
+	var bid := body_id.strip_edges()
+	if bid.is_empty() or not GameSession.has_established_base(bid):
+		hide_panel()
+		return
+
 	current_system_id = system_id
-	current_body_id = body_id
+	current_body_id = bid
 	current_base_name = base_name
 	is_docked = docked
 
 	_hold_open_across_selections = true
-	_held_base_body_id = body_id
+	_held_base_body_id = bid
 
 	visible = true
 	refresh_from_game_session()
@@ -95,6 +100,9 @@ func refresh_while_hold_open() -> void:
 
 func refresh_from_game_session() -> void:
 	var base_id := _get_current_base_id()
+	if base_id.is_empty() or not GameSession.has_established_base(base_id):
+		hide_panel()
+		return
 
 	base_name_label.text = current_base_name
 	status_label.text = "Homebasis" if base_id == BaseStore.BASE_EARTH else "Basis"
