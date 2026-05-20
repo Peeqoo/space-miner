@@ -6,9 +6,10 @@
 [ext_resource type="Texture2D" uid="uid://cw2y76phvw6o8" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_07-1024x1024.png" id="3_ng86b"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="5_vdcto"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/controller/system_camera_controller.gd" id="8_c6cuc"]
+[ext_resource type="PackedScene" uid="uid://b8gx5k2yq4t0n" path="res://scenes/ui/galaxy/galaxy_top_bar.tscn" id="10_p21dc"]
 [ext_resource type="PackedScene" uid="uid://uqkmyvdqw7f7" path="res://scenes/ui/galaxy/galaxy_map_hud.tscn" id="12_qe3vx"]
-[ext_resource type="Resource" uid="uid://dn42w0galaxydef" path="res://data/galaxy/galaxy_map_definition.tres" id="13_galaxydef"]
-[ext_resource type="PackedScene" uid="uid://c6galaxysysnode1" path="res://scenes/galaxy/galaxy_system_node.tscn" id="14_sysnode"]
+[ext_resource type="Resource" uid="uid://bo76cqxlgwh66" path="res://data/galaxy/galaxy_map_definition.tres" id="13_galaxydef"]
+[ext_resource type="PackedScene" uid="uid://cvaiwgjjugf7k" path="res://scenes/galaxy/galaxy_system_node.tscn" id="14_sysnode"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_qe3vx"]
 blend_mode = 1
@@ -20,7 +21,6 @@ blend_mode = 1
 script = ExtResource("1_cmndk")
 galaxy_definition = ExtResource("13_galaxydef")
 system_node_scene = ExtResource("14_sysnode")
-start_center_system_id = ""
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=969977791]
 
@@ -80,3 +80,11 @@ overview_world_size = Vector2(2800, 1800)
 [node name="UI" type="CanvasLayer" parent="." unique_id=535031517]
 
 [node name="GalaxyMapHUD" parent="UI" unique_id=198924309 instance=ExtResource("12_qe3vx")]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 1
+
+[node name="GalaxyTopBar" parent="UI" unique_id=1861677454 instance=ExtResource("10_p21dc")]
+anchors_preset = 10

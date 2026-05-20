@@ -12,50 +12,90 @@ signal colonization_deploy_requested
 signal colonization_cancel_requested
 signal colonization_dev_complete_requested
 
-@onready var title_label: Label = $TopBar/Margin/Row/TitleLabel
-@onready var current_system_title_label: Label = $TopBar/Margin/Row/CurrentSystemTitleLabel
-@onready var current_system_value_label: Label = $TopBar/Margin/Row/CurrentSystemValueLabel
-
-@onready var header_label: Label = $GalaxyInfoPanel/Margin/Root/HeaderLabel
-@onready var system_name_label: Label = $GalaxyInfoPanel/Margin/Root/SystemNameLabel
-@onready var scan_title_label: Label = $GalaxyInfoPanel/Margin/Root/ScanTitleLabel
-@onready var known_planets_value_label: Label = $GalaxyInfoPanel/Margin/Root/StatsGrid/KnownPlanetsValueLabel
-@onready var known_resources_value_label: Label = $GalaxyInfoPanel/Margin/Root/StatsGrid/KnownResourcesValueLabel
-@onready var info_title_label: Label = $GalaxyInfoPanel/Margin/Root/InfoTitleLabel
-@onready var info_text_label: Label = $GalaxyInfoPanel/Margin/Root/InfoTextLabel
-@onready var colonization_divider_a: Control = $GalaxyInfoPanel/Margin/Root/ColonizationDividerA
-@onready var colonization_title_label: Label = $GalaxyInfoPanel/Margin/Root/ColonizationTitleLabel
-@onready var colonization_status_label: Label = $GalaxyInfoPanel/Margin/Root/ColonizationStatusLabel
-@onready var colonization_deploy_button: Button = $GalaxyInfoPanel/Margin/Root/ColonizationDeployButton
-@onready var colonization_cancel_button: Button = $GalaxyInfoPanel/Margin/Root/ColonizationSecondaryRow/ColonizationCancelButton
-@onready var colonization_dev_button: Button = $GalaxyInfoPanel/Margin/Root/ColonizationSecondaryRow/ColonizationDevButton
-@onready var enter_button: Button = $GalaxyInfoPanel/Margin/Root/EnterButton
+## Unter `UI` neben diesem HUD (siehe `galaxy_map.tscn`); in `galaxy_map_hud.tscn` nicht als Kind vorhanden.
+@onready var current_system_value_label: Label = (
+	self.get_node_or_null("../GalaxyTopBar/Margin/Row/CurrentSystemValueLabel") as Label
+)
+@onready var galaxy_info_panel: Control = $GalaxyInfoPanel
+@onready var system_name_label: Label = $GalaxyInfoPanel/Margin/Root/SystemHeaderSection/SystemNameLabel
+@onready var access_status_label: Label = $GalaxyInfoPanel/Margin/Root/SystemHeaderSection/AccessStatusLabel
+@onready var known_planets_value_label: Label = $GalaxyInfoPanel/Margin/Root/ScanIntelSection/StatsGrid/KnownPlanetsValueLabel
+@onready var known_resources_value_label: Label = $GalaxyInfoPanel/Margin/Root/ScanIntelSection/StatsGrid/KnownResourcesValueLabel
+@onready var info_popup_text_label: Label = $InfoPopupPanel/Margin/InfoPopupTextLabel
+@onready var info_popup_panel: Control = $InfoPopupPanel
+@onready var divider_c: Control = $GalaxyInfoPanel/Margin/Root/DividerC
+@onready var colonization_section: Control = $GalaxyInfoPanel/Margin/Root/ColonizationSection
+@onready var colonization_title_label: Label = $GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationTitleLabel
+## Grid: linke Labels editor-owned; nur *ValueLabel* beschreiben.
+@onready var colonization_state_value_label: Label = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer/ColonizationStateValueLabel
+)
+@onready var colonization_target_value_label: Label = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer/ColonizationTargetValueLabel
+)
+@onready var colonization_ships_value_label: Label = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer/ColonizationShipsValueLabel
+)
+@onready var colonization_intel_value_label: Label = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer/ColonizationIntelValueLabel
+)
+@onready var colonization_deploy_button: Button = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDeployButton
+)
+@onready var colonization_secondary_row: GridContainer = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow
+)
+@onready var colonization_cancel_button: Button = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationCancelButton
+)
+@onready var colonization_dev_button: Button = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDevButton
+)
+@onready var enter_button: Button = $GalaxyInfoPanel/Margin/Root/ActionSection/EnterButton
 
 
 func _ready() -> void:
-	title_label.text = "GALAXY MAP"
-	current_system_title_label.text = "Aktuelles System:"
-	header_label.text = "SYSTEM"
-	scan_title_label.text = "SCANDATEN"
-	info_title_label.text = "INFO"
-
 	set_current_system_name("-")
 	show_no_selection_state()
 
 
+func _hide_info_popup() -> void:
+	if is_instance_valid(info_popup_panel):
+		info_popup_panel.visible = false
+
+
+func show_info_panel() -> void:
+	if is_instance_valid(galaxy_info_panel):
+		galaxy_info_panel.visible = true
+
+
+func hide_info_panel() -> void:
+	if is_instance_valid(galaxy_info_panel):
+		galaxy_info_panel.visible = false
+	_hide_info_popup()
+
+
 func set_current_system_name(system_name: String) -> void:
-	current_system_value_label.text = system_name if not system_name.is_empty() else "-"
+	var clean_name := system_name.strip_edges()
+	var display := clean_name if clean_name != "" else "-"
+	if is_instance_valid(current_system_value_label):
+		current_system_value_label.text = display
 
 
 func show_no_selection_state() -> void:
-	system_name_label.text = "Kein System gewählt"
-	known_planets_value_label.text = "0"
-	known_resources_value_label.text = "Unknown"
-	info_text_label.text = "Kein System ausgewählt."
-	header_label.text = "SYSTEM"
-	scan_title_label.text = "SCANDATEN"
-	enter_button.disabled = true
-	enter_button.text = "Enter"
+	hide_info_panel()
+	if is_instance_valid(system_name_label):
+		system_name_label.text = "Kein System gewählt"
+	if is_instance_valid(access_status_label):
+		access_status_label.text = ""
+	if is_instance_valid(known_planets_value_label):
+		known_planets_value_label.text = "0"
+	if is_instance_valid(known_resources_value_label):
+		known_resources_value_label.text = "Unknown"
+	_set_info_text("Kein System ausgewählt")
+	if is_instance_valid(enter_button):
+		enter_button.disabled = true
+		enter_button.tooltip_text = ""
 	_hide_colonization_section()
 
 
@@ -67,108 +107,151 @@ func show_system_info(
 	can_enter: bool,
 	access_state: String,
 ) -> void:
-	system_name_label.text = system_name
-	known_planets_value_label.text = str(max(known_planets_count, 0))
-	header_label.text = _header_text_for_access(access_state)
+	show_info_panel()
+	if is_instance_valid(system_name_label):
+		system_name_label.text = system_name
+	if is_instance_valid(access_status_label):
+		access_status_label.text = _access_status_text_for_state(access_state)
+	if is_instance_valid(known_planets_value_label):
+		known_planets_value_label.text = str(max(known_planets_count, 0))
+	if is_instance_valid(known_resources_value_label):
+		if access_state == ACCESS_LOCKED:
+			known_resources_value_label.text = "Unknown"
+		else:
+			known_resources_value_label.text = (
+				known_resources_text if not known_resources_text.is_empty() else "Unknown"
+			)
+	_set_info_text(info_text)
+	if is_instance_valid(enter_button):
+		enter_button.disabled = not can_enter
+	_apply_enter_button_tooltip(can_enter, access_state)
 
-	if access_state == ACCESS_LOCKED:
-		scan_title_label.text = "STATUS"
-		known_resources_value_label.text = "Unknown"
-	else:
-		scan_title_label.text = "SCANDATEN"
-		known_resources_value_label.text = (
-			known_resources_text if not known_resources_text.is_empty() else "Unknown"
-		)
 
-	info_text_label.text = (
-		info_text if not info_text.is_empty() else "Keine Beschreibung verfügbar."
-	)
-	enter_button.disabled = not can_enter
-	_apply_enter_button_caption(can_enter, access_state)
+func _set_info_text(value: String) -> void:
+	var t := value.strip_edges()
+	if t == "":
+		t = "Keine Beschreibung verfügbar"
+	if is_instance_valid(info_popup_text_label):
+		info_popup_text_label.text = t
 
 
-## Phase 6.4d Colonization preview (generic copy only — keine Ressourcendaten aus .tres).
+func _on_info_button_pressed() -> void:
+	if not is_instance_valid(info_popup_panel):
+		return
+	info_popup_panel.visible = not info_popup_panel.visible
+
+
+func _apply_enter_button_tooltip(can_enter: bool, access_state: String) -> void:
+	if not is_instance_valid(enter_button):
+		return
+	if can_enter:
+		enter_button.tooltip_text = ""
+		return
+	match access_state:
+		ACCESS_LOCKED:
+			enter_button.tooltip_text = "Zugriff gesperrt"
+		ACCESS_UNREACHABLE:
+			enter_button.tooltip_text = "System nicht erreichbar"
+		_:
+			enter_button.tooltip_text = "Zugang derzeit nicht möglich"
+
+
+func _access_status_text_for_state(access_state: String) -> String:
+	match access_state:
+		ACCESS_CURRENT:
+			return "Aktuelles System"
+		ACCESS_READY:
+			return "Bereit"
+		ACCESS_LOCKED:
+			return "Gesperrt"
+		ACCESS_UNREACHABLE:
+			return "Nicht erreichbar"
+		_:
+			return ""
+
+
+## Phase 6.4d Colonization preview (nur Value-Labels; keine Ressourcennamen).
 func update_colonization_preview(system_def: SystemDefinition, access_state: String) -> void:
-	if colonization_status_label == null or colonization_deploy_button == null:
+	if system_def == null:
+		return
+	if not is_instance_valid(colonization_deploy_button):
 		return
 
 	_show_colonization_section()
 
-	if access_state == ACCESS_LOCKED or access_state == ACCESS_UNREACHABLE:
-		colonization_status_label.text = (
-			"Expansion hier nicht möglich (Zugriffsstatus).\n"
-			+ "Wähle ein erreichbares, freigeschaltetes System."
-		)
-		colonization_deploy_button.disabled = true
-		colonization_cancel_button.disabled = true
-		colonization_dev_button.disabled = true
-		return
+	colonization_deploy_button.visible = true
 
 	var sid: String = system_def.id.strip_edges()
 	var start_body: String = system_def.start_body_id.strip_edges()
+	var pending_rec: Dictionary = GameSession.get_pending_colonization_operation_for_system(sid)
 
-	if sid.is_empty():
-		colonization_status_label.text = "Kein gültiges Zielsystem."
-		_set_deploy_cancel_dev_disabled()
-		return
-
-	if sid == GameSession.START_SYSTEM_ID and GameSession.has_established_base_in_system(sid):
-		colonization_status_label.text = (
-			"Heimatsystem\n"
-			+ "Basis etabliert — lokale Expansion nutzt Produktion/Systemansicht.\n\n"
-			+ "Keine Fremdkolonisierung von der Galaxy-Map hier erforderlich."
+	if access_state == ACCESS_LOCKED or access_state == ACCESS_UNREACHABLE:
+		_set_colonization_block(
+			"Gesperrt",
+			_colonization_target_value_text(system_def, sid),
+			_colonization_ships_count_text(sid),
+			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
 		)
 		colonization_deploy_button.disabled = true
 		colonization_cancel_button.disabled = true
 		colonization_dev_button.disabled = true
+		return
+
+	if sid.is_empty():
+		_set_colonization_block()
+		_set_deploy_cancel_dev_disabled()
 		return
 
 	if GameSession.has_established_base_in_system(sid):
 		var eb: String = GameSession.get_established_base_id_for_system(sid).strip_edges()
-		colonization_status_label.text = (
-			"Basis etabliert\n"
-			+ "Basis: %s\n\n"
-			+ "Nutze „System betreten“ für lokale Economy und Automation." % eb
+		var state_short := "Etabliert"
+		if sid == GameSession.START_SYSTEM_ID:
+			state_short = "Heimat"
+		var ships_n := 0
+		if not eb.is_empty():
+			ships_n = GameSession.get_base_colony_ship_count(eb)
+		_set_colonization_block(
+			state_short,
+			_colonization_target_value_text(system_def, sid),
+			str(ships_n),
+			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
 		)
 		colonization_deploy_button.disabled = true
 		colonization_cancel_button.disabled = true
 		colonization_dev_button.disabled = true
 		return
 
-	var pending_rec: Dictionary = GameSession.get_pending_colonization_operation_for_system(sid)
 	if not pending_rec.is_empty():
-		var tgt_body := str(pending_rec.get("target_body_id", "")).strip_edges()
-		colonization_status_label.text = (
-			"Kolonisierung läuft.\n"
-			+ "Ein ColonyShip ist unterwegs (Status: pending).\n"
-			+ "Zielobjekt-ID: %s\n\n"
-			% tgt_body
-			+ "(Reise-/Ankunftslogik folgt später; DEV-Endpunkt unten nur für Tests.)"
+		_set_colonization_block(
+			"Läuft",
+			_colonization_target_value_text(system_def, sid),
+			_colonization_ships_count_text(sid),
+			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
 		)
+		colonization_deploy_button.visible = false
 		colonization_deploy_button.disabled = true
 		colonization_cancel_button.disabled = false
 		colonization_dev_button.disabled = false
 		return
 
 	if start_body.is_empty():
-		colonization_status_label.text = (
-			"Kein gültiger Koloniezielkörper definiert (start_body_id leer)."
+		_set_colonization_block(
+			"-",
+			"-",
+			"0",
+			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
 		)
 		_set_deploy_cancel_dev_disabled()
 		return
 
 	var source_id := GameSession.get_colonization_source_base_id().strip_edges()
 
-	var coarse_hint := _coarse_hint_for_body(system_def)
-
 	if source_id.is_empty():
-		colonization_status_label.text = (
-			"Unkolonisiertes System\n"
-			+ coarse_hint
-			+ "\nColonyShips verfügbar: 0\n\n"
-			+ "Kein ColonyShip verfügbar.\nBaue zuerst ein ColonyShip in einer etablierten Basis.\n\n"
-			+ "%s\n"
-			% _colonization_intel_block()
+		_set_colonization_block(
+			"Unkolonisiert",
+			_colonization_target_value_text(system_def, sid),
+			_colonization_ships_count_text(sid),
+			_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
 		)
 		colonization_deploy_button.disabled = true
 		colonization_cancel_button.disabled = true
@@ -177,85 +260,141 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 
 	var cs_n: int = GameSession.get_base_colony_ship_count(source_id)
 
-	colonization_status_label.text = (
-		"Unkolonisiertes System\n"
-		+ coarse_hint
-		+ ("\nColonyShips verfügbar: %d bei Basis %s\n\n" % [cs_n, source_id])
-		+ "%s\n" % _colonization_intel_block()
+	_set_colonization_block(
+		"Unkolonisiert",
+		_colonization_target_value_text(system_def, sid),
+		str(cs_n),
+		_colonization_intel_value_text(system_def, sid, pending_rec, start_body),
 	)
 	colonization_deploy_button.disabled = cs_n < 1
 	colonization_cancel_button.disabled = true
 	colonization_dev_button.disabled = true
 
 
-func _colonization_intel_block() -> String:
-	return (
-		"Ressourcen-Intel: Unbekannt\n"
-		+ "Unbestätigte Oberflächensignaturen.\n"
-		+ "Basic-Scan ist erforderlich, um ein Ressourcenprofil zu bestätigen.\n"
-		+ "Passive Basis-Erträge werden später durch Base-Upgrades freigeschaltet."
-	)
+func _set_colonization_block(
+	state_value: String = "-",
+	target_value: String = "-",
+	ships_value: String = "0",
+	intel_value: String = "Unbekannt",
+) -> void:
+	if is_instance_valid(colonization_state_value_label):
+		colonization_state_value_label.text = state_value
+	if is_instance_valid(colonization_target_value_label):
+		colonization_target_value_label.text = target_value
+	if is_instance_valid(colonization_ships_value_label):
+		colonization_ships_value_label.text = ships_value
+	if is_instance_valid(colonization_intel_value_label):
+		colonization_intel_value_label.text = intel_value
 
 
-func _coarse_hint_for_body(system_def: SystemDefinition) -> String:
-	var sid := system_def.start_body_id.strip_edges()
-	if sid.is_empty():
-		return ""
-	for bd in system_def.bodies:
-		if bd != null and str(bd.id).strip_edges() == sid:
-			var bt := str(bd.body_type).strip_edges()
-			if not bt.is_empty():
-				return "Vorschlagskörper: %s (Kategorie: %s)" % [
-					system_def.start_body_id,
-					bt,
-				]
-			return "Vorschlagskörper: %s" % system_def.start_body_id
-	return "Vorschlagskörper: %s (Details folgen erst nach Exploration)" % system_def.start_body_id
+func _colonization_target_value_text(system_def: SystemDefinition, sid: String) -> String:
+	if not GameSession.has_established_base_in_system(sid):
+		return "-"
+	var eb := GameSession.get_established_base_id_for_system(sid).strip_edges()
+	if eb.is_empty():
+		return "-"
+	var t := _colonization_target_for_established_base(system_def, eb).strip_edges()
+	return t if not t.is_empty() else "-"
 
 
-func _header_text_for_access(access_state: String) -> String:
-	match access_state:
-		ACCESS_CURRENT:
-			return "CURRENT SYSTEM"
-		ACCESS_READY:
-			return "READY"
-		ACCESS_LOCKED:
-			return "LOCKED"
-		ACCESS_UNREACHABLE:
-			return "UNREACHABLE"
-		_:
-			return "SYSTEM"
+func _colonization_ships_count_text(sid: String) -> String:
+	if GameSession.has_established_base_in_system(sid):
+		var bid := GameSession.get_established_base_id_for_system(sid).strip_edges()
+		if not bid.is_empty():
+			return str(GameSession.get_base_colony_ship_count(bid))
+	var src := GameSession.get_colonization_source_base_id().strip_edges()
+	if src.is_empty():
+		return "0"
+	return str(GameSession.get_base_colony_ship_count(src))
 
 
-func _apply_enter_button_caption(can_enter: bool, access_state: String) -> void:
-	if can_enter:
-		enter_button.text = "System betreten"
-		return
-	if access_state == ACCESS_LOCKED:
-		enter_button.text = "LOCKED"
-	elif access_state == ACCESS_UNREACHABLE:
-		enter_button.text = "UNREACHABLE"
+func _colonization_intel_value_text(
+	system_def: SystemDefinition,
+	sid: String,
+	pending_rec: Dictionary,
+	start_body: String,
+) -> String:
+	var body_id := ""
+	if GameSession.has_established_base_in_system(sid):
+		var ebs := GameSession.get_established_base_id_for_system(sid).strip_edges()
+		if not ebs.is_empty():
+			body_id = GameSession.get_established_base_body_id(ebs).strip_edges()
+	elif not pending_rec.is_empty():
+		body_id = str(pending_rec.get("target_body_id", "")).strip_edges()
 	else:
-		enter_button.text = "Enter"
+		body_id = start_body.strip_edges()
+
+	if body_id.is_empty():
+		return "Unbekannt"
+
+	var st := GameSession.get_object_scan_state(sid, body_id)
+	if (
+		st == GameSession.SCAN_BASIC
+		or st == GameSession.SCAN_DEEP
+		or st == GameSession.SCAN_SPECIAL
+	):
+		return "Bekannt"
+	return "Unbekannt"
+
+
+func _get_body_display_name(system_def: SystemDefinition, body_id: String) -> String:
+	var clean_id := body_id.strip_edges()
+	if clean_id == "":
+		return ""
+	if system_def != null:
+		for body in system_def.bodies:
+			if body == null:
+				continue
+			if str(body.id).strip_edges() != clean_id:
+				continue
+			var dn := str(body.display_name).strip_edges()
+			return dn if not dn.is_empty() else clean_id
+	return clean_id
+
+
+func _colonization_target_for_established_base(
+	system_def: SystemDefinition,
+	base_id: String,
+) -> String:
+	var bid := GameSession.get_established_base_body_id(base_id).strip_edges()
+	if not bid.is_empty():
+		return _get_body_display_name(system_def, bid)
+	return base_id.strip_edges()
 
 
 func _show_colonization_section() -> void:
-	colonization_divider_a.visible = true
-	colonization_title_label.visible = true
-	colonization_status_label.visible = true
-	colonization_deploy_button.visible = true
-	colonization_cancel_button.get_parent().visible = true
+	if is_instance_valid(divider_c):
+		divider_c.visible = true
+	if is_instance_valid(colonization_section):
+		colonization_section.visible = true
+	if is_instance_valid(colonization_title_label):
+		colonization_title_label.visible = true
+	if is_instance_valid(colonization_state_value_label):
+		colonization_state_value_label.visible = true
+	if is_instance_valid(colonization_target_value_label):
+		colonization_target_value_label.visible = true
+	if is_instance_valid(colonization_ships_value_label):
+		colonization_ships_value_label.visible = true
+	if is_instance_valid(colonization_intel_value_label):
+		colonization_intel_value_label.visible = true
+	if is_instance_valid(colonization_deploy_button):
+		colonization_deploy_button.visible = true
+	if is_instance_valid(colonization_secondary_row):
+		colonization_secondary_row.visible = true
 
 
 func _hide_colonization_section() -> void:
-	if colonization_divider_a == null:
-		return
-	colonization_divider_a.visible = false
-	colonization_title_label.visible = false
-	colonization_status_label.visible = false
-	colonization_status_label.text = ""
-	colonization_deploy_button.visible = false
-	colonization_cancel_button.get_parent().visible = false
+	if is_instance_valid(divider_c):
+		divider_c.visible = false
+	if is_instance_valid(colonization_section):
+		colonization_section.visible = false
+	if is_instance_valid(colonization_title_label):
+		colonization_title_label.visible = false
+	_set_colonization_block()
+	if is_instance_valid(colonization_deploy_button):
+		colonization_deploy_button.visible = false
+	if is_instance_valid(colonization_secondary_row):
+		colonization_secondary_row.visible = false
 
 
 func _set_deploy_cancel_dev_disabled() -> void:

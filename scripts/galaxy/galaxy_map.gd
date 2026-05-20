@@ -26,6 +26,11 @@ var selected_system: SystemDefinition = null
 var _selected_system_node: Node = null
 var _system_node_by_id: Dictionary = {}
 
+## Leerraum-Klick: Auswahl erst bei kurzem Linksklick ohne nennenswerte Bewegung löschen (kein Drag).
+var _empty_map_click_press_pos: Vector2 = Vector2.ZERO
+var _empty_map_click_tracking: bool = false
+const _EMPTY_MAP_CLICK_DRAG_THRESHOLD_PX: float = 4.0
+
 
 func _ready() -> void:
 	add_to_group("galaxy_map_root")
@@ -74,9 +79,50 @@ func _connect_galaxy_map_signals() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			clear_selection()
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mb.pressed:
+			if _is_screen_over_interactive_ui():
+				_empty_map_click_tracking = false
+				return
+			_empty_map_click_press_pos = mb.position
+			_empty_map_click_tracking = true
+			return
+		if not _empty_map_click_tracking:
+			return
+		_empty_map_click_tracking = false
+		if _empty_map_click_press_pos.distance_to(mb.position) > _EMPTY_MAP_CLICK_DRAG_THRESHOLD_PX:
+			return
+		if _is_screen_over_interactive_ui():
+			return
+		if _is_screen_over_system_node(mb.position):
+			return
+		clear_selection()
+
+
+func _is_screen_over_interactive_ui() -> bool:
+	return get_viewport().gui_get_hovered_control() != null
+
+
+func _is_screen_over_system_node(screen_px: Vector2) -> bool:
+	var inv: Transform2D = get_viewport().get_canvas_transform().affine_inverse()
+	var world_pt: Vector2 = inv * screen_px
+	for child in systems_root.get_children():
+		if not (child is Node2D):
+			continue
+		var n2 := child as Node2D
+		var r: float = _galaxy_system_node_pick_radius(n2)
+		if n2.global_position.distance_to(world_pt) <= r:
+			return true
+	return false
+
+
+func _galaxy_system_node_pick_radius(node: Node2D) -> float:
+	var cs := node.get_node_or_null("Area2D/CollisionShape2D") as CollisionShape2D
+	if cs != null and cs.shape is CircleShape2D:
+		return (cs.shape as CircleShape2D).radius + 2.0
+	return 36.0
 
 
 func select_system(system_def: SystemDefinition) -> void:
@@ -84,6 +130,7 @@ func select_system(system_def: SystemDefinition) -> void:
 		push_warning("select_system(): system_def ist null")
 		return
 
+	_empty_map_click_tracking = false
 	selected_system = system_def
 	_set_selected_system_node(_system_node_by_id.get(system_def.id, null))
 	_update_current_system_display()
@@ -91,6 +138,7 @@ func select_system(system_def: SystemDefinition) -> void:
 
 
 func clear_selection() -> void:
+	_empty_map_click_tracking = false
 	selected_system = null
 	_set_selected_system_node(null)
 	_update_current_system_display()
