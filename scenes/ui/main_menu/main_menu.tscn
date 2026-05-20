@@ -1,0 +1,366 @@
+[gd_scene format=3 uid="uid://c8mainmenu001"]
+
+[ext_resource type="Script" uid="uid://b2405pkk1vu1a" path="res://scripts/ui/main_menu/main_menu.gd" id="1_mm"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/titel_label.tres" id="2_title"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="3_text"]
+[ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="4_font"]
+
+[node name="MainMenu" type="Control" unique_id=1884236073]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mm")
+
+[node name="RootPanel" type="PanelContainer" parent="." unique_id=1038986]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -54.0
+offset_right = 140.0
+offset_bottom = 54.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="RootPanel" unique_id=1933047279]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Root" type="VBoxContainer" parent="RootPanel/Margin" unique_id=1360424175]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MainMenuButtons" type="VBoxContainer" parent="RootPanel/Margin/Root" unique_id=2046980685]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="RootPanel/Margin/Root/MainMenuButtons" unique_id=1365063974]
+layout_mode = 2
+text = "Hauptmenü"
+label_settings = ExtResource("2_title")
+horizontal_alignment = 1
+
+[node name="StartGameButton" type="Button" parent="RootPanel/Margin/Root/MainMenuButtons" unique_id=1286437996]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 8
+text = "Start Game"
+
+[node name="LoadGameButton" type="Button" parent="RootPanel/Margin/Root/MainMenuButtons" unique_id=2074837941]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 8
+text = "Load"
+
+[node name="ExitButton" type="Button" parent="RootPanel/Margin/Root/MainMenuButtons" unique_id=1604496965]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 8
+text = "Exit"
+
+[node name="SaveSlotPanel" type="VBoxContainer" parent="RootPanel/Margin/Root" unique_id=1470490742]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Slot1Row" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel" unique_id=1990754760]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SlotTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row" unique_id=352849422]
+layout_mode = 2
+text = "Slot 1"
+label_settings = ExtResource("2_title")
+
+[node name="FilledStateContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row" unique_id=425736052]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SaveTimestampRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer" unique_id=900221689]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SaveTimestampRow" unique_id=1310440832]
+layout_mode = 2
+text = "Zeit:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SaveTimestampRow" unique_id=369520842]
+layout_mode = 2
+text = "—"
+label_settings = ExtResource("3_text")
+
+[node name="SaveSystemRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer" unique_id=60210379]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SaveSystemTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SaveSystemRow" unique_id=1969274852]
+layout_mode = 2
+text = "System:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveSystemValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SaveSystemRow" unique_id=1574595303]
+layout_mode = 2
+text = "—"
+label_settings = ExtResource("3_text")
+
+[node name="SlotActionsRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer" unique_id=520794298]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LoadSlotButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SlotActionsRow" unique_id=236707819]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Load Slot"
+
+[node name="DeleteSlotButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SlotActionsRow" unique_id=1160479450]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Delete"
+
+[node name="EmptyStateContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row" unique_id=1407402015]
+layout_mode = 2
+
+[node name="EmptyLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/EmptyStateContainer" unique_id=826573397]
+layout_mode = 2
+text = "Empty"
+label_settings = ExtResource("3_text")
+
+[node name="DeleteConfirmContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row" unique_id=702358990]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="DeleteConfirmLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/DeleteConfirmContainer" unique_id=598342122]
+layout_mode = 2
+text = "Spielstand löschen?"
+label_settings = ExtResource("3_text")
+horizontal_alignment = 1
+
+[node name="DeleteConfirmActionsRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/DeleteConfirmContainer" unique_id=682256782]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="ConfirmDeleteButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/DeleteConfirmContainer/DeleteConfirmActionsRow" unique_id=683740217]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Confirm"
+
+[node name="CancelDeleteButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/DeleteConfirmContainer/DeleteConfirmActionsRow" unique_id=98553574]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Cancel"
+
+[node name="Slot2Row" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel" unique_id=732749647]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SlotTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row" unique_id=2107933684]
+layout_mode = 2
+text = "Slot 2"
+label_settings = ExtResource("2_title")
+
+[node name="FilledStateContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row" unique_id=24444075]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SaveTimestampRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer" unique_id=2076030665]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SaveTimestampRow" unique_id=749845021]
+layout_mode = 2
+text = "Zeit:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SaveTimestampRow" unique_id=1087929928]
+layout_mode = 2
+text = "—"
+label_settings = ExtResource("3_text")
+
+[node name="SaveSystemRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer" unique_id=1898974640]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SaveSystemTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SaveSystemRow" unique_id=1659040806]
+layout_mode = 2
+text = "System:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveSystemValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SaveSystemRow" unique_id=1385324792]
+layout_mode = 2
+text = "—"
+label_settings = ExtResource("3_text")
+
+[node name="SlotActionsRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer" unique_id=758320269]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LoadSlotButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SlotActionsRow" unique_id=116317167]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Load Slot"
+
+[node name="DeleteSlotButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SlotActionsRow" unique_id=667489708]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Delete"
+
+[node name="EmptyStateContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row" unique_id=1040442164]
+layout_mode = 2
+
+[node name="EmptyLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/EmptyStateContainer" unique_id=1273089931]
+layout_mode = 2
+text = "Empty"
+label_settings = ExtResource("3_text")
+
+[node name="DeleteConfirmContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row" unique_id=1713606930]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="DeleteConfirmLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/DeleteConfirmContainer" unique_id=1304891782]
+layout_mode = 2
+text = "Spielstand löschen?"
+label_settings = ExtResource("3_text")
+horizontal_alignment = 1
+
+[node name="DeleteConfirmActionsRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/DeleteConfirmContainer" unique_id=1910061390]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="ConfirmDeleteButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/DeleteConfirmContainer/DeleteConfirmActionsRow" unique_id=48879277]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Confirm"
+
+[node name="CancelDeleteButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/DeleteConfirmContainer/DeleteConfirmActionsRow" unique_id=800253232]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Cancel"
+
+[node name="Slot3Row" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel" unique_id=160322840]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SlotTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row" unique_id=1744558601]
+layout_mode = 2
+text = "Slot 3"
+label_settings = ExtResource("2_title")
+
+[node name="FilledStateContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row" unique_id=698926158]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SaveTimestampRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer" unique_id=850758730]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SaveTimestampRow" unique_id=1711723745]
+layout_mode = 2
+text = "Zeit:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SaveTimestampRow" unique_id=1188260854]
+layout_mode = 2
+text = "—"
+label_settings = ExtResource("3_text")
+
+[node name="SaveSystemRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer" unique_id=1663295551]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SaveSystemTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SaveSystemRow" unique_id=10858251]
+layout_mode = 2
+text = "System:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveSystemValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SaveSystemRow" unique_id=1264122814]
+layout_mode = 2
+text = "—"
+label_settings = ExtResource("3_text")
+
+[node name="SlotActionsRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer" unique_id=55005820]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LoadSlotButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SlotActionsRow" unique_id=953465037]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Load Slot"
+
+[node name="DeleteSlotButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SlotActionsRow" unique_id=43194488]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Delete"
+
+[node name="EmptyStateContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row" unique_id=825306836]
+layout_mode = 2
+
+[node name="EmptyLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/EmptyStateContainer" unique_id=1994663377]
+layout_mode = 2
+text = "Empty"
+label_settings = ExtResource("3_text")
+
+[node name="DeleteConfirmContainer" type="VBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row" unique_id=1368894143]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="DeleteConfirmLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/DeleteConfirmContainer" unique_id=1732194248]
+layout_mode = 2
+text = "Spielstand löschen?"
+label_settings = ExtResource("3_text")
+horizontal_alignment = 1
+
+[node name="DeleteConfirmActionsRow" type="HBoxContainer" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/DeleteConfirmContainer" unique_id=1457774739]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="ConfirmDeleteButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/DeleteConfirmContainer/DeleteConfirmActionsRow" unique_id=856344674]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Confirm"
+
+[node name="CancelDeleteButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/DeleteConfirmContainer/DeleteConfirmActionsRow" unique_id=985145540]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 6
+text = "Cancel"
+
+[node name="BackButton" type="Button" parent="RootPanel/Margin/Root/SaveSlotPanel" unique_id=981989910]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 8
+text = "Back"
+
+[connection signal="pressed" from="RootPanel/Margin/Root/MainMenuButtons/StartGameButton" to="." method="_on_start_game_pressed"]
+[connection signal="pressed" from="RootPanel/Margin/Root/MainMenuButtons/LoadGameButton" to="." method="_on_load_game_pressed"]
+[connection signal="pressed" from="RootPanel/Margin/Root/MainMenuButtons/ExitButton" to="." method="_on_exit_pressed"]
+[connection signal="pressed" from="RootPanel/Margin/Root/SaveSlotPanel/BackButton" to="." method="_on_back_pressed"]

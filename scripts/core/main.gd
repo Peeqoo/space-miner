@@ -1,7 +1,7 @@
 ## Entry point. Registers SceneFlow, boots GameSession, and loads the startup scene.
 extends Node
 
-@export_file("*.tscn") var startup_scene_path: String = "res://scenes/galaxy/galaxy_map.tscn"
+@export_file("*.tscn") var startup_scene_path: String = "res://scenes/ui/main_menu/main_menu.tscn"
 
 func _ready() -> void:
 	SceneFlow.register_main_root(self)

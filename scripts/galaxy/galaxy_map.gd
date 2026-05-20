@@ -18,6 +18,7 @@ const _TRANSIT_ROUTE_INACTIVE_WIDTH := 2.0
 
 @onready var camera: SystemCameraController = $CameraRoot/GalaxyCamera2D
 @onready var hud: GalaxyMapHUD = get_node_or_null(HUD_SCENE_PATH) as GalaxyMapHUD
+@onready var pause_menu_overlay: Control = $UI/PauseMenuOverlay
 @onready var systems_root: Node2D = $SystemsRoot
 
 var transit_route_root: Node2D = null
@@ -74,7 +75,13 @@ func _connect_galaxy_map_signals() -> void:
 		hud.colonization_dev_complete_requested.connect(_on_colon_dev_complete_requested)
 
 
+func is_pause_menu_open() -> bool:
+	return is_instance_valid(pause_menu_overlay) and pause_menu_overlay.is_open()
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if is_pause_menu_open():
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index != MOUSE_BUTTON_LEFT:
@@ -126,6 +133,8 @@ func select_system(system_def: SystemDefinition) -> void:
 	if system_def == null:
 		push_warning("select_system(): system_def ist null")
 		return
+	if is_pause_menu_open():
+		return
 
 	_empty_map_click_tracking = false
 	selected_system = system_def
@@ -135,6 +144,8 @@ func select_system(system_def: SystemDefinition) -> void:
 
 
 func clear_selection() -> void:
+	if is_pause_menu_open():
+		return
 	_empty_map_click_tracking = false
 	selected_system = null
 	_set_selected_system_node(null)

@@ -237,3 +237,23 @@ func _get_deposit_amount_from_entry(entry: Variant) -> int:
 			return max(0, int(amount))
 
 	return DEFAULT_DEPOSIT_AMOUNT
+
+
+func to_save_data() -> Dictionary:
+	return {
+		"object_scan_states": object_scan_states.duplicate(true),
+		"remaining_resources_by_object": remaining_resources_by_object.duplicate(true),
+	}
+
+
+func apply_save_data(data: Dictionary) -> void:
+	object_scan_states = {}
+	remaining_resources_by_object = {}
+	if data.is_empty():
+		return
+	var scans_variant: Variant = data.get("object_scan_states", {})
+	if scans_variant is Dictionary:
+		object_scan_states = (scans_variant as Dictionary).duplicate(true)
+	var remaining_variant: Variant = data.get("remaining_resources_by_object", {})
+	if remaining_variant is Dictionary:
+		remaining_resources_by_object = (remaining_variant as Dictionary).duplicate(true)

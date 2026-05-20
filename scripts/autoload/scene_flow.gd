@@ -11,6 +11,10 @@ func register_main_root(root: Node) -> void:
 	_main_root = root
 
 
+func goto_main_menu() -> void:
+	goto_scene("res://scenes/ui/main_menu/main_menu.tscn")
+
+
 func goto_galaxy() -> void:
 	goto_scene("res://scenes/galaxy/galaxy_map.tscn")
 

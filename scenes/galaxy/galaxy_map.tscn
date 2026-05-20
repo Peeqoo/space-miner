@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://uqkmyvdqw7f7" path="res://scenes/ui/galaxy/galaxy_map_hud.tscn" id="12_qe3vx"]
 [ext_resource type="Resource" uid="uid://bo76cqxlgwh66" path="res://data/galaxy/galaxy_map_definition.tres" id="13_galaxydef"]
 [ext_resource type="PackedScene" uid="uid://cvaiwgjjugf7k" path="res://scenes/galaxy/galaxy_system_node.tscn" id="14_sysnode"]
+[ext_resource type="PackedScene" path="res://scenes/ui/system/pause_menu_overlay.tscn" id="15_pause"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_qe3vx"]
 blend_mode = 1
@@ -88,3 +89,5 @@ grow_vertical = 1
 
 [node name="GalaxyTopBar" parent="UI" unique_id=1861677454 instance=ExtResource("10_p21dc")]
 anchors_preset = 10
+
+[node name="PauseMenuOverlay" parent="UI" instance=ExtResource("15_pause")]

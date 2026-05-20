@@ -55,6 +55,10 @@ func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton:
 		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+			var galaxy_map: Node = get_tree().get_first_node_in_group("galaxy_map_root")
+			if galaxy_map != null and galaxy_map.has_method("is_pause_menu_open"):
+				if galaxy_map.call("is_pause_menu_open"):
+					return
 			get_viewport().set_input_as_handled()
 			_select_system()
 

@@ -18,6 +18,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 
 GameSession="*res://scripts/autoload/game_session.gd"
 SceneFlow="*res://scripts/autoload/scene_flow.gd"
+SaveManager="*res://scripts/autoload/save_manager.gd"
 
 [debug]
 

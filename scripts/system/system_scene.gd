@@ -11,6 +11,7 @@ extends Node2D
 @onready var selection: SystemSelectionController = $SystemSelectionController
 @onready var system_ui: SystemUIController = $SystemUIController
 @onready var automation_controller: AutomationController = $AutomationController
+@onready var pause_menu_overlay: Control = $UI/PauseMenuOverlay
 
 var _resolved_start_body_id: String = ""
 
@@ -40,6 +41,9 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if pause_menu_overlay != null and pause_menu_overlay.has_method("toggle_menu"):
+		if pause_menu_overlay.visible:
+			return
 	if selection != null:
 		selection.handle_empty_space_click(event)
 

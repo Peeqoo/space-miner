@@ -956,3 +956,166 @@ func get_automation_mission(mission_id: int) -> Dictionary:
 
 func complete_automation_mission(mission_id: int) -> Dictionary:
 	return automation.complete_mission(mission_id)
+
+
+# --------------------------------------------------
+# Save / Load / New Game (Phase 6.6)
+# --------------------------------------------------
+
+
+func reset_for_new_game() -> void:
+	_colonization_operations.clear()
+	_next_colonization_operation_id = 1
+	_established_base_ids.clear()
+	_established_base_records.clear()
+
+	bases.bases = {BaseStore.BASE_EARTH: bases.get_new_game_earth_base()}
+
+	object_scans.object_scan_states = {}
+	object_scans.remaining_resources_by_object = {}
+
+	automation.missions.clear()
+	automation.next_mission_id = 1
+
+	_galaxy_progression_seeded = false
+	discovered_system_ids.clear()
+	unlocked_system_ids.clear()
+	ensure_galaxy_progression_boot()
+
+	mark_base_established_at(BaseStore.BASE_EARTH, START_SYSTEM_ID, BaseStore.BASE_EARTH)
+
+	current_system_definition = null
+	current_system_id = START_SYSTEM_ID
+	ensure_default_system_loaded()
+
+	base_resources_changed.emit(BaseStore.BASE_EARTH)
+	galaxy_progression_changed.emit()
+
+
+func to_save_data() -> Dictionary:
+	return {
+		"current_system_id": current_system_id,
+		"discovered_system_ids": discovered_system_ids.duplicate(),
+		"unlocked_system_ids": unlocked_system_ids.duplicate(),
+		"established_base_records": _established_base_records.duplicate(true),
+		"colonization_operations": _colonization_operations_to_save_array(),
+		"next_colonization_operation_id": _next_colonization_operation_id,
+		"bases": bases.to_save_data(),
+		"object_scans": object_scans.to_save_data(),
+	}
+
+
+func apply_save_data(data: Dictionary) -> bool:
+	if data.is_empty():
+		return false
+
+	current_system_id = str(data.get("current_system_id", START_SYSTEM_ID)).strip_edges()
+	if current_system_id.is_empty():
+		current_system_id = START_SYSTEM_ID
+
+	discovered_system_ids.clear()
+	for sid_var: Variant in data.get("discovered_system_ids", []):
+		var sid := str(sid_var).strip_edges()
+		if not sid.is_empty():
+			discovered_system_ids.append(sid)
+
+	unlocked_system_ids.clear()
+	for uid_var: Variant in data.get("unlocked_system_ids", []):
+		var uid := str(uid_var).strip_edges()
+		if not uid.is_empty():
+			unlocked_system_ids.append(uid)
+
+	_galaxy_progression_seeded = true
+
+	_established_base_ids.clear()
+	_established_base_records.clear()
+	var recs_variant: Variant = data.get("established_base_records", {})
+	if recs_variant is Dictionary:
+		for bid_var: Variant in (recs_variant as Dictionary).keys():
+			var bid := str(bid_var).strip_edges()
+			if bid.is_empty():
+				continue
+			var rec_variant: Variant = (recs_variant as Dictionary)[bid_var]
+			if rec_variant is Dictionary:
+				_established_base_records[bid] = (rec_variant as Dictionary).duplicate(true)
+				_established_base_ids[bid] = true
+
+	_colonization_operations.clear()
+	_next_colonization_operation_id = maxi(1, int(data.get("next_colonization_operation_id", 1)))
+	for op_entry: Variant in data.get("colonization_operations", []):
+		if not op_entry is Dictionary:
+			continue
+		_apply_colonization_operation_from_save(op_entry as Dictionary)
+
+	var bases_variant: Variant = data.get("bases", {})
+	if bases_variant is Dictionary:
+		bases.apply_save_data(bases_variant as Dictionary)
+
+	var scans_variant: Variant = data.get("object_scans", {})
+	if scans_variant is Dictionary:
+		object_scans.apply_save_data(scans_variant as Dictionary)
+
+	automation.missions.clear()
+	automation.next_mission_id = 1
+
+	current_system_definition = null
+	_load_system_definition_for_id(current_system_id)
+
+	galaxy_progression_changed.emit()
+	for bid_var: Variant in bases.bases.keys():
+		base_resources_changed.emit(str(bid_var))
+
+	return true
+
+
+func _colonization_operations_to_save_array() -> Array:
+	var out: Array = []
+	var now_tick: int = Time.get_ticks_msec()
+	for op_id_var: Variant in _colonization_operations.keys():
+		var op_id := str(op_id_var).strip_edges()
+		if op_id.is_empty():
+			continue
+		var rec_variant: Variant = _colonization_operations[op_id_var]
+		if rec_variant == null or not rec_variant is Dictionary:
+			continue
+		var rec: Dictionary = (rec_variant as Dictionary).duplicate(true)
+		if str(rec.get("status", "")).strip_edges() == "pending":
+			var arrival: int = int(rec.get("arrival_at_tick", 0))
+			rec["remaining_ms"] = maxi(0, arrival - now_tick)
+			rec.erase("arrival_at_tick")
+			rec.erase("created_at_tick")
+		out.append(rec)
+	return out
+
+
+func _apply_colonization_operation_from_save(rec: Dictionary) -> void:
+	var op_id := str(rec.get("operation_id", "")).strip_edges()
+	if op_id.is_empty():
+		return
+	var stored: Dictionary = rec.duplicate(true)
+	var status := str(stored.get("status", "")).strip_edges()
+	if status == "pending":
+		var remaining_ms: int = maxi(0, int(stored.get("remaining_ms", 0)))
+		var now_tick: int = Time.get_ticks_msec()
+		stored["arrival_at_tick"] = now_tick + remaining_ms
+		stored["created_at_tick"] = now_tick
+		stored.erase("remaining_ms")
+	_colonization_operations[op_id] = stored
+
+
+func _load_system_definition_for_id(system_id: String) -> void:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		ensure_default_system_loaded()
+		return
+	var path := _system_definition_path_for_id(sid)
+	var def := load(path) as SystemDefinition
+	if def == null:
+		push_warning("GameSession: SystemDefinition nicht gefunden für '%s' (%s)" % [sid, path])
+		ensure_default_system_loaded()
+		return
+	set_current_system(def)
+
+
+func _system_definition_path_for_id(system_id: String) -> String:
+	return "res://data/galaxy_systems/%s_system.tres" % system_id.replace("-", "_")

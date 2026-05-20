@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" uid="uid://dacjs0jlq1mhg" path="res://scenes/ui/system/top_hud_hover_panel.tscn" id="17_hrum5"]
 [ext_resource type="PackedScene" uid="uid://bocekpsnvfpgx" path="res://scenes/ui/system/storage_panel.tscn" id="18_storage"]
 [ext_resource type="PackedScene" uid="uid://dvq6ackye3vtv" path="res://scenes/ui/system/navigation_hud.tscn" id="19_navhud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/system/pause_menu_overlay.tscn" id="20_pause"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_e0kxw"]
 blend_mode = 1
@@ -141,3 +142,5 @@ visible = false
 
 [node name="NavigationHUD" parent="UI" unique_id=2002840815 instance=ExtResource("19_navhud")]
 anchors_preset = 7
+
+[node name="PauseMenuOverlay" parent="UI" unique_id=514553448 instance=ExtResource("20_pause")]

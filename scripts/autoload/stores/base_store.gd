@@ -544,3 +544,23 @@ func _create_empty_base() -> Dictionary:
 		"scan_drone_upgrade_level": 0,
 		"mining_ship_upgrade_level": 0,
 	}
+
+
+func get_new_game_earth_base() -> Dictionary:
+	var base_entry: Dictionary = _create_empty_base()
+	base_entry["population"] = 1
+	base_entry["drones"] = 1
+	base_entry["mining_ships"] = 1
+	base_entry["colony_ships"] = 0
+	base_entry["storage_capacity"] = INITIAL_STORAGE_CAPACITY
+	return base_entry
+
+
+func to_save_data() -> Dictionary:
+	return bases.duplicate(true)
+
+
+func apply_save_data(data: Dictionary) -> void:
+	if data.is_empty():
+		return
+	bases = data.duplicate(true)

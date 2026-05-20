@@ -1,0 +1,113 @@
+[gd_scene format=3 uid="uid://7n8gwptymab5"]
+
+[ext_resource type="Script" uid="uid://d2bfy0m77e4e0" path="res://scripts/ui/system/pause_menu_overlay.gd" id="1_pause"]
+[ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/titel_label.tres" id="2_title"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="3_text"]
+[ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="4_font"]
+
+[node name="PauseMenuOverlay" type="Control" unique_id=658259722]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_pause")
+
+[node name="RootPanel" type="PanelContainer" parent="." unique_id=1900163496]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = -90.0
+offset_right = 120.0
+offset_bottom = 38.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="RootPanel" unique_id=333598384]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Root" type="VBoxContainer" parent="RootPanel/Margin" unique_id=106928689]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="RootPanel/Margin/Root" unique_id=650424135]
+layout_mode = 2
+text = "Pausiert"
+label_settings = ExtResource("2_title")
+horizontal_alignment = 1
+
+[node name="ContinueGameButton" type="Button" parent="RootPanel/Margin/Root" unique_id=879787938]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 8
+text = "Continue Game"
+
+[node name="SaveGameButton" type="Button" parent="RootPanel/Margin/Root" unique_id=973336765]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 8
+text = "Save Game"
+
+[node name="ExitToMainMenuButton" type="Button" parent="RootPanel/Margin/Root" unique_id=1144191574]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 8
+text = "Exit to Main Menu"
+
+[node name="SaveSuccessLabel" type="Label" parent="RootPanel/Margin/Root" unique_id=1423787878]
+visible = false
+layout_mode = 2
+text = "Gespeichert"
+label_settings = ExtResource("3_text")
+horizontal_alignment = 1
+
+[node name="SaveFailedLabel" type="Label" parent="RootPanel/Margin/Root" unique_id=1689238552]
+visible = false
+layout_mode = 2
+text = "Speichern fehlgeschlagen"
+label_settings = ExtResource("3_text")
+horizontal_alignment = 1
+
+[node name="SaveSlotRow" type="HBoxContainer" parent="RootPanel/Margin/Root" unique_id=538200389]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="SaveSlotTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotRow" unique_id=2089098589]
+layout_mode = 2
+text = "Slot:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveSlotValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotRow" unique_id=922660223]
+layout_mode = 2
+text = "1"
+label_settings = ExtResource("3_text")
+
+[node name="SaveTimestampRow" type="HBoxContainer" parent="RootPanel/Margin/Root" unique_id=483138377]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveTimestampRow" unique_id=161082933]
+layout_mode = 2
+text = "Letzter Spielstand:"
+label_settings = ExtResource("3_text")
+
+[node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveTimestampRow" unique_id=1230066346]
+layout_mode = 2
+text = "—"
+label_settings = ExtResource("3_text")
+
+[connection signal="pressed" from="RootPanel/Margin/Root/ContinueGameButton" to="." method="_on_continue_game_pressed"]
+[connection signal="pressed" from="RootPanel/Margin/Root/SaveGameButton" to="." method="_on_save_game_pressed"]
+[connection signal="pressed" from="RootPanel/Margin/Root/ExitToMainMenuButton" to="." method="_on_exit_to_main_menu_pressed"]
