@@ -11,8 +11,8 @@ templates = {
 "scan_duration_final": "Scan-Dauer: -{value}%",
 "scan_speed_delta": "Scangeschwindigkeit: +{value}%",
 "scan_speed_final": "Scangeschwindigkeit: {value}%",
-"scan_support_delta": "Support: +{value}%",
-"scan_support_final": "Support: +{value}%",
+"scan_support_delta": "Ertrag: +{value}%",
+"scan_support_final": "Ertrag: +{value}%",
 "storage_capacity_delta": "Lagerkapazität: +{value}%",
 "storage_capacity_final": "Lagerkapazität: {value}"
 }

@@ -146,7 +146,25 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 
 	# BaseStore is the source of truth for fleet counts.
 	# Spawn idle visual units to match — handles both first load and scene reloads.
-	var ships_to_spawn := GameSession.get_base_mining_ship_count(base_id) - idle_mining_ships.size()
+	var idle_ships_at_home := 0
+
+	for idle_ship: AutomationUnit in idle_mining_ships:
+		if idle_ship == null or not is_instance_valid(idle_ship):
+			continue
+
+		if not idle_ship.is_available():
+			continue
+
+		if mining_ship_runtime_by_unit_id.has(idle_ship.get_instance_id()):
+			continue
+
+		idle_ships_at_home += 1
+
+	var busy_ships := mining_ship_runtime_by_unit_id.size()
+	var ships_to_spawn := maxi(
+		0,
+		GameSession.get_base_mining_ship_count(base_id) - idle_ships_at_home - busy_ships
+	)
 
 	for i in ships_to_spawn:
 		var unit := _spawn_unit(MINING_SHIP_SCENE)
@@ -158,7 +176,22 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 		unit.start_orbiting_base(base_node)
 		idle_mining_ships.append(unit)
 
-	var drones_to_spawn := GameSession.get_base_drone_count(base_id) - idle_drones.size()
+	var idle_drones_at_home := 0
+
+	for idle_drone: AutomationUnit in idle_drones:
+		if idle_drone == null or not is_instance_valid(idle_drone):
+			continue
+
+		if not idle_drone.is_available():
+			continue
+
+		idle_drones_at_home += 1
+
+	var busy_drones := scan_drone_target_by_unit_id.size()
+	var drones_to_spawn := maxi(
+		0,
+		GameSession.get_base_drone_count(base_id) - idle_drones_at_home - busy_drones
+	)
 
 	for i in drones_to_spawn:
 		var unit := _spawn_unit(DRONE_SCENE)
@@ -1658,6 +1691,332 @@ func _list_mining_weighted_candidates(
 	return result
 
 
+func to_save_data() -> Dictionary:
+	return {
+		"system_id": GameSession.current_system_id,
+		"primary_base_id": _session_primary_base_body_id,
+		"scan_missions": _scan_missions_to_save_array(),
+		"mining_missions": _mining_missions_to_save_array(),
+	}
+
+
+func apply_automation_save_if_pending() -> void:
+	if not GameSession.has_automation_runtime_pending():
+		return
+
+	# Always consume pending data so it is not reapplied in another system scene.
+	var runtime: Dictionary = GameSession.take_automation_runtime_pending()
+	apply_save_data(runtime)
+
+
+func apply_save_data(data: Dictionary) -> void:
+	if data.is_empty():
+		return
+
+	var saved_system_id: String = str(data.get("system_id", "")).strip_edges()
+	var current_sid: String = GameSession.current_system_id.strip_edges()
+
+	if not saved_system_id.is_empty() and not current_sid.is_empty() and saved_system_id != current_sid:
+		return
+
+	var saved_base_id: String = str(data.get("primary_base_id", "")).strip_edges()
+	var session_base_id: String = _session_primary_base_body_id.strip_edges()
+
+	if not saved_base_id.is_empty() and not session_base_id.is_empty() and saved_base_id != session_base_id:
+		return
+
+	for scan_job_variant: Variant in data.get("scan_missions", []):
+		if scan_job_variant is Dictionary:
+			_restore_scan_mission(scan_job_variant as Dictionary)
+
+	for mining_job_variant: Variant in data.get("mining_missions", []):
+		if mining_job_variant is Dictionary:
+			_restore_mining_mission(mining_job_variant as Dictionary)
+
+	if not scan_drone_target_by_unit_id.is_empty() or not mining_ship_runtime_by_unit_id.is_empty():
+		_request_automation_state_changed()
+
+
+func _scan_missions_to_save_array() -> Array:
+	var jobs: Array = []
+	var mission_id_by_unit: Dictionary = {}
+
+	for mission_id_variant: Variant in active_units_by_mission_id.keys():
+		var mission_id := int(mission_id_variant)
+		var unit_variant: Variant = active_units_by_mission_id[mission_id_variant]
+		var unit := unit_variant as AutomationUnit
+
+		if unit == null or not is_instance_valid(unit):
+			continue
+
+		mission_id_by_unit[unit.get_instance_id()] = mission_id
+
+	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
+		var unit_id := int(unit_id_variant)
+		var unit := instance_from_id(unit_id) as AutomationUnit
+
+		if unit == null or not is_instance_valid(unit):
+			continue
+
+		var target_id: String = str(scan_drone_target_by_unit_id.get(unit_id, "")).strip_edges()
+
+		if target_id.is_empty():
+			continue
+
+		var mission_id_saved: int = int(mission_id_by_unit.get(unit_id, 0))
+		var job := _build_scan_job_save_dict(unit, target_id, mission_id_saved)
+
+		if not job.is_empty():
+			jobs.append(job)
+
+	return jobs
+
+
+func _mining_missions_to_save_array() -> Array:
+	var jobs: Array = []
+
+	for unit_id_variant: Variant in mining_ship_runtime_by_unit_id.keys():
+		var unit_id := int(unit_id_variant)
+		var runtime_variant: Variant = mining_ship_runtime_by_unit_id[unit_id_variant]
+
+		if not runtime_variant is Dictionary:
+			continue
+
+		var unit := instance_from_id(unit_id) as AutomationUnit
+
+		if unit == null or not is_instance_valid(unit):
+			continue
+
+		var job := _build_mining_job_save_dict(unit, runtime_variant as Dictionary)
+
+		if not job.is_empty():
+			jobs.append(job)
+
+	return jobs
+
+
+func _build_scan_job_save_dict(
+	unit: AutomationUnit,
+	target_id: String,
+	mission_id: int,
+) -> Dictionary:
+	var home_base_id: String = _get_session_base_id()
+	var orbit_anchor_id: String = home_base_id
+
+	if unit.base_node != null and is_instance_valid(unit.base_node):
+		var anchor_id: String = _get_object_id_from_node(unit.base_node).strip_edges()
+
+		if not anchor_id.is_empty():
+			orbit_anchor_id = anchor_id
+
+	return {
+		"target_id": target_id,
+		"base_id": home_base_id,
+		"mission_id": mission_id,
+		"orbit_anchor_id": orbit_anchor_id,
+		"unit_state": int(unit.state),
+		"work_timer": float(unit.work_timer),
+		"work_duration": float(unit.work_duration),
+		"travel_progress": float(unit.travel_progress),
+	}
+
+
+func _build_mining_job_save_dict(unit: AutomationUnit, runtime: Dictionary) -> Dictionary:
+	var job: Dictionary = _sanitize_dictionary_for_save(runtime)
+	job["target_id"] = str(runtime.get("target_id", ""))
+	job["base_id"] = _runtime_base_id_with_session_fallback(runtime)
+	job["orbit_anchor_id"] = _get_session_base_id()
+
+	if unit.base_node != null and is_instance_valid(unit.base_node):
+		var anchor_id: String = _get_object_id_from_node(unit.base_node).strip_edges()
+
+		if not anchor_id.is_empty():
+			job["orbit_anchor_id"] = anchor_id
+
+	job["unit_state"] = int(unit.state)
+	job["work_timer"] = float(unit.work_timer)
+	job["work_duration"] = float(unit.work_duration)
+	job["travel_progress"] = float(unit.travel_progress)
+	return job
+
+
+func _sanitize_dictionary_for_save(source: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+
+	for key_variant: Variant in source.keys():
+		var key_str: String = str(key_variant)
+		var value_variant: Variant = source[key_variant]
+		var sanitized: Variant = _sanitize_value_for_save(value_variant)
+
+		if sanitized != null:
+			out[key_str] = sanitized
+
+	return out
+
+
+func _sanitize_value_for_save(value: Variant) -> Variant:
+	if value == null:
+		return null
+
+	if value is String or value is int or value is float or value is bool:
+		return value
+
+	if value is Dictionary:
+		var out_dict: Dictionary = {}
+
+		for nested_key: Variant in (value as Dictionary).keys():
+			var nested_value: Variant = _sanitize_value_for_save((value as Dictionary)[nested_key])
+
+			if nested_value != null:
+				out_dict[str(nested_key)] = nested_value
+
+		return out_dict
+
+	if value is Array:
+		var out_arr: Array = []
+
+		for item: Variant in value as Array:
+			var sanitized_item: Variant = _sanitize_value_for_save(item)
+
+			if sanitized_item != null:
+				out_arr.append(sanitized_item)
+
+		return out_arr
+
+	return null
+
+
+func _restore_scan_mission(job: Dictionary) -> void:
+	var target_id: String = str(job.get("target_id", "")).strip_edges()
+
+	if target_id.is_empty():
+		return
+
+	var home_base_id: String = str(job.get("base_id", _get_session_base_id())).strip_edges()
+	var home_node: Node2D = _get_target_node(home_base_id)
+	var target_node: Node2D = _get_target_node(target_id)
+
+	if home_node == null or target_node == null:
+		return
+
+	var orbit_anchor_id: String = str(job.get("orbit_anchor_id", home_base_id)).strip_edges()
+	var orbit_node: Node2D = _get_target_node(orbit_anchor_id)
+
+	if orbit_node == null:
+		orbit_node = home_node
+
+	var unit := _spawn_unit(DRONE_SCENE)
+
+	if unit == null:
+		return
+
+	unit.work_duration = maxf(float(job.get("work_duration", _get_scan_duration_seconds_base())), 0.001)
+
+	var mission_id: int = int(job.get("mission_id", 0))
+
+	if mission_id > 0:
+		var mission_rec: Dictionary = GameSession.get_automation_mission(mission_id)
+
+		if mission_rec.is_empty():
+			GameSession.automation.restore_mission_record(
+				mission_id,
+				{
+					"type": AutomationStore.MissionType.SCAN,
+					"base_id": home_base_id,
+					"target_id": target_id,
+				}
+			)
+
+		active_units_by_mission_id[mission_id] = unit
+		_disconnect_unit_signals(unit)
+
+		if not unit.arrived_at_target.is_connected(_on_scan_drone_arrived_at_target):
+			unit.arrived_at_target.connect(_on_scan_drone_arrived_at_target.bind(mission_id, target_id))
+
+	var unit_id: int = unit.get_instance_id()
+	scan_drone_target_by_unit_id[unit_id] = target_id
+	_ensure_returned_to_base_connected(unit)
+
+	unit.restore_mission_visual_state(
+		int(job.get("unit_state", AutomationUnit.State.TRAVEL_TO_TARGET)) as AutomationUnit.State,
+		home_node,
+		orbit_node,
+		target_node,
+		float(job.get("work_timer", 0.0)),
+		float(job.get("work_duration", unit.work_duration)),
+		float(job.get("travel_progress", 0.0)),
+	)
+
+
+func _restore_mining_mission(job: Dictionary) -> void:
+	var target_id: String = str(job.get("target_id", "")).strip_edges()
+
+	if target_id.is_empty():
+		return
+
+	var home_base_id: String = str(job.get("base_id", _get_session_base_id())).strip_edges()
+	var home_node: Node2D = _get_target_node(home_base_id)
+	var target_node: Node2D = _get_target_node(target_id)
+
+	if home_node == null or target_node == null:
+		return
+
+	var orbit_anchor_id: String = str(job.get("orbit_anchor_id", home_base_id)).strip_edges()
+	var orbit_node: Node2D = _get_target_node(orbit_anchor_id)
+
+	if orbit_node == null:
+		orbit_node = home_node
+
+	var unit := _spawn_unit(MINING_SHIP_SCENE)
+
+	if unit == null:
+		return
+
+	unit.work_duration = maxf(float(job.get("work_duration", DEFAULT_MINING_DURATION)), 0.001)
+	_disconnect_unit_signals(unit)
+
+	if not unit.arrived_at_target.is_connected(_on_mining_ship_arrived_at_target):
+		unit.arrived_at_target.connect(_on_mining_ship_arrived_at_target)
+
+	_ensure_returned_to_base_connected(unit)
+
+	var runtime: Dictionary = _sanitize_dictionary_for_save(job)
+	runtime.erase("unit_state")
+	runtime.erase("work_timer")
+	runtime.erase("work_duration")
+	runtime.erase("travel_progress")
+	runtime.erase("orbit_anchor_id")
+
+	if not runtime.has("system_id") or str(runtime.get("system_id", "")).is_empty():
+		runtime["system_id"] = GameSession.current_system_id
+
+	if not runtime.has("status"):
+		runtime["status"] = MiningShipStatus.TO_TARGET
+
+	var unit_id: int = unit.get_instance_id()
+	mining_ship_runtime_by_unit_id[unit_id] = runtime
+
+	unit.restore_mission_visual_state(
+		int(job.get("unit_state", AutomationUnit.State.TRAVEL_TO_TARGET)) as AutomationUnit.State,
+		home_node,
+		orbit_node,
+		target_node,
+		float(job.get("work_timer", 0.0)),
+		float(job.get("work_duration", unit.work_duration)),
+		float(job.get("travel_progress", 0.0)),
+	)
+
+	var status_after: int = int(runtime.get("status", MiningShipStatus.TO_TARGET))
+
+	if status_after == MiningShipStatus.TO_BASE:
+		if unit.state != AutomationUnit.State.RETURNING:
+			unit.recall_to_base(home_node)
+	elif status_after == MiningShipStatus.MINING:
+		unit.transfer_orbit_to_base(target_node)
+	elif status_after == MiningShipStatus.UNLOADING or status_after == MiningShipStatus.WAITING_FOR_STORAGE:
+		unit.transfer_orbit_to_base(home_node)
+
+
 func _request_automation_state_changed() -> void:
 	if _automation_state_emit_scheduled:
 		return
@@ -1669,4 +2028,6 @@ func _emit_automation_state_changed_deferred() -> void:
 	_automation_state_emit_scheduled = false
 	if not is_inside_tree():
 		return
+	if GameSession.has_method("refresh_automation_snapshot_from_scene"):
+		GameSession.refresh_automation_snapshot_from_scene()
 	automation_state_changed.emit()

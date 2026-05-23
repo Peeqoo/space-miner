@@ -30,6 +30,9 @@ var system_entry := SystemEntryStore.new()
 var bases := BaseStore.new()
 var automation := AutomationStore.new()
 
+## Pending automation runtime from save; consumed when SystemScene hydrates AutomationController.
+var _automation_runtime_pending: Dictionary = {}
+
 var scanner := ScannerStore.new()
 
 ## Phase 5.5: data-driven upgrade tiers (`data/upgrades/*.tres`).
@@ -721,7 +724,7 @@ func _load_body_definition_for_system(system_id: String, body_id: String) -> Res
 	if sid.is_empty() or bod.is_empty():
 		return null
 
-	var system_def := _get_system_definition_by_id(sid)
+	var system_def := get_system_definition_by_id(sid)
 	if system_def == null:
 		return null
 
@@ -1189,6 +1192,7 @@ func reset_for_new_game() -> void:
 
 	automation.missions.clear()
 	automation.next_mission_id = 1
+	_automation_runtime_pending.clear()
 
 	_galaxy_progression_seeded = true
 	_apply_galaxy_progression_from_game_start(def)
@@ -1203,6 +1207,51 @@ func reset_for_new_game() -> void:
 	galaxy_progression_changed.emit()
 
 
+func refresh_automation_snapshot_from_scene() -> void:
+	var controller := _find_automation_controller_in_tree()
+	if controller == null:
+		return
+	if not controller.has_method("to_save_data"):
+		return
+	var runtime_variant: Variant = controller.call("to_save_data")
+	if runtime_variant is Dictionary:
+		_automation_runtime_pending = (runtime_variant as Dictionary).duplicate(true)
+
+
+func take_automation_runtime_pending() -> Dictionary:
+	var pending := _automation_runtime_pending.duplicate(true)
+	_automation_runtime_pending.clear()
+	return pending
+
+
+func has_automation_runtime_pending() -> bool:
+	return not _automation_runtime_pending.is_empty()
+
+
+func _build_automation_save_payload() -> Dictionary:
+	return {
+		"store": automation.to_save_data(),
+		"runtime": _automation_runtime_pending.duplicate(true),
+	}
+
+
+func _find_automation_controller_in_tree() -> Node:
+	var root := get_tree().root if is_inside_tree() else null
+	if root == null:
+		return null
+	return _find_automation_controller_recursive(root)
+
+
+func _find_automation_controller_recursive(node: Node) -> Node:
+	if node is AutomationController:
+		return node
+	for child: Node in node.get_children():
+		var found := _find_automation_controller_recursive(child)
+		if found != null:
+			return found
+	return null
+
+
 func to_save_data() -> Dictionary:
 	return {
 		"current_system_id": current_system_id,
@@ -1213,6 +1262,7 @@ func to_save_data() -> Dictionary:
 		"next_colonization_operation_id": _next_colonization_operation_id,
 		"bases": bases.to_save_data(),
 		"object_scans": object_scans.to_save_data(),
+		"automation": _build_automation_save_payload(),
 	}
 
 
@@ -1268,8 +1318,7 @@ func apply_save_data(data: Dictionary) -> bool:
 
 	_sync_basic_intel_from_all_established_bases()
 
-	automation.missions.clear()
-	automation.next_mission_id = 1
+	_apply_automation_from_save_data(data.get("automation", {}))
 
 	current_system_definition = null
 	_load_system_definition_for_id(current_system_id)
@@ -1281,6 +1330,29 @@ func apply_save_data(data: Dictionary) -> bool:
 		base_upgrades_changed.emit(bid)
 
 	return true
+
+
+func _apply_automation_from_save_data(automation_variant: Variant) -> void:
+	_automation_runtime_pending.clear()
+
+	if not automation_variant is Dictionary:
+		automation.missions.clear()
+		automation.next_mission_id = 1
+		return
+
+	var automation_data: Dictionary = automation_variant as Dictionary
+	var store_variant: Variant = automation_data.get("store", {})
+
+	if store_variant is Dictionary:
+		automation.apply_save_data(store_variant as Dictionary)
+	else:
+		automation.missions.clear()
+		automation.next_mission_id = 1
+
+	var runtime_variant: Variant = automation_data.get("runtime", {})
+
+	if runtime_variant is Dictionary:
+		_automation_runtime_pending = (runtime_variant as Dictionary).duplicate(true)
 
 
 func _colonization_operations_to_save_array() -> Array:
@@ -1323,7 +1395,7 @@ func _load_system_definition_for_id(system_id: String) -> void:
 	if sid.is_empty():
 		ensure_default_system_loaded()
 		return
-	var def := _get_system_definition_by_id(sid)
+	var def := get_system_definition_by_id(sid)
 	if def == null:
 		push_warning("GameSession: SystemDefinition nicht gefunden für '%s'" % sid)
 		ensure_default_system_loaded()
@@ -1331,7 +1403,7 @@ func _load_system_definition_for_id(system_id: String) -> void:
 	set_current_system(def)
 
 
-func _get_system_definition_by_id(system_id: String) -> SystemDefinition:
+func get_system_definition_by_id(system_id: String) -> SystemDefinition:
 	var sid := system_id.strip_edges()
 	if sid.is_empty():
 		return null
@@ -1341,6 +1413,19 @@ func _get_system_definition_by_id(system_id: String) -> SystemDefinition:
 		return _system_definition_by_id[sid] as SystemDefinition
 	push_warning("GameSession: SystemDefinition nicht gefunden für id '%s'" % sid)
 	return null
+
+
+func get_system_display_name(system_id: String) -> String:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return ""
+	var def := get_system_definition_by_id(sid)
+	if def == null:
+		return sid
+	var display_name := str(def.display_name).strip_edges()
+	if display_name.is_empty():
+		return sid
+	return display_name
 
 
 func _build_system_definition_catalog() -> void:

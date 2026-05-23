@@ -51,6 +51,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _finish_initial_setup() -> void:
 	await get_tree().process_frame
 
+	if automation_controller.has_method("apply_automation_save_if_pending"):
+		automation_controller.apply_automation_save_if_pending()
+
 	automation_controller.ensure_starting_units(_resolved_start_body_id)
 
 	var start_node: Node2D = null

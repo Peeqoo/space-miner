@@ -141,13 +141,7 @@ func _system_display_for_id(system_id: String) -> String:
 	var sid := system_id.strip_edges()
 	if sid.is_empty():
 		return "—"
-	var path := "res://data/galaxy_systems/%s_system.tres" % sid.replace("-", "_")
-	var def := load(path) as SystemDefinition
-	if def != null:
-		var dn := str(def.display_name).strip_edges()
-		if not dn.is_empty():
-			return dn
-	return sid
+	return GameSession.get_system_display_name(sid)
 
 
 func _get_slot_ui(slot_index: int) -> Dictionary:

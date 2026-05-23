@@ -173,6 +173,85 @@ func is_busy() -> bool:
 	)
 
 
+## Restores unit motion state after save/load (serializable fields only).
+func restore_mission_visual_state(
+	p_state: State,
+	p_home_base_node: Node2D,
+	p_orbit_anchor_node: Node2D,
+	p_target_node: Node2D,
+	p_work_timer: float,
+	p_work_duration: float,
+	p_travel_progress: float,
+) -> void:
+	if p_home_base_node == null or not is_instance_valid(p_home_base_node):
+		return
+
+	base_node = p_home_base_node
+	base_position = p_home_base_node.global_position
+	work_duration = maxf(p_work_duration, 0.001)
+	visible = true
+	_move_to_free_flight_parent()
+
+	match p_state:
+		State.ORBITING_BASE:
+			var orbit_node: Node2D = p_orbit_anchor_node
+
+			if orbit_node == null or not is_instance_valid(orbit_node):
+				orbit_node = p_home_base_node
+
+			base_node = orbit_node
+			base_position = orbit_node.global_position
+			target_node = null
+			_adopt_current_position_as_orbit()
+			state = State.ORBITING_BASE
+			work_timer = 0.0
+		State.TRAVEL_TO_TARGET:
+			if p_target_node == null or not is_instance_valid(p_target_node):
+				state = State.IDLE
+				return
+
+			target_node = p_target_node
+			target_position = p_target_node.global_position
+			_generate_orbit_for_node(p_target_node)
+			_prepare_orbit_entry()
+			_setup_travel_curve(global_position, orbit_entry_position)
+			travel_progress = clampf(p_travel_progress, 0.0, 1.0)
+			state = State.TRAVEL_TO_TARGET
+			work_timer = 0.0
+		State.APPROACH_ORBIT:
+			if p_target_node == null or not is_instance_valid(p_target_node):
+				state = State.IDLE
+				return
+
+			target_node = p_target_node
+			target_position = p_target_node.global_position
+			_generate_orbit_for_node(p_target_node)
+			_prepare_orbit_entry()
+			global_position = orbit_entry_position
+			state = State.APPROACH_ORBIT
+			work_timer = 0.0
+		State.WORKING:
+			if p_target_node == null or not is_instance_valid(p_target_node):
+				state = State.IDLE
+				return
+
+			target_node = p_target_node
+			target_position = p_target_node.global_position
+			_generate_orbit_for_node(p_target_node)
+			_adopt_current_position_as_orbit()
+			base_node = p_target_node
+			base_position = p_target_node.global_position
+			state = State.WORKING
+			work_timer = clampf(p_work_timer, 0.0, work_duration)
+		State.RETURNING:
+			target_node = null
+			_prepare_orbit_entry_for_node(p_home_base_node)
+			state = State.RETURNING
+			work_timer = 0.0
+		_:
+			start_orbiting_base(p_home_base_node)
+
+
 func _process_base_orbit(delta: float) -> void:
 	if base_node == null or not is_instance_valid(base_node):
 		state = State.IDLE

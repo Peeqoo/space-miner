@@ -435,7 +435,7 @@ func _colonization_ships_count_text(sid: String) -> String:
 
 
 func _colonization_intel_value_text(
-	system_def: SystemDefinition,
+	_system_def: SystemDefinition,
 	sid: String,
 	pending_rec: Dictionary,
 ) -> String:

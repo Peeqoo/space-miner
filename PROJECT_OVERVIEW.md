@@ -1,41 +1,49 @@
 # Space Miner Projektübersicht
 
-Stand: 2026-05-14
+Stand: 2026-05-20
 
 ---
 
 ## 1. Kurzfazit
 
 ### Aktueller technischer Aufbau
-Space Miner ist ein Godot-4.6.1-Spiel (Forward Plus). Der Einstiegspunkt ist `scenes/core/main.tscn` → `scripts/core/main.gd`. Von dort wird über `SceneFlow` entweder die Galaxy Map oder die System Scene geladen.
+Space Miner ist ein Godot-4.6.1-Spiel (Forward Plus). Der Einstiegspunkt ist `scenes/core/main.tscn` → `scripts/core/main.gd`. Von dort wird über `SceneFlow` entweder die Galaxy Map, das Main Menu oder die System Scene geladen.
 
-Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der als dünne Fassade über mehrere Store-Objekte (BaseStore, AutomationStore, ObjectScanStore, ScannerStore, SystemEntryStore) agiert. Singletons werden nicht als Godot-Autoloads registriert, sondern als Plain-GDScript-Instanzen direkt in GameSession erzeugt.
+Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der als dünne Fassade über mehrere Store-Objekte (BaseStore, AutomationStore, ObjectScanStore, ScannerStore, SystemEntryStore) agiert. Store-Instanzen sind Plain-GDScript-`RefCounted`-Objekte in `GameSession`, keine separaten Autoloads.
+
+Persistenz: `SaveManager` (Autoload) serialisiert `GameSession` in JSON-Slots (`user://saves/save_NNN.json`); Automation-Runtime wird beim Speichern aus der aktiven `SystemScene` eingesammelt.
 
 ### Hauptsysteme
-- **Galaxy Map**: Übersicht aller Sternensysteme, Auswahl und Einstieg in ein System
+- **Galaxy Map**: Übersicht aller Sternensysteme, Auswahl und Einstieg in ein System (`GalaxyMapHUD` + `GalaxyTopBar`)
 - **System Scene**: Darstellung eines Sternensystems mit Planeten und POIs
 - **Automation System**: Automatisierte Drohnen (Scan) und Mining Ships (Mining)
-- **System-HUD (`system_scene.tscn` / `UI`)**: `TopHUD` (globale Kurzinfos), `TopHudHoverPanel` (Widget-Hover), `BaseManagementPanel` (Base-Hub), `ProductionPanel` (Builds), `UpgradePanel` (Phase-5-Upgrades), `ObjectInfoPanel` (Objektinfos / Scan / Mine / Recall)
-- **ObjectInfoPanel**: Scan-Infos und Aktionen am selektierten Body/POI; **keine** `ActionBlockerBox`; `CloseBasePanelButton` emittiert `close_requested` → `SystemUIController` cleared die Selection
-- **Scan System**: Mehrstufiges Scansystem mit drei Tiers (basic, deep, special)
+- **System-HUD (`system_scene.tscn` / `UI`)**: `TopHUD`, `TopHudHoverPanel`, `BaseManagementPanel`, `ProductionPanel`, `UpgradePanel`, `StoragePanel`, `ObjectInfoPanel`, `PauseMenuOverlay`
+- **ObjectInfoPanel**: Scan-Infos und Aktionen am selektierten Body/POI; `close_requested` → `SystemUIController` cleared die Selection
+- **Scan System**: Mehrstufiges Scansystem mit Layern (basic / deep / special) über `ScannedResourceEntry.layer`
+
+### UI-Layout-Regeln (System-HUD)
+- **Feste Panels** (`BaseManagementPanel`, `ObjectInfoPanel`, `ProductionPanel`, `UpgradePanel`, `StoragePanel`, `TopHUD`): Größe und Position sind **editor-owned** (`.tscn`). Scripts setzen Inhalt und `visible`, **kein** runtime `_fit_height_to_content` / keine `custom_minimum_size`- oder `global_position`-Anpassung in diesen Panels.
+- **Ausnahme Floating UI**: `TopHudHoverPanel` positioniert sich am Hover-Anker und passt die **Höhe** content-driven an (`_fit_height_after_layout` / `_fit_height_to_content`) — bewusste Ausnahme, kein Vorbild für feste Panels.
+- **ProductionPanel / UpgradePanel Hover**: Sichtbarkeit über `HoverInfoSection.visible`; `HoverInfoPanel` bleibt innerer Container (`visible = true` in `_ready`). Button-Hover nutzt eine schlanke `Control`-HoverFläche, damit auch `disabled` Buttons Tooltips/Infos zeigen (Kauf weiter über `GameSession`-Guards).
+- **StoragePanel**: Feste Panelbreite (`custom_minimum_size.x = 170` in `.tscn`); Liste unter `ResourcePanel/ResourceScroll/ResourceList`; nur **-10** Discard pro Zeile (`Discard10ButtonTemplate`); kein „Discard All“. `refresh()` → deferred `_apply_refresh()`, damit Zeilen nicht während `pressed` per `free()` entfernt werden.
+- **GalaxyMapHUD**: Kein `InfoPopupPanel` / `InfoButton`. Systembeschreibung dauerhaft in `InfoTextLabel` (`InfoSection/InfoTextScroll`); Text aus `SystemDefinition.description` via `galaxy_map.gd` → `show_system_info(..., info_text, ...)`.
 
 ### Aktiv wirkende Systeme
-- GameSession + alle Stores
-- AutomationController (Mining, Scanning, Unit-Spawning)
+- GameSession + alle Stores + `SaveManager`
+- AutomationController (Mining, Scanning, Unit-Spawning; Save/Restore der Runtime-Missions)
 - SystemUIController (Panel-Orchestrierung, Signal-Routing)
-- TopHUD / TopHudHoverPanel (Status + Hoverdetails, Positionierung über `SystemUIController`)
-- BaseManagementPanel (Base-Hub: Info + Navigation zu Production/Upgrades)
-- ProductionPanel / UpgradePanel (eigene Build- bzw. Upgrade-UI)
-- ObjectInfoPanel (ScannedResourceEntry-Darstellung über `resource_info_row.tscn`)
-- ScanInfoBuilder (Build-Pipeline für Scan-Dictionaries)
-- CelestialPresentationCalculator (Darstellung von Planeten im System)
+- TopHUD / TopHudHoverPanel (Status + Hoverdetails)
+- BaseManagementPanel (Base-Hub: Navigation zu Production / Upgrades / Storage)
+- ProductionPanel / UpgradePanel / StoragePanel
+- ObjectInfoPanel (`resource_info_row.tscn`)
+- ScanInfoBuilder, CelestialPresentationCalculator
+- Main Menu (Slots), Pause Menu (Save/Continue)
 
-### Alte / verwaiste Systeme
-- `storage_row.gd`: Existiert, ist aber keiner `.tscn` zugewiesen und wird nicht instanziiert
-- `PointOfInterestDefinition` nutzt noch `PackedStringArray` für Scan-Ressourcen (veraltet); `SystemBodyDefinition` nutzt bereits `Array[ScannedResourceEntry]`
-- Die internen Keys `current_cargo`, `cargo_capacity`, `cargo_resource_id` in `automation_controller.gd` sind interne Transportpuffer des Mining Ships — kein separates Ship-Cargo-Entity mehr
-- `cargo_row.gd` / `cargo_row.tscn` existieren im Projekt **nicht mehr** (bereits gelöscht)
-- `OreLabel`, `FuelLabel`, `FoodLabel` existieren **nicht mehr** in keiner Datei
+### Legacy / Hinweise (noch im Code, nicht separate UI-Systeme)
+- `scan_info_builder.gd`: Kompatibilitäts-Fallback für alte String-Einträge in Scan-Arrays (keine POI-`PackedStringArray`-Daten mehr)
+- `automation_controller.gd`: `cargo_resources` + optional `cargo_resource_id` / `current_cargo` als interner Mining-Puffer (kein Ship-Cargo-Entity)
+- `data/planet_resources/*.tres`: Authoring-Vorlagen; Bodies nutzen inline `SubResource` in `celestial_bodies` (nicht per Pfad geladen)
+- Entfernt und **nicht** mehr im Repo: `storage_row.gd`, `cargo_row.*`, `InfoPopupPanel`, `InfoButton`, Discard-All in StoragePanel
 
 ---
 
@@ -54,7 +62,9 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
   - `scanner: ScannerStore`
   - Konstanten: `SCAN_UNKNOWN`, `SCAN_BASIC`, `SCAN_DEEP`, `SCAN_SPECIAL`, `SCANNER_BASIC`, `SCANNER_DEEP`, `SCANNER_SPECIAL`
 - **Wichtige Funktionen:**
-  - `ensure_default_system_loaded()` — lädt `solar_system.tres` falls kein System gesetzt
+  - `ensure_default_system_loaded()` — lädt Default-System falls kein System gesetzt
+  - `get_system_definition_by_id(system_id)` / `get_system_display_name(system_id)` — Katalog über `data/galaxy_systems/*.tres` (Match auf `SystemDefinition.id`, kein Dateiname-Raten)
+  - `to_save_data()` / `apply_save_data()` — Session-Persistenz inkl. `automation`-Block
   - `set_current_system(system_definition)` — setzt das aktive System
   - `get_base_resource_amount(base_id, resource_id) -> int`
   - `get_base_resources(base_id) -> Dictionary`
@@ -71,10 +81,16 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
   - `create_mining_mission(base_id, target_id) -> int`
   - `complete_automation_mission(mission_id) -> Dictionary`
   - Earth-Aliase: `get_earth_resource_amount`, `add_earth_resource`, etc.
-- **Zugreifende Scripts:** automation_controller.gd, system_ui_controller.gd, base_management_panel.gd, object_info_panel.gd, production_panel.gd, upgrade_panel.gd, top_hud.gd, galaxy_map.gd, system_scene.gd, scan_info_builder.gd, main.gd
-- **Definierte Signale:** keine
-- **Emittierte Signale:** keine
-- **Verbundene Signale:** keine (ist Autoload, nicht Subscriber)
+- **Zugreifende Scripts:** automation_controller.gd, system_ui_controller.gd, base_management_panel.gd, object_info_panel.gd, production_panel.gd, upgrade_panel.gd, storage_panel.gd, top_hud.gd, galaxy_map.gd, system_scene.gd, scan_info_builder.gd, main.gd, main_menu.gd, pause_menu_overlay.gd, save_manager.gd
+- **Definierte Signale:** u. a. `base_resources_changed`, `base_upgrades_changed`, `galaxy_progression_changed`
+- **Emittierte Signale:** Store-Events über Facade
+- **Verbundene Signale:** diverse UI-Panels
+
+### SaveManager
+- **Pfad:** `res://scripts/autoload/save_manager.gd`
+- **Aufgabe:** Multi-Slot Save/Load (`SAVE_VERSION = 1`, Slots 1–3). `build_save_data()` ruft `GameSession.refresh_automation_snapshot_from_scene()` vor `to_save_data()` auf.
+- **Wichtige Funktionen:** `save_game()`, `load_game()`, `has_save()`, `get_save_metadata()`, `delete_save()`
+- **Zugreifende Scripts:** `main_menu.gd`, `pause_menu_overlay.gd`
 
 ### SceneFlow
 - **Pfad:** `res://scripts/autoload/scene_flow.gd`
@@ -109,10 +125,19 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **Instanziierte Szenen:** GalaxyMapHUD, GalaxySystemNode-Instanzen unter SystemsRoot
 
 ### `res://scenes/ui/galaxy/galaxy_map_hud.tscn`
-- **Root-Node:** Control
+- **Root-Node:** Control (`GalaxyMapHUD`)
 - **Script:** `res://scripts/ui/galaxy/galaxy_map_hud.gd`
-- **Wichtige Child-Nodes:** `TopBar/Margin/Row/TitleLabel`, `TopBar/.../CurrentSystemValueLabel`, `GalaxyInfoPanel/.../SystemNameLabel`, `GalaxyInfoPanel/.../EnterButton`
-- **Instanziierte Szenen:** keine
+- **Wichtige Child-Nodes:** `GalaxyInfoPanel/.../SystemNameLabel`, `AccessStatusLabel`, Scan-Intel-Labels, `InfoSection/InfoTextScroll/InfoTextLabel` (permanente Beschreibung), `ColonizationSection`, `EnterButton`
+- **Hinweis:** `CurrentSystemValueLabel` liegt in sibling `GalaxyTopBar` (`galaxy_top_bar.tscn`), per `get_node_or_null("../GalaxyTopBar/...")`. Kein `InfoPopupPanel` / `InfoButton`.
+- **DEV:** `ColonizationDevButton` (nur Entwicklungshilfe)
+
+### `res://scenes/ui/galaxy/galaxy_top_bar.tscn`
+- **Script:** `res://scripts/ui/galaxy/galaxy_top_bar.gd`
+- **Rolle:** Aktuelles System in der Galaxy-Map-Topbar
+
+### `res://scenes/ui/main_menu/main_menu.tscn`
+- **Script:** `res://scripts/ui/main_menu/main_menu.gd`
+- **Rolle:** New Game / Continue mit Save-Slots; Systemname via `GameSession.get_system_display_name()`
 
 ### `res://scenes/system/system_scene.tscn`
 - **Root-Node:** Node2D
@@ -126,8 +151,8 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
   - `AutomationController`
   - `WorldRoot/StarRoot`, `WorldRoot/SystemBodiesRoot`, `WorldRoot/PointOfInterestRoot`, `WorldRoot/AutomationRoot`
   - `BackgroundRoot/OrbitGuidesLayer`
-  - `UI/TopHUD`, `UI/TopHudHoverPanel`, `UI/BaseManagementPanel`, `UI/ObjectInfoPanel`, `UI/ProductionPanel`, `UI/UpgradePanel`
-- **Instanziierte Szenen:** TopHUD, TopHudHoverPanel, ObjectInfoPanel, BaseManagementPanel, ProductionPanel, UpgradePanel; SystemBody (dynamisch), PointOfInterest (dynamisch), AutomationUnit (dynamisch)
+  - `UI/TopHUD`, `UI/TopHudHoverPanel`, `UI/BaseManagementPanel`, `UI/ObjectInfoPanel`, `UI/ProductionPanel`, `UI/UpgradePanel`, `UI/StoragePanel`, `UI/PauseMenuOverlay`
+- **Instanziierte Szenen:** TopHUD, TopHudHoverPanel, ObjectInfoPanel, BaseManagementPanel, ProductionPanel, UpgradePanel, StoragePanel, PauseMenuOverlay; SystemBody / PointOfInterest / AutomationUnit (dynamisch)
 
 ### `res://scenes/system/objects/system_body.tscn`
 - **Root-Node:** Node2D
@@ -149,10 +174,10 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
   - `Margin/Root/HeaderRow/HeaderLabel`, `Margin/Root/HeaderRow/CloseBasePanelButton`
   - `Margin/Root/MainRow/PreviewPanel/.../PreviewTexture`
   - `Margin/Root/MainRow/MetaColumn/BaseNameLabel`, `StatusLabel`, `PopulationLabel`, `FoodLabel`, `PopulationGrowthLabel`
-  - `Margin/Root/ManagementButtonSection/OpenProductionButton`, `OpenUpgradeButton`
+  - `Margin/Root/ManagementButtonSection/OpenProductionButton`, `OpenUpgradeButton`, `OpenStorageButton`
   - `Margin/Root/StatusTextLabel` (Hinweiszeile)
-- **Signale (Script):** `open_production_requested`, `open_upgrades_requested`
-- **Instanziierte Szenen:** keine (kein dynamisches `storage_info_row` mehr im Base-Hub)
+- **Signale (Script):** `open_production_requested`, `open_upgrades_requested`, `open_storage_requested`, `close_requested`
+- **Layout:** Editor-owned; kein `_fit_height_to_content` im Script
 
 ### `res://scenes/ui/system/top_hud.tscn`
 - **Root-Node:** PanelContainer (`TopHUD`)
@@ -168,14 +193,23 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 ### `res://scenes/ui/system/production_panel.tscn`
 - **Root-Node:** PanelContainer (`ProductionPanel`)
 - **Script:** `res://scripts/ui/system/production_panel.gd`
-- **Rolle:** Build ScanDrone / MiningShip; ColonyShip-Button gesperrt; internes `HoverInfoPanel` für Button-Hover
-- **Wichtige Child-Nodes:** `Margin/Root/ProductionList/BuildScanDroneButton`, `BuildMiningShipButton`, `BuildColonyShipButton`, `Margin/Root/HeaderRow/CloseButton`, `Margin/Root/HoverInfoPanel/...`
+- **Rolle:** Build ScanDrone / MiningShip / ColonyShip (`disabled` wenn `GameSession.can_build_*` false; Kauf in Handlern erneut geprüft)
+- **Hover:** `Margin/Root/HoverInfoSection` (Sichtbarkeit) → `HoverInfoPanel` → Beschreibung/Kosten-Labels
+- **Wichtige Child-Nodes:** `ProductionList/*Button`, `HeaderRow/CloseButton`, `HoverInfoSection/...`
 
 ### `res://scenes/ui/system/upgrade_panel.tscn`
 - **Root-Node:** PanelContainer (`UpgradePanel`)
 - **Script:** `res://scripts/ui/system/upgrade_panel.gd`
-- **Rolle:** Phase-5-Upgrades (Storage / ScanDrone / MiningShip Upgrade I); internes `HoverInfoPanel`
-- **Wichtige Child-Nodes:** `Margin/Root/UpgradeList/StorageUpgradeButton`, `ScanDroneUpgradeButton`, `MiningShipUpgradeButton`, `Margin/Root/HeaderRow/CloseButton`, `Margin/Root/HoverInfoPanel/...`
+- **Rolle:** Upgrades Storage / ScanDrone / MiningShip; Hover-Texte aus `UpgradeDefinition.build_panel_hover_lines` mit Section-Labels aus `.tscn`
+- **Daten:** Section-Überschriften u. a. aus Editor; Effektzeilen-Templates via `UpgradeEffectTextDefinition` (`data/ui_text/upgrade_effect_texts.tres`, geladen in `GameSession._load_upgrade_effect_texts()`)
+- **Hover:** wie ProductionPanel (`hover_info_section.visible`)
+
+### `res://scenes/ui/system/storage_panel.tscn`
+- **Root-Node:** PanelContainer (`StoragePanel`), `custom_minimum_size.x = 170`
+- **Script:** `res://scripts/ui/system/storage_panel.gd`
+- **Rolle:** Basis-Lager anzeigen; manuelles Discard **-10** pro Ressource (`discard_resource_requested`)
+- **Struktur:** `ResourcePanel/ResourceMargin/ResourceScroll/ResourceList` (dynamische Zeilen), verstecktes `Discard10ButtonTemplate`
+- **Refresh:** `refresh()` → `_queue_refresh()` → deferred `_apply_refresh()` (kein `free()` während Button-Signal)
 
 ### `res://scenes/ui/system/object_info_panel.tscn`
 - **Root-Node:** PanelContainer
@@ -247,14 +281,14 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
   - New-Game-Start über `GameStartDefinition` (`data/game_start/default_start.tres`)
 - **Wichtige Funktionen:** `get_resources()`, `get_resource_amount()`, `add_resource()`, `spend_resource()`, `build_drone()`, `build_mining_ship()`, `add_mining_ship()`, `add_drone()`
 - **Definierte Signale:** keine
-- **Risiko:** kein Persistenz-System; Verlust bei Szenenwechsel nicht abgesichert
+- **Persistenz:** `to_save_data()` / `apply_save_data()` über `SaveManager`
 
 ### `res://scripts/autoload/stores/automation_store.gd`
 - **class_name:** AutomationStore
 - **extends:** RefCounted
 - **Aufgabe:** Verwaltet Mission-IDs und Missions-Dictionaries (Scan/Mine)
 - **Wichtige Variablen:** `next_mission_id: int`, `missions: Dictionary`
-- **Wichtige Funktionen:** `create_scan_mission()`, `create_mining_mission()`, `get_mission()`, `complete_mission()`
+- **Wichtige Funktionen:** `create_scan_mission()`, `create_mining_mission()`, `get_mission()`, `complete_mission()`, `to_save_data()` / `apply_save_data()`
 - **Definierte Signale:** keine
 
 ### `res://scripts/autoload/stores/object_scan_store.gd`
@@ -340,7 +374,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **class_name:** SystemUIController
 - **extends:** Node
 - **Aufgabe:** Orchestriert System-UI: Selektion → ObjectInfo/Base; routet Scan/Mine/Recall, Production/Upgrade-Builds, TopHUD-Hover-Position
-- **Wichtige Variablen:** system_definition, selection, spawner, object_info_panel, base_management_panel, production_panel, upgrade_panel, top_hud, top_hud_hover_panel, automation_controller
+- **Wichtige Variablen:** system_definition, selection, spawner, object_info_panel, base_management_panel, production_panel, upgrade_panel, storage_panel, top_hud, top_hud_hover_panel, automation_controller
 - **Verbundene Signale (Auszug):**
   - `selection.selection_changed` → `_on_selection_changed`
   - `automation_controller.automation_state_changed` → `_on_automation_state_changed`
@@ -387,7 +421,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **Aufgabe:** Baut Scan-Info-Dictionaries für Objekte basierend auf Scan-Zustand und Scanner-Tier
 - **Wichtige static Funktionen:** `build_scan_info()`, `_filter_resources_for_scanner()`, `_entry_to_scan_resource()`, `_get_scan_hidden_slots_after_special()`
 - **Genutzte Autoloads:** GameSession (Konstanten SCANNER_BASIC etc.)
-- **Risiko:** Enthält Kompatibilitäts-Fallback für altes `PackedStringArray`-Format in POI-Definitionen (Zeile 133–142); wird aktiv genutzt, da `PointOfInterestDefinition` noch `PackedStringArray` nutzt
+- **Hinweis:** Kompatibilitäts-Fallback in `_entry_to_scan_resource()` für alte String-Einträge (POI/Body nutzen `scan_resources: Array[ScannedResourceEntry]`)
 
 ### `res://scripts/system/components/orbiting_object_component.gd`
 - **class_name:** OrbitingObjectComponent
@@ -417,9 +451,9 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 ### `res://scripts/ui/system/base_management_panel.gd`
 - **class_name:** (keine — extends PanelContainer)
 - **Aufgabe:** Base-Hub — Anzeige Basis-Metadaten; Navigation zu Production/Upgrade; kein Build mehr auf diesem Panel
-- **Definierte Signale:** `open_production_requested`, `open_upgrades_requested`
-- **Wichtige @onready-Pfade:** `Margin/Root/MainRow/MetaColumn/BaseNameLabel`, `StatusLabel`, `PopulationLabel`; `Margin/Root/ManagementButtonSection/OpenProductionButton`, `OpenUpgradeButton`; `Margin/Root/StatusTextLabel`; `Margin/Root/HeaderRow/CloseBasePanelButton`
-- **Wichtige Funktionen:** `show_for_base()`, `hide_panel()`, `refresh_from_game_session()`, `set_status_text()`, `_fit_height_to_content()` (fixe Breite, Höhe aus Inhalt)
+- **Definierte Signale:** `open_production_requested`, `open_upgrades_requested`, `open_storage_requested`, `close_requested`
+- **Wichtige Funktionen:** `show_for_base()`, `hide_panel()`, `refresh_from_game_session()`, `set_economy_actions_enabled()`
+- **Layout:** Kein runtime Height-Fit; Panelgröße aus Editor
 - **Genutzte Autoloads:** GameSession
 
 ### `res://scripts/ui/system/object_info_panel.gd`
@@ -428,8 +462,9 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **Definierte Signale:** `scan_requested`, `mining_requested`, `recall_drone_requested`, `recall_mining_ship_requested`, `close_requested`
 - **Preloads:** `RESOURCE_INFO_ROW_SCENE = preload("res://scenes/ui/system/resource_info_row.tscn")`
 - **Genutzte Autoloads:** GameSession
-- **Wichtige Funktionen:** `show_empty()`, `show_body_info(info)`, `show_poi_info(info)`, `_apply_info()`, `_apply_resources()`, `_apply_lore()`, `set_distance_text()`, `_fit_height_to_content()` (nur `size.y`, Guard bei `visible`)
-- **Risiko:** Legacy-Fallback in `_apply_resources()` für alte String-Einträge in Scan-Arrays
+- **Wichtige Funktionen:** `show_empty()`, `show_body_info(info)`, `show_poi_info(info)`, `_apply_resources()`, `set_distance_text()`
+- **Layout:** Editor-owned; kein `_fit_height_to_content`
+- **Hinweis:** `_apply_resource_dict_to_row` akzeptiert ältere Dict-Keys (`resource_id`, `name`) zusätzlich zu `id`
 
 ### `res://scripts/ui/system/top_hud.gd`
 - **extends:** PanelContainer
@@ -438,24 +473,27 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 ### `res://scripts/ui/system/top_hud_hover_panel.gd`
 - **extends:** PanelContainer
-- **Aufgabe:** Zeigt Titel, Detailzeilen, Hint; `_fit_height_after_layout()` wartet einen Frame, dann nur `size.y`-Fit
+- **Aufgabe:** Floating Detail-Popup für TopHUD; `_fit_height_after_layout()` → `_fit_height_to_content()` (einzige HUD-Ausnahme für dynamische Höhe)
 
 ### `res://scripts/ui/system/production_panel.gd`
 - **extends:** PanelContainer
-- **Aufgabe:** `GameSession.build_base_drone` / `build_base_mining_ship`; ColonyShip gesperrt; `close_requested`
+- **Aufgabe:** Build über `GameSession.build_base_*`; Hover via `HoverInfoSection`; `_setup_action_button_hover` für disabled-taugliche Tooltips
 - **Genutzte Autoloads:** GameSession
 
 ### `res://scripts/ui/system/upgrade_panel.gd`
 - **extends:** PanelContainer
-- **Aufgabe:** Upgrades über `buy_next_base_upgrade` / `get_next_upgrade_definition` (`data/upgrades/*.tres`); `close_requested`
+- **Aufgabe:** `buy_next_base_upgrade`; Hover-Body via `UpgradeDefinition.build_panel_hover_lines` + `UpgradeEffectTextDefinition` (global in `GameSession` geladen)
 - **Genutzte Autoloads:** GameSession
 
-### `res://scripts/ui/system/storage_row.gd`
-- **class_name:** (keine — extends HBoxContainer)
-- **Aufgabe:** UNSICHER — vermutlich alte Row-Szene für Base-Storage; hat `set_row_data(name, amount: int)`
-- **onready-NodePaths:** `$ResourceNameLabel`, `$ResourceAmountLabel`
-- **Status:** VERWAIST — kein `.tscn` nutzt dieses Script; es wird nirgends instanziiert oder geladen
-- **Risiko:** Nodename `ResourceAmountLabel` weicht von `storage_info_row.tscn` (`ResourceValueLabel`) ab
+### `res://scripts/ui/system/storage_panel.gd`
+- **extends:** PanelContainer
+- **Aufgabe:** Lagerliste + Discard -10; deferred refresh; Signale `close_requested`, `discard_resource_requested`
+- **Genutzte Autoloads:** GameSession
+
+### `res://scripts/ui/galaxy/galaxy_map_hud.gd`
+- **class_name:** GalaxyMapHUD
+- **Aufgabe:** System-Intel, permanente `InfoTextLabel`-Beschreibung, Colonization-UI, Enter-Button
+- **Signale:** `enter_requested`, `colonization_cancel_requested`, `close_requested`, …
 
 ### `res://scripts/ui/system/resource_info_row.gd`
 - **class_name:** ResourceInfoRow
@@ -505,19 +543,19 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 ### `res://resources/definitions/system_body_definition.gd`
 - **Typ:** Script (Resource-Definition)
 - **class_name:** SystemBodyDefinition
-- **Properties:** id, display_name, description, body_type, orbit_center_id, orbit_radius (legacy), orbit_speed (legacy), body_scale (legacy), body_color, texture, can_build_base, reference_radius_earth, reference_orbit_au, reference_period_days, asset_body_diameter_px, authored_ratio_to_earth, size_authoring_mode, gameplay_size/orbit/speed_bias, use_manual_scale_override, manual_scale_override, scan_basic_resources (Array[ScannedResourceEntry]), scan_deep_resources, scan_special_resources, scan_hidden_slots_after_special
+- **Properties:** id, display_name, description, body_type, orbit_center_id, orbit_radius/orbit_speed/body_scale (legacy, noch in `.tres`), texture, can_build_base, reference_*, size_authoring_mode, gameplay_*_bias, `scan_resources: Array[ScannedResourceEntry]` (Layer über `ScannedResourceEntry.layer`), `scan_hidden_slots_after_special`
+- **API:** `get_basic_scan_resources()`, `get_deep_scan_resources()`, `get_special_scan_resources()` filtern nach Layer
 - **Nutzende Scripts:** system_body.gd, system_spawner.gd, scan_info_builder.gd, celestial_presentation_calculator.gd, galaxy_map.gd
 
 ### `res://resources/definitions/point_of_interest_definition.gd`
 - **Typ:** Script (Resource-Definition)
 - **class_name:** PointOfInterestDefinition
-- **Properties:** id, display_name, description, poi_type, orbit_center_id, orbit_radius, orbit_speed, orbit_start_angle_degrees, poi_color, texture, scan_basic_reveal_name, scan_basic_reveal_type, scan_basic_resources (**PackedStringArray** — VERALTET), scan_deep_resources (**PackedStringArray** — VERALTET), scan_special_resources (**PackedStringArray** — VERALTET), scan_hidden_slots_after_special
-- **Risiko:** Verwendet noch `PackedStringArray` statt `Array[ScannedResourceEntry]` — Kompatibilitäts-Fallback in `scan_info_builder.gd` aktiv
+- **Properties:** wie Body: `scan_resources: Array[ScannedResourceEntry]`, `scan_hidden_slots_after_special`, gleiche `get_*_scan_resources()`-Helfer
 
 ### `res://resources/definitions/scanned_resource_entry.gd`
 - **Typ:** Script (Resource-Definition)
 - **class_name:** ScannedResourceEntry
-- **Properties:** `resource_id: StringName`, `richness_percent: int` (0–100)
+- **Properties:** `resource_id: StringName`, `richness_percent: int`, `layer` (BASIC/DEEP/SPECIAL), optional `deposit_amount`
 - **Nutzende Scripts:** system_body_definition.gd (als Typ), scan_info_builder.gd (als Instanz-Check)
 
 ### `res://data/galaxy_systems/solar_system.tres`
@@ -531,7 +569,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 ### `res://data/celestial_bodies/solar_system/earth.tres`
 - **Typ:** SystemBodyDefinition
-- **Properties:** id="earth", body_type="planet", orbit_center_id="star", size_authoring_mode=USE_REFERENCE_DATA, gameplay_orbit_bias=1.18, `scan_resources` (inline SubResources, Solar Deposit Plan)
+- **Properties:** id="earth", inline `SubResource`-Einträge in `scan_resources` (Basic + Deep per `layer`), inkl. `deposit_amount` wo gesetzt
 
 ### `res://data/celestial_bodies/solar_system/*.tres` (mercury, venus, mars, moon, jupiter, saturn, uranus, neptune)
 - **Typ:** SystemBodyDefinition Resources
@@ -541,11 +579,13 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **Typ:** SystemBodyDefinition Resources (proxima_b, proxima_c, proxima_d)
 
 ### `res://data/planet_resources/*.tres`
-- **Typ:** ScannedResourceEntry Resources
-- **Properties:** resource_id (StringName), richness_percent (int)
-- **Aktive IDs:** BASIC (layer=0): Silicon, Iron, Copper, Carbon, Hydrogen, Water. DEEP (layer=1): Oxygen, Aluminium, Calcium, Sodium, Potassium, Magnesium, Nickel, Cobalt, Helium, Methane. Default `richness_percent` in Templates (Body-Deposits können überschreiben).
-- **Legacy (nicht in neuer Liste / Archiv):** aluminum.tres (`Aluminum`), silicates.tres (`Silicates`), heavy_metals.tres, exotic_gas.tres, helium-3.tres, titanium.tres, antimatter_precursors.tres
-- **Nutzende Scripts:** Referenziert in SystemBodyDefinition.scan_resources (Bodies derzeit leer)
+- **Typ:** ScannedResourceEntry-Vorlagen (Authoring-Bibliothek)
+- **Runtime:** Werden **nicht** per `load("res://data/planet_resources/...")` gebunden; Bodies duplizieren Werte als inline `SubResource` in `data/celestial_bodies/**`
+- **Aktive IDs in Bodies:** Basic — Silicon, Iron, Copper, Carbon, Hydrogen, Water; Deep — Oxygen, Aluminium, Calcium, Sodium, Potassium, Magnesium, Nickel, Cobalt, Helium, Methane (je eine Authoring-`.tres` unter `planet_resources/`, 16 Dateien)
+- **Hinweis:** Einige Outer/Proxima-Bodies haben leeres `scan_resources` (z. B. Uranus, Neptune, Proxima b/c/d)
+
+### `res://data/ui_text/upgrade_effect_texts.tres`
+- **Typ:** `UpgradeEffectTextDefinition` — globale Platzhalter für Upgrade-Hover-Effektzeilen (`GameSession` lädt beim Boot)
 
 ### `res://scenes/ui/*.tres` (m5x7_, manaspace_, pixeloperator8_, pixeloperator_hbsc_, pixeloperator_ label_settings.tres)
 - **Typ:** LabelSettings Resources
@@ -562,29 +602,17 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 3. **Spieler klickt "Send Mining Ship"** → `ObjectInfoPanel.mining_requested` emittiert
 4. **SystemUIController._on_object_mining_requested()** → ruft `AutomationController.launch_mining_ship(target_id)` auf
 5. **AutomationController.launch_mining_ship():**
-   - Holt idle Mining Ship aus `idle_mining_ships`
-   - Erstellt Runtime-Dictionary in `mining_ship_runtime_by_unit_id`:
-	 - `"cargo_resource_id": "ore"` (intern, kein separates Cargo-Objekt)
-	 - `"current_cargo": 0.0`, `"cargo_capacity": 20`
-	 - `"mining_rate_per_second": 2.0`, `"unload_duration": 2.0`
-	 - `"status": MiningShipStatus.TO_TARGET`
-   - Verbindet `unit.arrived_at_target` und `unit.returned_to_base`
-   - Ruft `unit.start_mission_to_node(target_node)` auf
-   - Emittiert `automation_state_changed`
-6. **AutomationUnit fliegt zum Ziel** (TRAVEL_TO_TARGET → APPROACH_ORBIT → WORKING + emittiert `arrived_at_target`)
-7. **AutomationController._on_mining_ship_arrived_at_target():** setzt Status auf MINING, `transfer_orbit_to_base(target_node)`
-8. **AutomationController._process() bei MINING-Status:**
-   - Akkumuliert `current_cargo += mining_rate * (1 + drone_bonus) * delta`
-   - Wenn `current_cargo >= cargo_capacity`: Status → TO_BASE, `unit.recall_to_base(home_node)`
-9. **AutomationUnit kehrt zurück** → emittiert `returned_to_base`
-10. **AutomationController._on_mining_ship_returned_to_base():**
-	- `current_cargo = int(floor(current_cargo))`
-	- **`GameSession.add_base_resource(base_id, "ore", current_cargo)`** ← Mining → Base Storage (direkter Call)
-	- Setzt `current_cargo = 0`, Status → UNLOADING, `unload_timer = 2.0`
-11. **Nach Unload-Timer:** wenn `loop_active`, startet neuer Flug zum Ziel; sonst: Ship wird freigegeben
-12. **Nach jedem State-Wechsel:** `automation_state_changed.emit()` → `SystemUIController._on_automation_state_changed()` → `update_base_panel()` → ggf. `BaseManagementPanel.show_for_base()` / `refresh_while_hold_open()` / `hide_panel()` und `refresh_from_game_session()`
+   - Erstellt Runtime-Dictionary in `mining_ship_runtime_by_unit_id` mit `cargo_resources: {}`, `cargo_capacity`, `mining_rate_per_second`, `status: TO_TARGET`, …
+6. **AutomationUnit** fliegt zum Ziel → MINING an Zielorbit
+7. **`_process()` bei MINING:** extrahiert pro `resource_id` aus `GameSession.extract_resource_amount`; füllt `cargo_resources` bis `cargo_capacity`
+8. **Voll oder keine Kandidaten:** Status → TO_BASE, `recall_to_base`
+9. **`_on_mining_ship_returned_to_base()`:** Snapshot → UNLOADING mit `unload_cargo_snapshot` / `unload_xfer_buffers`
+10. **UNLOADING:** `GameSession.add_base_resource` pro RID (rate-limited über `unload_timer`); bei vollem Lager → WAITING_FOR_STORAGE
+11. **Loop / Release:** bei `loop_active` erneuter Flug; sonst `_release_mining_ship_runtime`
+12. **Save/Load:** Runtime-Missions in `game_session.automation` + `AutomationController.apply_automation_save_if_pending()` nach Scene-Load
+13. **UI:** `automation_state_changed` → `SystemUIController` refresht TopHUD / Panels
 
-**Alte Ship-/Cargo-Logik:** KEINE. Es gibt kein Ship-Cargo-Objekt, keine `transfer_all_cargo_to_base()`-Funktion, keine `CargoPanel`-UI. Die Keys `current_cargo`/`cargo_capacity`/`cargo_resource_id` sind private Puffer in einem Dictionary innerhalb des AutomationControllers.
+**Cargo:** Kein separates Ship-Cargo-Entity. `cargo_resources` ist die kanonische Quelle; `cargo_resource_id` / `current_cargo` nur Legacy-Fallback in `_merge_legacy_cargo_into_dictionary`.
 
 ---
 
@@ -600,7 +628,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
    - Wenn `scan_state == SCAN_UNKNOWN`: gibt leeres Info-Dict zurück (kein Name, kein Typ, keine Ressourcen)
    - Wenn gescannt: filtert Ressourcen nach Scanner-Tier via `_filter_resources_for_scanner()`
    - Für `SystemBodyDefinition`: liest `Array[ScannedResourceEntry]` → erzeugt `{id, richness_percent, display_text}`
-   - Für `PointOfInterestDefinition`: liest `PackedStringArray` (Kompatibilitäts-Fallback, richness_percent = -1)
+   - POI/Body: `get_basic_scan_resources()` etc. über `scan_resources` + Layer
    - Zählt `resources_hidden_count` via `_count_hidden_resource_slots()`
 5. **ObjectInfoPanel._apply_resources()** erzeugt `ResourceInfoRow`-Instanzen mit Name + Prozentwert
 6. **Scan-Mission:** Spieler klickt "Scan with Drone" → `scan_requested` → `AutomationController.launch_scan_drone()` → Drohne fliegt → `_on_scan_drone_arrived_at_target()` → `_complete_scan_mission()` → `GameSession.set_object_scan_state(system_id, target_id, SCAN_BASIC)` → `automation_state_changed` → UI-Update
@@ -614,52 +642,42 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 1. **Spieler wählt Earth (Body mit Basis)** → `selection_changed(earth_body)`
 2. **SystemUIController.update_base_panel():** prüft `_selected_body_has_base(body)` → ruft `base_management_panel.show_for_base(system_id, body_id, "…", true)` auf
 3. **BaseManagementPanel.show_for_base():** setzt `current_body_id`, `visible = true`, `refresh_from_game_session()`
-4. **BaseManagementPanel.refresh_from_game_session():** liest Population etc. aus `GameSession`, setzt Labels (`BaseNameLabel`, `StatusLabel`, `PopulationLabel`, …), `call_deferred("_fit_height_to_content")`
-5. **Spieler klickt „Production“ / „Upgrades“:** `open_production_requested` / `open_upgrades_requested` → `SystemUIController` blendet `ProductionPanel` bzw. `UpgradePanel` ein (und schließt das jeweils andere)
-6. **Nach Mining-Unload:** wie in Abschnitt 6 — `automation_state_changed` → `update_base_panel()` erneut
+4. **BaseManagementPanel.refresh_from_game_session():** setzt Basis-Metadaten-Labels (Population etc.)
+5. **Spieler öffnet Production / Upgrades / Storage:** jeweilige Signale → `SystemUIController` zeigt `ProductionPanel`, `UpgradePanel` oder `StoragePanel`
+6. **StoragePanel:** `refresh(base_id)` listet Ressourcen; Discard -10 über `discard_resource_requested` → `GameSession.spend_base_resource`
+7. **Nach Mining-Unload:** `automation_state_changed` → UI-Refresh
 
-**Hinweis:** Globale Lager-/Flotten-Kurzinfos liegen im **TopHUD** (`top_hud.gd`), nicht im Base-Hub.
+**Hinweis:** Globale Lager-/Flotten-Kurzinfos im **TopHUD**; detailliertes Discard im **StoragePanel**.
 
 ---
 
 ## 9. UI Row Scenes
 
-### `storage_info_row.tscn` — vorhanden, nicht Base-Hub
-- **Status:** Szene existiert (`res://scenes/ui/system/storage_info_row.tscn`); **BaseManagementPanel** instanziiert sie aktuell **nicht** mehr
-- **Root:** HBoxContainer (`StorageInfoRow`)
-- **Labels:** `ResourceNameLabel`, `ResourceValueLabel`
-
 ### `resource_info_row.tscn` — AKTIV
-- **Status:** Aktiv, wird von `object_info_panel.gd` verwendet
-- **Script:** `resource_info_row.gd` (class ResourceInfoRow)
-- **Root:** HBoxContainer (`ResourceInfoRow`)
-- **Labels:** `ResourceNameLabel` (Name), `ResourceValueLabel` (Prozentwert als String, z.B. "90%")
-- **Nutzung:** Dynamisch instanziiert in `ObjectInfoPanel._apply_resources()` für sichtbare Scan-Ressourcen
-- **API:** `set_row_data(resource_name, percent_text)` — typsicher
+- **Script:** `resource_info_row.gd` (`ResourceInfoRow`)
+- **Nutzung:** `ObjectInfoPanel` — Scan-Ressourcenzeilen
 
-### `storage_row.gd` — VERWAIST
-- **Status:** VERALTET, kein `.tscn` verknüpft dieses Script
-- **Script:** `storage_row.gd` (kein class_name, extends HBoxContainer)
-- **Labels:** `ResourceNameLabel`, **`ResourceAmountLabel`** (abweichend von `storage_info_row.tscn` welches `ResourceValueLabel` hat)
-- **Nutzung:** KEINE — wird nirgends instanziiert oder gepreladed
-- **Empfehlung:** Kann sicher gelöscht werden
+### `storage_info_row.tscn` — ungenutzt
+- **Status:** Szene existiert ohne Script; wird aktuell **nicht** instanziiert (StoragePanel baut Zeilen in Code)
 
-### `cargo_row.gd` / `cargo_row.tscn` — NICHT VORHANDEN
-- **Status:** Nicht im Projekt vorhanden (bereits entfernt)
+### `storage_row.gd` — entfernt
+- **Status:** Datei existiert **nicht** mehr im Repo (nicht dokumentieren als vorhanden)
+
+### `cargo_row.*` — entfernt
+- **Status:** Nicht im Projekt vorhanden
 
 ---
 
 ## 10. Alte / verwaiste Systeme
 
-| System | Datei | Zeile/Funktion | Warum alt? | Sicher löschen? | Empfehlung |
-|---|---|---|---|---|---|
-| StorageRow Script | `scripts/ui/system/storage_row.gd` | gesamt | Kein .tscn verbindet dieses Script; `storage_info_row.tscn` ist der aktive Ersatz | Ja | Löschen |
-| PackedStringArray in POI | `resources/definitions/point_of_interest_definition.gd` L18-20 | `scan_basic_resources: PackedStringArray` | POI nutzt altes Format; SystemBodyDefinition nutzt `Array[ScannedResourceEntry]` | Nein (Migrationsaufwand) | Auf `Array[ScannedResourceEntry]` migrieren + `.tres`-Dateien updaten |
-| Kompatibilitäts-Fallback | `scripts/system/components/scan_info_builder.gd` L133-142 | `_entry_to_scan_resource()` | Fallback für String-Einträge; nur notwendig solange POI-Daten alt sind | Nein | Nach POI-Migration entfernen |
-| Legacy orbit_radius/speed | `resources/definitions/system_body_definition.gd` L17-21 | `orbit_radius`, `orbit_speed` (Altbestand) | Werden von `reference_orbit_au`/`reference_period_days` + Calculator ersetzt | Nein (noch im Einsatz bei earth.tres) | Nach vollständiger Datenmigration entfernen |
-| DEFAULT_MINING_DURATION | `scripts/system/controller/automation_controller.gd` L13 | `DEFAULT_MINING_DURATION = 999999.0` | Pseudo-unendlich; das Mining läuft per Cargo-Kapazität, nicht per Zeitlimit | Unsicher | Durch echtes unbegrenztes Loop ersetzen oder dokumentieren |
-| can_build_base | `resources/definitions/system_body_definition.gd` L23 | `can_build_base: bool = true` | Export-Feld existiert, wird aber nirgends im Code ausgewertet | Unsicher | Auswerten oder entfernen |
-| Galaxy-Map only PackedStringArray join | `scripts/galaxy/galaxy_map.gd` L153 | `join(PackedStringArray(display_parts))` | Unnötiger Umweg (join auf Array reicht in GD4) | Niedrig | Vereinfachen |
+| System | Datei | Warum alt / offen? | Empfehlung |
+|---|---|---|---|
+| Scan String-Fallback | `scan_info_builder.gd` `_entry_to_scan_resource()` | Alte String-Einträge in Arrays | Behalten bis alle Daten geprüft |
+| Legacy orbit_radius/speed | `system_body_definition.gd` | Noch in älteren `.tres` | Schrittweise auf Referenzdaten |
+| DEFAULT_MINING_DURATION | `automation_controller.gd` | Cargo stoppt Mining, nicht Timer | Dokumentiert / optional refactoren |
+| can_build_base | `system_body_definition.gd` | Export, wenig Code-Nutzung | Auswerten oder entfernen |
+| `storage_info_row.tscn` | ungenutzt | StoragePanel nutzt Code-Zeilen | Löschen oder wiederverwenden |
+| `ColonizationDevButton` | `galaxy_map_hud` | DEV-only | Nicht als Spiel-Feature dokumentieren |
 
 ---
 
@@ -667,12 +685,11 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 | Risiko | Datei | Ursache | Auswirkung | Fix-Vorschlag |
 |---|---|---|---|---|
-| POI-Scan-Ressourcen ohne Prozentwert | `scan_info_builder.gd` L135-142 + POI-Definitionen | PackedStringArray-Fallback erzeugt `richness_percent = -1` | UI zeigt "--" statt Prozentwert für alle POI-Ressourcen | POI-Definitionen auf ScannedResourceEntry migrieren |
-| ResourceAmountLabel vs ResourceValueLabel | `storage_row.gd` L3 vs `storage_info_row.tscn` | Falsch benanntes Label im verwaisten Script | Kein Fehler (Script nicht genutzt), aber Konfusionspotenzial | storage_row.gd löschen |
+| Scan-String-Fallback | `scan_info_builder.gd` | Alte String-Einträge → `richness_percent = -1` | UI zeigt „--“ | Fallback entfernen wenn Daten bereinigt |
 | automation_state_changed sehr häufig | `automation_controller.gd` | Signal wird bei fast jedem State-Wechsel emittiert (15+ Stellen) | Jeder Emit triggert `SystemUIController`-Refresh (`update_object_info`, `update_base_panel`, `_update_top_hud`; Production/Upgrade bei Sichtbarkeit) | Debounce/defer oder targeted refresh einbauen |
 | _process() jedes Frame für alle Mining Ships | `automation_controller.gd` L431+ | Immer aktiv wenn `mining_ship_runtime_by_unit_id` nicht leer | Kein Performance-Problem bei kleiner Einheitenzahl; könnte bei vielen Ships skalieren | Akzeptabel, bei Bedarf optimieren |
-| GameSession-Stores nicht persistiert | `game_session.gd` + alle Stores | RefCounted-Instanzen; kein Speichern/Laden | Spielzustand geht bei Applikationsende verloren | Save/Load System implementieren |
-| Missions-ID-Zähler nicht persistiert | `automation_store.gd` | `next_mission_id` startet immer bei 1 | Nach Reload: ID-Konflikte theoretisch möglich (derzeit kein Problem) | Mit Save-System sichern |
+| Save ohne aktive SystemScene | `save_manager.gd` | Automation-Snapshot nur wenn `AutomationController` im Baum | Save aus Galaxy/MainMenu ohne laufende Missions-Visuals | Beim Speichern aus System-Szene bleiben oder dokumentieren |
+| Alte Saves ohne `automation`-Key | `game_session.apply_save_data` | Optionaler Block | Leere Automation nach Load | Abwärtskompatibel (OK) |
 | Drohnen-Einheitenanzahl Diskrepanz | `automation_controller.gd` L71-73 | BaseStore-Count und idle_drones-Array können divergieren | Visual und Data Count stimmen ggf. nicht überein nach Reload | Reinitialisierungslogik bei Scene-Load prüfen |
 | can_build_base wird nicht ausgewertet | `system_body_definition.gd` L23 | Export-Feld ohne Code-Nutzung | Jeder Planet hat can_build_base=true, aber keine Logik nutzt es | Auswerten in system_ui_controller oder entfernen |
 
@@ -688,6 +705,7 @@ main.tscn
 
 Autoloads (immer aktiv):
   GameSession ──► BaseStore, AutomationStore, ObjectScanStore, ScannerStore, SystemEntryStore
+  SaveManager ──► GameSession (save/load)
   SceneFlow   (keine eigenen Abhängigkeiten)
 
 galaxy_map.tscn
@@ -711,14 +729,15 @@ system_scene.tscn
 	   │    ├─ ◄─ selection.selection_changed
 	   │    ├─ ◄─ automation_controller.automation_state_changed
 	   │    ├─ ◄─ object_info_panel.scan_requested / mining_requested / recall_* / close_requested
-	   │    ├─ ◄─ base_management_panel.open_production_requested / open_upgrades_requested
-	   │    ├─ ◄─ production_panel.build_scan_drone_requested / build_mining_ship_requested / close_requested
+	   │    ├─ ◄─ base_management_panel.open_production_requested / open_upgrades_requested / open_storage_requested
+	   │    ├─ ◄─ production_panel.build_* / close_requested
 	   │    ├─ ◄─ upgrade_panel.close_requested
+	   │    ├─ ◄─ storage_panel.close_requested / discard_resource_requested
 	   │    ├─ ◄─ top_hud.hover_requested / hover_cleared
 	   │    ├─ ──► ObjectInfoPanel (show_body_info, show_poi_info, show_empty, set_distance_text)
 	   │    ├─ ──► BaseManagementPanel (show_for_base, hide_panel, refresh_while_hold_open)
-	   │    ├─ ──► ProductionPanel / UpgradePanel (sichtbarkeit, refresh)
-	   │    └─ ──► TopHudHoverPanel (show_details / clear)
+	   │    ├─ ──► ProductionPanel / UpgradePanel / StoragePanel
+	   │    └─ ──► TopHudHoverPanel (show_details / clear; floating height fit)
 	   ├─ AutomationController
 	   │    ├─ GameSession (add_base_resource, scan_state, missions, drone/ship count)
 	   │    ├─ SystemSpawner (get_spawned_object)
@@ -737,34 +756,22 @@ system_scene.tscn
 
 ## 13. Empfohlene nächste Aufräum-Reihenfolge
 
-1. **`storage_row.gd` löschen** — sicher, wird nirgends genutzt; beseitigt Konfusion mit `storage_info_row.tscn`
-2. **`can_build_base` auswerten oder entfernen** — einfache Änderung; im `system_ui_controller._selected_body_has_base()` prüfen statt hart auf "earth" testen
-3. **`PointOfInterestDefinition` auf `Array[ScannedResourceEntry]` migrieren** — mittlerer Aufwand; alle POI-`.tres`-Dateien updaten; danach Kompatibilitäts-Fallback in `scan_info_builder.gd` entfernen
-4. **Legacy `orbit_radius`/`orbit_speed`/`body_scale`-Felder in SystemBodyDefinition bereinigen** — nach vollständiger Datenmigration auf Referenzdaten
-5. **`automation_state_changed`-Frequenz reduzieren** — z.B. mit einem `call_deferred`-Debounce oder gezieltem dirty-Flag
-6. **Save/Load-System implementieren** — GameSession-State persistieren; alle Stores absichern
-7. **Galaxy Map: Ressourcen-Summary auf echte ScannedResourceEntry-Daten umstellen** — derzeit nutzt galaxy_map.gd noch die alten PackedStringArray-Felder von SystemBodyDefinition (L162)
+1. **`PROJECT_DEPENDENCIES.json` mit Repo abgleichen** — veraltete `planet_resources`- und `storage_row`-Einträge
+2. **`can_build_base` auswerten oder entfernen**
+3. **Legacy `orbit_*`-Felder in Body-`.tres` bereinigen** (nach visuellem Test)
+4. **`scan_info_builder` String-Fallback entfernen**, wenn alle Scan-Daten `ScannedResourceEntry` sind
+5. **`automation_state_changed`-Debounce** (Performance)
+6. **Ungenutzte `planet_resources` / `storage_info_row.tscn`** — nach Design-Entscheid
+7. **Outer/Proxima-Bodies:** `scan_resources` befüllen oder als „ohne Deposits“ dokumentieren
 
 ---
 
 ## 14. Konkrete Suchtreffer
 
-### `cargo` / interne Puffer-Keys (automation_controller.gd)
-| Datei | Zeile | Treffer |
-|---|---|---|
-| automation_controller.gd | 167 | `"cargo_resource_id": DEFAULT_MINING_RESOURCE_ID` |
-| automation_controller.gd | 168 | `"current_cargo": 0.0` |
-| automation_controller.gd | 169 | `"cargo_capacity": DEFAULT_MINING_CARGO_CAPACITY` |
-| automation_controller.gd | 171 | `"unload_duration": DEFAULT_MINING_UNLOAD_DURATION` |
-| automation_controller.gd | 172 | `"unload_timer": 0.0` |
-| automation_controller.gd | 455 | `current_cargo := float(runtime.get("current_cargo", 0.0))` |
-| automation_controller.gd | 456 | `cargo_capacity := float(runtime.get("cargo_capacity", ...))` |
-| automation_controller.gd | 461 | `current_cargo = minf(current_cargo + ..., cargo_capacity)` |
-| automation_controller.gd | 515 | `resource_id := str(runtime.get("cargo_resource_id", ...))` |
-| automation_controller.gd | 516 | `current_cargo := int(floor(...))` |
-| automation_controller.gd | 519 | `GameSession.add_base_resource(base_id, resource_id, current_cargo)` |
-
-**Fazit:** Alle `cargo`-Treffer sind interne Dictionary-Keys des Mining-Laufzeit-Puffers. Kein eigenständiges Ship-Cargo-Objekt.
+### `cargo` / Mining-Runtime (automation_controller.gd)
+- Kanonisch: `cargo_resources: Dictionary` (RID → Menge)
+- Legacy-Fallback: `_merge_legacy_cargo_into_dictionary` (`cargo_resource_id`, `current_cargo`)
+- Unload: `unload_cargo_snapshot`, `unload_xfer_buffers`, `GameSession.add_base_resource` pro RID
 
 ### `OreLabel`, `FuelLabel`, `FoodLabel`
 — **Nicht gefunden** in keiner Datei. Vollständig entfernt.
@@ -778,11 +785,12 @@ system_scene.tscn
 | object_info_panel.gd | `@onready` | `$Margin/Root/ResourcePanel/.../ResourceList` |
 | object_info_panel.tscn | ResourceList | unter `ResourceScroll` |
 
-### `storage_row` / `storage_info_row`
+### `storage_row` / Storage UI
 | Datei | Kontext |
 |---|---|
-| `storage_info_row.tscn` | Vorhandene Row-Szene (aktuell nicht vom Base-Hub genutzt) |
-| `storage_row.gd` | Verwaistes Script — siehe `old_systems` / Abschnitt 13 |
+| `storage_panel.gd` | Aktives Lager-UI mit -10 Discard |
+| `storage_info_row.tscn` | Ungenutzt |
+| `storage_row.gd` | **Nicht im Repo** |
 
 ### `automation_state_changed`
 | Datei | Zeilen | Kontext |
@@ -792,14 +800,13 @@ system_scene.tscn
 | system_ui_controller.gd | 131-133 | Signal-Verbindung |
 | system_ui_controller.gd | 271 | `func _on_automation_state_changed()` |
 
-### `scan_basic_resources` / `ScannedResourceEntry` / `PackedStringArray`
-| Datei | Zeile | Kontext |
-|---|---|---|
-| system_body_definition.gd | 48-50 | `Array[ScannedResourceEntry]` für basic/deep/special |
-| point_of_interest_definition.gd | 18-20 | `PackedStringArray` für basic/deep/special (VERALTET) |
-| scan_info_builder.gd | 113,133,157 | Kommentare + Fallback-Logik |
-| galaxy_map.gd | 162 | `for resource_id in body_def.scan_basic_resources` |
-| scanned_resource_entry.gd | 1 | `class_name ScannedResourceEntry` |
+### `scan_resources` / `ScannedResourceEntry`
+| Datei | Kontext |
+|---|---|
+| system_body_definition.gd / point_of_interest_definition.gd | `scan_resources` + Layer-Getter |
+| scan_info_builder.gd | Filter + String-Fallback |
+| galaxy_map.gd | `get_basic_scan_resources()` für Intel-Summary |
+| scanned_resource_entry.gd | `resource_id`, `layer`, `deposit_amount` |
 
 ### `preload` / `load(`
 | Datei | Zeile | Ressource |
@@ -810,4 +817,5 @@ system_scene.tscn
 | system_spawner.gd | 19 | `system_body.tscn` |
 | system_spawner.gd | 20 | `point_of_interest.tscn` |
 | scene_flow.gd | 24 | `load(scene_path)` (dynamisch) |
-| game_session.gd | 55 | `load(DEFAULT_SYSTEM_PATH)` (dynamisch) |
+| game_session.gd | — | `_build_system_definition_catalog()` / `get_system_definition_by_id()` |
+| save_manager.gd | — | JSON Save/Load Slots 1–3 |

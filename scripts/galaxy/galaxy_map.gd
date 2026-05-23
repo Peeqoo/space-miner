@@ -281,10 +281,10 @@ func _can_enter_system(system_id: String) -> bool:
 	if GameSession.has_established_base_in_system(sid):
 		return true
 	if GameSession.has_pending_colonization_to_system(sid):
-		var current_id: String = GameSession.current_system_id.strip_edges()
-		if current_id.is_empty():
+		var route_current_id: String = GameSession.current_system_id.strip_edges()
+		if route_current_id.is_empty():
 			return false
-		return _are_systems_directly_connected(current_id, sid)
+		return _are_systems_directly_connected(route_current_id, sid)
 
 	var current_id: String = GameSession.current_system_id.strip_edges()
 	if current_id.is_empty():
