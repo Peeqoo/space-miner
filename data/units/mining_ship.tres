@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnitDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/unit_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mining_ship"
+unit_key = "mining_ships"
+mining_cargo_capacity = 20
+mining_rate_per_second = 2.0
+mining_unload_duration_seconds = 2.0

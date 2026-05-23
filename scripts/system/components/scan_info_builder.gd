@@ -15,7 +15,7 @@ static func build_scan_info(
 	object_type_key: String,
 	object_type_value: String,
 	scan_state: String,
-	scanner_tier: String
+	unlocked_scan_layer: int
 ) -> Dictionary:
 	var visible_name := "Unknown"
 	var visible_type := "unknown"
@@ -43,8 +43,8 @@ static func build_scan_info(
 
 		if state_rank >= GameSession.scan_state_rank(GameSession.SCAN_BASIC):
 			visible_resources.append_array(
-				_filter_resources_for_scanner(
-					scanner_tier,
+				_filter_resources_for_unlocked_scan_layer(
+					unlocked_scan_layer,
 					GameSession.SCANNER_BASIC,
 					_get_layer_entries(definition, "get_basic_scan_resources")
 				)
@@ -52,8 +52,8 @@ static func build_scan_info(
 
 		if state_rank >= GameSession.scan_state_rank(GameSession.SCAN_DEEP):
 			visible_resources.append_array(
-				_filter_resources_for_scanner(
-					scanner_tier,
+				_filter_resources_for_unlocked_scan_layer(
+					unlocked_scan_layer,
 					GameSession.SCANNER_DEEP,
 					_get_layer_entries(definition, "get_deep_scan_resources")
 				)
@@ -61,8 +61,8 @@ static func build_scan_info(
 
 		if state_rank >= GameSession.scan_state_rank(GameSession.SCAN_SPECIAL):
 			visible_resources.append_array(
-				_filter_resources_for_scanner(
-					scanner_tier,
+				_filter_resources_for_unlocked_scan_layer(
+					unlocked_scan_layer,
 					GameSession.SCANNER_SPECIAL,
 					_get_layer_entries(definition, "get_special_scan_resources")
 				)
@@ -87,14 +87,14 @@ static func build_scan_info(
 # Helpers
 # --------------------------------------------------
 
-static func _filter_resources_for_scanner(
-	scanner_tier: String,
+static func _filter_resources_for_unlocked_scan_layer(
+	unlocked_scan_layer: int,
 	resource_tier: String,
 	resources: Array
 ) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 
-	if not _can_scanner_see_resource_tier(scanner_tier, resource_tier):
+	if not _can_unlocked_scan_layer_see_resource_tier(unlocked_scan_layer, resource_tier):
 		return result
 
 	for entry: Variant in resources:
@@ -105,6 +105,25 @@ static func _filter_resources_for_scanner(
 		result.append(scan_resource)
 
 	return result
+
+
+static func _can_unlocked_scan_layer_see_resource_tier(
+	unlocked_scan_layer: int,
+	resource_tier: String
+) -> bool:
+	return unlocked_scan_layer >= GameSession.resource_tier_string_to_layer_int(resource_tier)
+
+
+static func _filter_resources_for_scanner(
+	scanner_tier: String,
+	resource_tier: String,
+	resources: Array
+) -> Array[Dictionary]:
+	return _filter_resources_for_unlocked_scan_layer(
+		GameSession.resource_tier_string_to_layer_int(scanner_tier),
+		resource_tier,
+		resources
+	)
 
 
 static func _can_scanner_see_resource_tier(scanner_tier: String, resource_tier: String) -> bool:
@@ -141,16 +160,21 @@ static func _entry_to_scan_resource(entry: Variant) -> Dictionary:
 		if richness_percent != null:
 			percent = clampi(int(richness_percent), 0, 100)
 
+		var deposit_total: int = -1
+		var deposit_variant: Variant = entry.get("deposit_amount")
+		if deposit_variant != null:
+			deposit_total = maxi(0, int(deposit_variant))
+
 		var out: Dictionary = {
 			"id": StringName(resource_id),
 			"richness_percent": percent,
-			"display_text": "%s %d%%" % [String(resource_id), percent],
 		}
 
-		# Original deposit size for UI (remaining / total); same source ObjectScanStore uses at init.
-		var deposit_variant: Variant = entry.get("deposit_amount")
-		if deposit_variant != null:
-			out["total"] = maxi(0, int(deposit_variant))
+		if deposit_total >= 0:
+			out["total"] = deposit_total
+			out["display_text"] = "%s %d/%d" % [String(resource_id), deposit_total, deposit_total]
+		else:
+			out["display_text"] = String(resource_id)
 
 		return out
 

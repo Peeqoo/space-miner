@@ -22,8 +22,6 @@ var _primary_base_body_id: String = ""
 
 var _storage_context_base_id: String = ""
 
-const _TOP_HUD_HOVER_SIDE_MARGIN := 12.0
-
 ## Mirrors `AutomationController.MiningShipStatus` order (read-only; do not change automation enums here).
 const _MS_RT_TO_TARGET := 0
 const _MS_RT_MINING := 1
@@ -152,7 +150,7 @@ func _process(_delta: float) -> void:
 		return
 
 	var dist: float = base_node.global_position.distance_to((selected as Node2D).global_position)
-	object_info_panel.call("set_distance_text", "Distanz: %.0f u" % dist)
+	object_info_panel.call("set_distance_text", "%.0f u" % dist)
 
 
 func update_object_info() -> void:
@@ -252,6 +250,9 @@ func _connect_ui_signals() -> void:
 	if not GameSession.base_resources_changed.is_connected(_on_base_resources_changed_ui_refresh):
 		GameSession.base_resources_changed.connect(_on_base_resources_changed_ui_refresh)
 
+	if not GameSession.base_upgrades_changed.is_connected(_on_base_upgrades_changed_ui_refresh):
+		GameSession.base_upgrades_changed.connect(_on_base_upgrades_changed_ui_refresh)
+
 	if object_info_panel != null:
 		if object_info_panel.has_signal("scan_requested"):
 			if not object_info_panel.scan_requested.is_connected(_on_object_scan_requested):
@@ -278,14 +279,6 @@ func _connect_ui_signals() -> void:
 				object_info_panel.colonization_requested.connect(_on_colonization_requested)
 
 	if base_management_panel != null:
-		if base_management_panel.has_signal("build_drone_requested"):
-			if not base_management_panel.build_drone_requested.is_connected(_on_build_drone_requested):
-				base_management_panel.build_drone_requested.connect(_on_build_drone_requested)
-
-		if base_management_panel.has_signal("build_mining_ship_requested"):
-			if not base_management_panel.build_mining_ship_requested.is_connected(_on_build_mining_ship_requested):
-				base_management_panel.build_mining_ship_requested.connect(_on_build_mining_ship_requested)
-
 		if base_management_panel.has_signal("open_production_requested"):
 			if not base_management_panel.open_production_requested.is_connected(_on_base_open_production):
 				base_management_panel.open_production_requested.connect(_on_base_open_production)
@@ -342,12 +335,12 @@ func _connect_ui_signals() -> void:
 func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	var object_id := _get_object_id(selected_node)
 	var scan_state := GameSession.get_object_scan_state(system_definition.id, object_id)
-	var scanner_tier := GameSession.get_active_scanner_tier()
+	var unlocked_scan_layer := GameSession.get_unlocked_scan_layer_for_base(_economy_body_id_for_ui())
 
 	var info: Dictionary = {}
 
 	if selected_node.has_method("build_scan_info"):
-		info = selected_node.call("build_scan_info", scan_state, scanner_tier)
+		info = selected_node.call("build_scan_info", scan_state, unlocked_scan_layer)
 	elif selected_node.has_method("get_info"):
 		info = selected_node.call("get_info")
 
@@ -544,16 +537,46 @@ func _on_object_info_close_requested() -> void:
 func _on_automation_state_changed() -> void:
 	update_object_info()
 	update_base_panel()
+	_refresh_economy_panels()
 	_update_top_hud()
 
 
 func _on_object_remaining_resources_changed(_changed_system_id: String, _changed_object_id: String) -> void:
 	update_object_info()
+	_refresh_economy_panels()
+	_update_top_hud()
 
 
 func _on_base_resources_changed_ui_refresh(_base_id: String) -> void:
 	update_object_info()
+	update_base_panel()
+	_refresh_economy_panels()
 	_update_top_hud()
+
+
+func _on_base_upgrades_changed_ui_refresh(_base_id: String) -> void:
+	update_object_info()
+	update_base_panel()
+	_refresh_economy_panels()
+	_update_top_hud()
+
+
+func _refresh_economy_panels() -> void:
+	if production_panel != null and production_panel.visible:
+		if production_panel.has_method("refresh_from_game_session"):
+			production_panel.call("refresh_from_game_session")
+	if upgrade_panel != null and upgrade_panel.visible:
+		if upgrade_panel.has_method("refresh_from_game_session"):
+			upgrade_panel.call("refresh_from_game_session")
+	if storage_panel != null and storage_panel.visible:
+		if storage_panel.has_method("refresh"):
+			var sid := _storage_context_base_id.strip_edges()
+			if sid.is_empty():
+				sid = _economy_body_id_for_ui()
+			storage_panel.call("refresh", sid)
+	if base_management_panel != null and base_management_panel.visible:
+		if base_management_panel.has_method("refresh_from_game_session"):
+			base_management_panel.call("refresh_from_game_session")
 
 
 func _on_colonization_requested(object_id: String) -> void:
@@ -821,104 +844,6 @@ func _clear_top_hud_hover_panel() -> void:
 		top_hud_hover_panel.call("clear")
 
 
-func _get_visible_hover_anchor_panels() -> Array[Control]:
-	var panels: Array[Control] = []
-
-	if base_management_panel != null and base_management_panel.visible:
-		panels.append(base_management_panel)
-
-	if object_info_panel != null and object_info_panel.visible:
-		panels.append(object_info_panel)
-
-	return panels
-
-
-func _find_nearest_panel_to_x(panels: Array[Control], x: float) -> Control:
-	var best_panel: Control = null
-	var best_distance: float = INF
-
-	for panel: Control in panels:
-		var rect: Rect2 = panel.get_global_rect()
-		var center_x: float = rect.position.x + rect.size.x * 0.5
-		var distance: float = absf(center_x - x)
-
-		if distance < best_distance:
-			best_distance = distance
-			best_panel = panel
-
-	return best_panel
-
-
-func _get_top_hud_hover_position(screen_position: Vector2) -> Vector2:
-	var panels: Array[Control] = _get_visible_hover_anchor_panels()
-
-	if panels.is_empty():
-		return _get_hover_position_under_widget(screen_position)
-
-	var nearest_panel: Control = _find_nearest_panel_to_x(panels, screen_position.x)
-
-	if nearest_panel == null:
-		return _get_hover_position_under_widget(screen_position)
-
-	return _get_hover_position_next_to_panel(nearest_panel, screen_position)
-
-
-func _get_top_hud_hover_width() -> float:
-	if top_hud_hover_panel == null:
-		return 180.0
-	var c: Control = top_hud_hover_panel as Control
-	var width: float = c.size.x
-	if width <= 0.0:
-		width = c.custom_minimum_size.x
-	if width <= 0.0:
-		width = 180.0
-	return width
-
-
-func _clamp_hover_position_to_viewport(pos: Vector2, hover_width: float) -> Vector2:
-	var vp: Viewport = get_viewport()
-	if vp == null:
-		return pos
-	var margin: float = _TOP_HUD_HOVER_SIDE_MARGIN
-	var viewport_width: float = vp.get_visible_rect().size.x
-	var min_x: float = margin
-	var max_x: float = viewport_width - hover_width - margin
-	if max_x < min_x:
-		pos.x = viewport_width * 0.5 - hover_width * 0.5
-	else:
-		pos.x = clampf(pos.x, min_x, max_x)
-	return pos
-
-
-func _get_hover_position_under_widget(screen_position: Vector2) -> Vector2:
-	var hover_width: float = _get_top_hud_hover_width()
-	var x: float = screen_position.x - hover_width * 0.5
-	var y: float = screen_position.y
-	return _clamp_hover_position_to_viewport(Vector2(x, y), hover_width)
-
-
-func _get_hover_position_next_to_panel(panel: Control, screen_position: Vector2) -> Vector2:
-	var margin: float = _TOP_HUD_HOVER_SIDE_MARGIN
-	var hover_width: float = _get_top_hud_hover_width()
-	var vp: Viewport = get_viewport()
-	if vp == null:
-		return screen_position
-	var viewport_width: float = vp.get_visible_rect().size.x
-
-	var rect: Rect2 = panel.get_global_rect()
-	var panel_center_x: float = rect.position.x + rect.size.x * 0.5
-	var viewport_center_x: float = viewport_width * 0.5
-
-	var x: float = 0.0
-	if panel_center_x < viewport_center_x:
-		x = rect.position.x + rect.size.x + margin
-	else:
-		x = rect.position.x - hover_width - margin
-
-	var y: float = rect.position.y
-	return _clamp_hover_position_to_viewport(Vector2(x, y), hover_width)
-
-
 func _on_base_open_production() -> void:
 	if not _session_primary_base_established():
 		return
@@ -996,17 +921,16 @@ func _on_upgrade_close() -> void:
 		upgrade_panel.visible = false
 
 
-func _on_top_hud_hover_requested(kind: String, screen_position: Vector2) -> void:
-	if top_hud_hover_panel == null:
+func _on_top_hud_hover_requested(kind: String, source_control: Control) -> void:
+	if top_hud_hover_panel == null or source_control == null:
 		return
 
 	var content := _build_hover_details(kind)
 	var title: String = str(content.get("title", ""))
 	var details: Array = content.get("details", [])
 	var hint: String = str(content.get("hint", ""))
-	var hover_position: Vector2 = _get_top_hud_hover_position(screen_position)
 	if top_hud_hover_panel.has_method("show_details"):
-		top_hud_hover_panel.call("show_details", title, details, hint, hover_position)
+		top_hud_hover_panel.call("show_details", title, details, hint, source_control)
 
 
 func _on_top_hud_hover_cleared() -> void:
@@ -1081,6 +1005,12 @@ func _hover_append_simple_object_count_lines(details: Array, counts_by_object: D
 		details.append("%s: %d" % [_hover_display_name_for_object_id(oid), n])
 
 
+func _top_hud_effects_section_caption() -> String:
+	if top_hud_hover_panel != null and top_hud_hover_panel.has_method("get_effects_section_caption"):
+		return str(top_hud_hover_panel.call("get_effects_section_caption")).strip_edges()
+	return ""
+
+
 func _build_hover_details(kind: String) -> Dictionary:
 	var base_id: String = _economy_body_id_for_ui().strip_edges()
 	if base_id.is_empty() and (
@@ -1111,9 +1041,14 @@ func _build_hover_details(kind: String) -> Dictionary:
 				details.append("%s: %d" % [str(res_id).capitalize(), amt_s])
 			if not has_any:
 				details.append("No resources stored.")
-			details.append("Effects:")
-			details.append(
-				"Storage Capacity: %d%%" % GameSession.get_base_storage_capacity_percent(base_id)
+			var storage_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(
+				base_id, &"storage"
+			)
+			UpgradeDefinition.append_current_tier_effect_block(
+				details,
+				storage_def,
+				not GameSession.has_next_base_upgrade(base_id, &"storage"),
+				_top_hud_effects_section_caption()
 			)
 			hint = "Storage capacity."
 
@@ -1127,11 +1062,14 @@ func _build_hover_details(kind: String) -> Dictionary:
 			details.append("Total: %d" % total_sd)
 			details.append("Base: %d" % idle_sd)
 			_hover_append_simple_object_count_lines(details, _hover_scan_drone_counts_by_target())
-			details.append("Effects:")
-			details.append("Scan Speed: %d%%" % GameSession.get_scan_drone_scan_speed_percent(base_id))
-			details.append(
-				"Mining Support: +%d%% Mining Yield per ScanDrone"
-				% GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(base_id)
+			var scan_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(
+				base_id, &"scan_drone"
+			)
+			UpgradeDefinition.append_current_tier_effect_block(
+				details,
+				scan_def,
+				not GameSession.has_next_base_upgrade(base_id, &"scan_drone"),
+				_top_hud_effects_section_caption()
 			)
 			hint = "Used for scanning unknown objects."
 
@@ -1145,13 +1083,15 @@ func _build_hover_details(kind: String) -> Dictionary:
 			details.append("Total: %d" % total_ms)
 			details.append("Base: %d" % idle_ms)
 			_hover_append_simple_object_count_lines(details, _hover_mining_ship_counts_by_group_object())
-			details.append("Effects:")
-			details.append(
-				"Cargo Capacity: %d%%" % GameSession.get_mining_ship_cargo_capacity_percent(base_id)
+			var ms_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(
+				base_id, &"mining_ship"
 			)
-			var ms_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(base_id, &"mining_ship")
-			if ms_def != null and ms_def.applies_to_new_jobs_only:
-				details.append("Applies to newly launched mining missions.")
+			UpgradeDefinition.append_current_tier_effect_block(
+				details,
+				ms_def,
+				not GameSession.has_next_base_upgrade(base_id, &"mining_ship"),
+				_top_hud_effects_section_caption()
+			)
 			hint = "Used for automated resource extraction."
 
 		"colony_ships":

@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="ColonizationDefinition" format=3 uid="uid://d2duj3t5laetj"]
+
+[ext_resource type="Script" uid="uid://d1aimohxrj3yl" path="res://resources/definitions/colonization_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")

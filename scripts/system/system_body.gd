@@ -112,7 +112,7 @@ func get_info() -> Dictionary:
 	}
 
 
-func build_scan_info(scan_state: String, scanner_tier: String) -> Dictionary:
+func build_scan_info(scan_state: String, unlocked_scan_layer: int) -> Dictionary:
 	return ScanInfoBuilder.build_scan_info(
 		definition,
 		body_id,
@@ -120,7 +120,7 @@ func build_scan_info(scan_state: String, scanner_tier: String) -> Dictionary:
 		"body_type",
 		body_type,
 		scan_state,
-		scanner_tier
+		unlocked_scan_layer
 	)
 
 

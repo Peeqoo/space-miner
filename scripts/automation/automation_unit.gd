@@ -26,6 +26,8 @@ enum State {
 @export var travel_curve_strength: float = 80.0
 @export var travel_accel_curve_power: float = 1.8
 @export var return_speed: float = 200.0
+# Visual/state hold duration for WORKING state. Scan/mining base values come from
+# UnitDefinition via AutomationController — not a primary balancing source.
 @export var work_duration: float = 2.0
 
 @export var orbit_padding_min: float = 10.0

@@ -1,15 +1,14 @@
-[gd_resource type="Resource" script_class="UpgradeDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3 uid="uid://c3ak0w4vglcp3"]
 
-[ext_resource type="Script" path="res://resources/definitions/upgrade_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://d3dqik14jylww" path="res://resources/definitions/upgrade_definition.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
 id = &"scan_drone_0_base"
 category = &"scan_drone"
-level = 0
 title = "ScanDrone Base"
 purchasable = false
 scan_speed_percent = 100
 scan_duration_multiplier = 1.0
 mining_yield_bonus_per_support_drone_percent = 2
-note = "Base ScanDrone effects."
+short_description = "Ermöglicht Basic-Scans und erste Ressourcen."

@@ -2,7 +2,7 @@
 ## Emits hover_requested and hover_cleared signals for the TopHudHoverPanel.
 extends PanelContainer
 
-signal hover_requested(kind: String, screen_position: Vector2)
+signal hover_requested(kind: String, source_control: Control)
 signal hover_cleared
 
 var _primary_base_body_id: String = ""
@@ -20,8 +20,16 @@ var _warned_empty_primary_base: bool = false
 @onready var colony_ship_widget: PanelContainer = $Margin/Root/ColonyShipWidget
 @onready var jobs_widget: PanelContainer = $Margin/Root/JobsWidget
 
+var _storage_prefix: String = ""
+var _scan_drone_prefix: String = ""
+var _mining_ship_prefix: String = ""
+var _colony_ship_prefix: String = ""
+var _jobs_prefix: String = ""
+
 
 func _ready() -> void:
+	_capture_widget_prefixes()
+
 	_connect_widget_hover(storage_widget, "storage")
 	_connect_widget_hover(scan_drone_widget, "scan_drones")
 	_connect_widget_hover(mining_ship_widget, "mining_ships")
@@ -30,6 +38,25 @@ func _ready() -> void:
 
 	if not GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.connect(_on_resources_changed)
+
+
+func _capture_widget_prefixes() -> void:
+	_storage_prefix = _numeric_prefix(storage_label.text)
+	_scan_drone_prefix = _numeric_prefix(scan_drone_label.text)
+	_mining_ship_prefix = _numeric_prefix(mining_ship_label.text)
+	_colony_ship_prefix = _numeric_prefix(colony_ship_label.text)
+	_jobs_prefix = _numeric_prefix(jobs_label.text)
+
+
+func _numeric_prefix(text: String) -> String:
+	var cleaned := text.strip_edges()
+	for i in range(cleaned.length()):
+		var ch: String = cleaned.substr(i, 1)
+		if ch.is_valid_int():
+			return cleaned.substr(0, i)
+		if ch == "-" and i + 1 < cleaned.length() and cleaned.substr(i + 1, 1).is_valid_int():
+			return cleaned.substr(0, i)
+	return cleaned if cleaned.ends_with(" ") else cleaned + " "
 
 
 func _exit_tree() -> void:
@@ -44,7 +71,7 @@ func set_primary_base_body_id(body_id: String) -> void:
 
 
 func set_jobs_count(count: int) -> void:
-	jobs_label.text = "JBS %d" % maxi(0, count)
+	jobs_label.text = "%s%d" % [_jobs_prefix, maxi(0, count)]
 
 
 func _effective_display_base_id() -> String:
@@ -57,24 +84,24 @@ func refresh_from_game_session() -> void:
 		if not _warned_empty_primary_base:
 			push_warning("TopHUD: Keine primäre base_id — Anzeige 0.")
 			_warned_empty_primary_base = true
-		storage_label.text = "STR 0/0"
-		scan_drone_label.text = "SD 0"
-		mining_ship_label.text = "MS 0"
-		colony_ship_label.text = "CS 0"
+		storage_label.text = "%s0/0" % _storage_prefix
+		scan_drone_label.text = "%s0" % _scan_drone_prefix
+		mining_ship_label.text = "%s0" % _mining_ship_prefix
+		colony_ship_label.text = "%s0" % _colony_ship_prefix
 		set_jobs_count(0)
 		return
 
 	var used: int = GameSession.get_base_storage_used(bid)
 	var cap: int = GameSession.get_base_storage_capacity(bid)
-	storage_label.text = "STR %d/%d" % [used, cap]
+	storage_label.text = "%s%d/%d" % [_storage_prefix, used, cap]
 
 	var drones: int = GameSession.get_base_drone_count(bid)
-	scan_drone_label.text = "SD %d" % drones
+	scan_drone_label.text = "%s%d" % [_scan_drone_prefix, drones]
 
 	var ships: int = GameSession.get_base_mining_ship_count(bid)
-	mining_ship_label.text = "MS %d" % ships
+	mining_ship_label.text = "%s%d" % [_mining_ship_prefix, ships]
 
-	colony_ship_label.text = "CS %d" % GameSession.get_base_colony_ship_count(bid)
+	colony_ship_label.text = "%s%d" % [_colony_ship_prefix, GameSession.get_base_colony_ship_count(bid)]
 
 
 func _connect_widget_hover(widget: Control, kind: String) -> void:
@@ -87,20 +114,11 @@ func _connect_widget_hover(widget: Control, kind: String) -> void:
 
 
 func _on_widget_entered(kind: String, widget: Control) -> void:
-	hover_requested.emit(kind, _get_hover_anchor_screen_position(widget))
+	hover_requested.emit(kind, widget)
 
 
 func _on_widget_exited() -> void:
 	hover_cleared.emit()
-
-
-## Returns screen space for hover placement: x = widget center, y = TopHUD bottom + 8.
-func _get_hover_anchor_screen_position(widget: Control) -> Vector2:
-	var wrect := widget.get_global_rect()
-	var hud_rect := get_global_rect()
-	var center_x: float = wrect.position.x + wrect.size.x * 0.5
-	var top_y: float = hud_rect.position.y + hud_rect.size.y + 8.0
-	return Vector2(center_x, top_y)
 
 
 func _on_resources_changed(emitted_base_id: String) -> void:

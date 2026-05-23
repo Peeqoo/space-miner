@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="UpgradeDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3 uid="uid://dyb1sq3ses68o"]
 
-[ext_resource type="Script" path="res://resources/definitions/upgrade_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://d3dqik14jylww" path="res://resources/definitions/upgrade_definition.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
@@ -8,10 +8,9 @@ id = &"storage_2_upgrade"
 category = &"storage"
 level = 2
 title = "Storage Upgrade II"
-purchasable = true
 cost = {
-"Iron": 50,
-"Copper": 25
+"Copper": 25,
+"Iron": 50
 }
 storage_capacity_units = 300
-note = "Applies immediately."
+short_description = "Erweitert das Lager für größere Produktion."

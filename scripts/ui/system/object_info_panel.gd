@@ -11,11 +11,6 @@ signal close_requested()
 
 const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/resource_info_row.tscn")
 
-const MINING_BUTTON_TEXT_DEFAULT: String = "Mine"
-const MINING_BUTTON_TEXT_DEPLETED: String = "Depleted"
-const COLONIZATION_BUTTON_TEXT_DEFAULT: String = "Kolonisierung starten"
-const COLONIZATION_BUTTON_TEXT_RUNNING: String = "Läuft..."
-
 @onready var header_label: Label = $Margin/Root/HBoxContainer/HeaderLabel
 @onready var preview_texture: TextureRect = $Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture
 @onready var name_label: Label = $Margin/Root/MainRow/MetaColumn/NameLabel
@@ -25,7 +20,7 @@ const COLONIZATION_BUTTON_TEXT_RUNNING: String = "Läuft..."
 @onready var resource_title_label: Label = $Margin/Root/ResourceTitleLabel
 @onready var resource_list: VBoxContainer = $Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList
 @onready var lore_title_label: Label = $Margin/Root/LoreTitleLabel
-@onready var lore_text_label: Label = $Margin/Root/LoreTextLabel
+@onready var lore_text_label: Label = $Margin/Root/LorePanel/LoreMargin/LoreScroll/LoreTextLabel
 
 @onready var drone_orbit_label: Label = $Margin/Root/OrbitStatusSection/DroneOrbitLabel
 @onready var mine_orbit_label: Label = $Margin/Root/OrbitStatusSection/MineOrbitLabel
@@ -37,6 +32,20 @@ const COLONIZATION_BUTTON_TEXT_RUNNING: String = "Läuft..."
 @onready var recall_drone_button: Button = $Margin/Root/GridContainer/RecallDroneButton
 @onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
 @onready var colonization_button: Button = $Margin/Root/GridContainer/ColonizationButton
+@onready var economy_block_label: Label = $Margin/Root/EconomyBlockLabel
+
+@onready var empty_value_template: Label = $Margin/Root/EmptyValueTemplate
+@onready var scan_state_unknown_template: Label = $Margin/Root/ScanStateUnknownTemplate
+@onready var scan_state_basic_template: Label = $Margin/Root/ScanStateBasicTemplate
+@onready var scan_state_deep_template: Label = $Margin/Root/ScanStateDeepTemplate
+@onready var scan_state_special_template: Label = $Margin/Root/ScanStateSpecialTemplate
+@onready var empty_selection_lore_template: Label = $Margin/Root/EmptySelectionLoreTemplate
+@onready var no_description_lore_template: Label = $Margin/Root/NoDescriptionLoreTemplate
+@onready var mining_button_depleted_template: Label = $Margin/Root/MiningButtonDepletedTemplate
+@onready var colonization_running_template: Label = $Margin/Root/ColonizationRunningTemplate
+@onready var colonization_no_ship_tooltip_template: Label = $Margin/Root/ColonizationNoShipTooltipTemplate
+@onready var automation_drone_supporting_template: Label = $Margin/Root/AutomationDroneSupportingTemplate
+@onready var automation_drone_on_mission_template: Label = $Margin/Root/AutomationDroneOnMissionTemplate
 
 var current_object_id: String = ""
 
@@ -56,10 +65,32 @@ var _live_action_cache: Dictionary = {
 	"colonization_can_start": false,
 }
 
-var _economy_block_label: Label = null
+## Editor-owned prefixes captured from visible meta/orbit labels in _ready().
+var _name_label_prefix: String = ""
+var _type_label_prefix: String = ""
+var _scan_status_label_prefix: String = ""
+var _distance_label_prefix: String = ""
+var _drone_orbit_label_prefix: String = ""
+var _mine_orbit_label_prefix: String = ""
+var _mining_bonus_label_prefix: String = ""
+
+var _empty_value_text: String = "-"
+var _scan_state_labels: Dictionary = {}
+var _empty_selection_lore: String = ""
+var _no_description_lore: String = ""
+var _mining_button_text_default: String = ""
+var _mining_button_text_depleted: String = ""
+var _colonization_button_text_default: String = ""
+var _colonization_button_text_running: String = ""
+var _colonization_no_ship_tooltip: String = ""
+var _automation_drone_supporting_format: String = ""
+var _automation_drone_on_mission_format: String = ""
+var _unknown_display_name_fallback: String = ""
 
 
 func _ready() -> void:
+	_capture_editor_text_templates()
+
 	if not close_base_panel_button.pressed.is_connected(_on_close_base_panel_pressed):
 		close_base_panel_button.pressed.connect(_on_close_base_panel_pressed)
 
@@ -78,6 +109,9 @@ func _ready() -> void:
 	if colonization_button != null:
 		if not colonization_button.pressed.is_connected(_on_colonization_pressed):
 			colonization_button.pressed.connect(_on_colonization_pressed)
+		_colonization_button_text_default = colonization_button.text
+
+	_mining_button_text_default = send_mining_ship_button.text
 
 	if not GameSession.object_remaining_resources_changed.is_connected(
 		_on_game_session_object_resources_changed
@@ -89,15 +123,59 @@ func _ready() -> void:
 	show_empty()
 
 
+func _capture_editor_text_templates() -> void:
+	_name_label_prefix = _label_prefix(name_label)
+	_type_label_prefix = _label_prefix(type_label)
+	_scan_status_label_prefix = _label_prefix(scan_status_label)
+	_distance_label_prefix = _label_prefix(distance_label)
+	_drone_orbit_label_prefix = _label_prefix(drone_orbit_label)
+	_mine_orbit_label_prefix = _label_prefix(mine_orbit_label)
+	_mining_bonus_label_prefix = _label_prefix(mining_bonus_label)
+
+	_empty_value_text = empty_value_template.text.strip_edges()
+	_scan_state_labels = {
+		GameSession.SCAN_UNKNOWN: scan_state_unknown_template.text.strip_edges(),
+		GameSession.SCAN_BASIC: scan_state_basic_template.text.strip_edges(),
+		GameSession.SCAN_DEEP: scan_state_deep_template.text.strip_edges(),
+		GameSession.SCAN_SPECIAL: scan_state_special_template.text.strip_edges(),
+	}
+	_empty_selection_lore = empty_selection_lore_template.text.strip_edges()
+	_no_description_lore = no_description_lore_template.text.strip_edges()
+	_mining_button_text_depleted = mining_button_depleted_template.text.strip_edges()
+	_colonization_button_text_running = colonization_running_template.text.strip_edges()
+	_colonization_no_ship_tooltip = colonization_no_ship_tooltip_template.text.strip_edges()
+	_automation_drone_supporting_format = automation_drone_supporting_template.text.strip_edges()
+	_automation_drone_on_mission_format = automation_drone_on_mission_template.text.strip_edges()
+	_unknown_display_name_fallback = _scan_state_labels.get(
+		GameSession.SCAN_UNKNOWN,
+		_empty_value_text
+	)
+
+
+func _label_prefix(label: Label) -> String:
+	if label == null:
+		return ""
+
+	var text := label.text.strip_edges()
+	var separator_index := text.find(": ")
+	if separator_index >= 0:
+		return text.substr(0, separator_index + 2)
+
+	return ""
+
+
+func _meta_label(prefix: String, value: String) -> String:
+	return "%s%s" % [prefix, value]
+
+
 func show_empty() -> void:
 	current_object_id = ""
 
 	preview_texture.texture = null
-	name_label.text = "Name: -"
-	type_label.text = "Typ: -"
-	scan_status_label.text = "Scanstatus: -"
-	distance_label.text = "Distanz: -"
-	resource_title_label.text = "Resources"
+	name_label.text = _meta_label(_name_label_prefix, _empty_value_text)
+	type_label.text = _meta_label(_type_label_prefix, _empty_value_text)
+	scan_status_label.text = _meta_label(_scan_status_label_prefix, _empty_value_text)
+	distance_label.text = _meta_label(_distance_label_prefix, _empty_value_text)
 
 	_clear_resource_rows()
 
@@ -105,9 +183,9 @@ func show_empty() -> void:
 	mine_orbit_label.visible = false
 	mining_bonus_label.visible = false
 
-	lore_text_label.text = "Kein Objekt ausgewählt."
+	lore_text_label.text = _empty_selection_lore
 
-	send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
+	send_mining_ship_button.text = _mining_button_text_default
 	_set_action_buttons(false, false, false)
 	_set_recall_buttons(false, false)
 	_apply_colonization_controls()
@@ -128,10 +206,8 @@ func show_empty() -> void:
 		"colonization_can_start": false,
 	}
 
-	if _economy_block_label != null and is_instance_valid(_economy_block_label):
-		_economy_block_label.visible = false
-
-	call_deferred("_fit_height_to_content")
+	if is_instance_valid(economy_block_label):
+		economy_block_label.visible = false
 
 
 func _exit_tree() -> void:
@@ -154,9 +230,11 @@ func show_poi_info(info: Dictionary) -> void:
 func _apply_info(info: Dictionary) -> void:
 	current_object_id = str(info.get("id", ""))
 
-	resource_title_label.text = "Resources"
 	preview_texture.texture = info.get("preview_texture", null) as Texture2D
-	name_label.text = "Name: %s" % str(info.get("display_name", "Unknown"))
+	name_label.text = _meta_label(
+		_name_label_prefix,
+		str(info.get("display_name", _unknown_display_name_fallback))
+	)
 
 	var type_text: String = "-"
 
@@ -165,9 +243,15 @@ func _apply_info(info: Dictionary) -> void:
 	elif info.has("poi_type"):
 		type_text = str(info.get("poi_type", "-"))
 
-	type_label.text = "Typ: %s" % _format_title(type_text)
-	scan_status_label.text = "Scanstatus: %s" % _format_scan_state(str(info.get("scan_state", GameSession.SCAN_UNKNOWN)))
-	distance_label.text = "Distanz: %s" % str(info.get("distance_text", "-"))
+	type_label.text = _meta_label(_type_label_prefix, _format_title(type_text))
+	scan_status_label.text = _meta_label(
+		_scan_status_label_prefix,
+		_format_scan_state(str(info.get("scan_state", GameSession.SCAN_UNKNOWN)))
+	)
+	distance_label.text = _meta_label(
+		_distance_label_prefix,
+		str(info.get("distance_text", _empty_value_text))
+	)
 
 	_apply_automation_status(info)
 	_apply_resources(info)
@@ -191,28 +275,8 @@ func _apply_info(info: Dictionary) -> void:
 	_apply_live_action_controls()
 
 
-func _ensure_economy_block_label() -> void:
-	if _economy_block_label != null and is_instance_valid(_economy_block_label):
-		return
-	var root: Node = get_node_or_null("Margin/Root")
-	if root == null:
-		return
-	var grid: Node = root.get_node_or_null("GridContainer")
-	if grid == null:
-		return
-	var lbl := Label.new()
-	lbl.name = "EconomyBlockLabel"
-	lbl.visible = false
-	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl.add_theme_font_size_override("font_size", 6)
-	root.add_child(lbl)
-	root.move_child(lbl, grid.get_index())
-	_economy_block_label = lbl
-
-
 func _apply_live_action_controls() -> void:
 	var block_rs: String = str(_live_action_cache.get("system_economy_blocked_reason", "")).strip_edges()
-	_ensure_economy_block_label()
 
 	var can_scan: bool = bool(_live_action_cache.get("can_scan", false))
 	var can_mine: bool = bool(_live_action_cache.get("can_mine", false))
@@ -225,16 +289,16 @@ func _apply_live_action_controls() -> void:
 		can_mine = false
 		can_recall_drone = false
 		can_recall_mining_ship = false
-		if _economy_block_label != null:
-			_economy_block_label.text = block_rs
-			_economy_block_label.visible = true
+		if is_instance_valid(economy_block_label):
+			economy_block_label.text = block_rs
+			economy_block_label.visible = true
 		scan_with_drone_button.tooltip_text = block_rs
 		send_mining_ship_button.tooltip_text = block_rs
 		recall_drone_button.tooltip_text = block_rs
 		recall_mining_ship_button.tooltip_text = block_rs
 	else:
-		if _economy_block_label != null:
-			_economy_block_label.visible = false
+		if is_instance_valid(economy_block_label):
+			economy_block_label.visible = false
 		scan_with_drone_button.tooltip_text = ""
 		send_mining_ship_button.tooltip_text = ""
 		recall_drone_button.tooltip_text = ""
@@ -247,7 +311,7 @@ func _apply_live_action_controls() -> void:
 	var can_mine_effective: bool = can_mine and not mining_block_depleted
 
 	if is_home_base:
-		send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
+		send_mining_ship_button.text = _mining_button_text_default
 		_set_action_buttons(false, false, false)
 		_set_recall_buttons(false, false)
 	else:
@@ -255,40 +319,38 @@ func _apply_live_action_controls() -> void:
 		_set_recall_buttons(can_recall_drone, can_recall_mining_ship)
 
 		if can_mine and mining_block_depleted:
-			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEPLETED
+			send_mining_ship_button.text = _mining_button_text_depleted
 		else:
-			send_mining_ship_button.text = MINING_BUTTON_TEXT_DEFAULT
+			send_mining_ship_button.text = _mining_button_text_default
 
 	_apply_colonization_controls()
-
-	call_deferred("_fit_height_to_content")
 
 
 func _apply_colonization_controls() -> void:
 	if colonization_button == null:
 		return
 
-	var visible: bool = bool(_live_action_cache.get("colonization_button_visible", false))
-	colonization_button.visible = visible
-	if not visible:
+	var show_colonization := bool(_live_action_cache.get("colonization_button_visible", false))
+	colonization_button.visible = show_colonization
+	if not show_colonization:
 		colonization_button.disabled = true
-		colonization_button.text = COLONIZATION_BUTTON_TEXT_DEFAULT
+		colonization_button.text = _colonization_button_text_default
 		colonization_button.tooltip_text = ""
 		return
 
 	if bool(_live_action_cache.get("colonization_pending", false)):
 		colonization_button.disabled = true
-		colonization_button.text = COLONIZATION_BUTTON_TEXT_RUNNING
+		colonization_button.text = _colonization_button_text_running
 		colonization_button.tooltip_text = ""
 		return
 
 	var can_start: bool = bool(_live_action_cache.get("colonization_can_start", false))
 	colonization_button.disabled = not can_start
-	colonization_button.text = COLONIZATION_BUTTON_TEXT_DEFAULT
+	colonization_button.text = _colonization_button_text_default
 	if can_start:
 		colonization_button.tooltip_text = ""
 	else:
-		colonization_button.tooltip_text = "Kein ColonyShip verfügbar."
+		colonization_button.tooltip_text = _colonization_no_ship_tooltip
 
 
 func _is_current_object_mining_exhausted() -> bool:
@@ -359,16 +421,15 @@ func _apply_automation_status(info: Dictionary) -> void:
 
 	var drone_parts: PackedStringArray = []
 
-	if drone_supporting > 0:
-		drone_parts.append("%d supporting" % drone_supporting)
+	if drone_supporting > 0 and not _automation_drone_supporting_format.is_empty():
+		drone_parts.append(_automation_drone_supporting_format % drone_supporting)
 
-	if drone_on_mission > 0:
-		drone_parts.append("%d on mission" % drone_on_mission)
+	if drone_on_mission > 0 and not _automation_drone_on_mission_format.is_empty():
+		drone_parts.append(_automation_drone_on_mission_format % drone_on_mission)
 
-	drone_orbit_label.text = "ScanDrones: %s" % ", ".join(drone_parts)
-	mine_orbit_label.text = "MiningShips: %d mining" % mining_mining_count
-
-	mining_bonus_label.text = "Local Effects: Mining Yield Bonus: +%d%%" % bonus_pct
+	drone_orbit_label.text = _meta_label(_drone_orbit_label_prefix, ", ".join(drone_parts))
+	mine_orbit_label.text = _meta_label(_mine_orbit_label_prefix, str(mining_mining_count))
+	mining_bonus_label.text = _meta_label(_mining_bonus_label_prefix, "+%d%%" % bonus_pct)
 
 
 func _apply_resources(info: Dictionary) -> void:
@@ -412,7 +473,7 @@ func _get_resource_display_name(resource_entry: Dictionary) -> String:
 	if resource_entry.has("name"):
 		return str(resource_entry.get("name", ""))
 
-	return "Unknown"
+	return _unknown_display_name_fallback
 
 
 func _get_resource_store_id(resource_entry: Dictionary) -> String:
@@ -431,17 +492,16 @@ func _get_resource_store_id(resource_entry: Dictionary) -> String:
 func _build_resource_detail_text(resource_entry: Dictionary) -> String:
 	var system_id_r: String = GameSession.current_system_id
 
-	if (
-		system_id_r.is_empty()
-		or current_object_id.is_empty()
-		or not GameSession.has_object_resources(system_id_r, current_object_id)
-	):
-		return _build_percent_text(resource_entry)
+	if system_id_r.is_empty() or current_object_id.is_empty():
+		return _build_amount_text_without_store(resource_entry)
+
+	if not GameSession.has_object_resources(system_id_r, current_object_id):
+		return _build_amount_text_without_store(resource_entry)
 
 	var resource_id_r: String = _get_resource_store_id(resource_entry)
 
 	if resource_id_r.is_empty():
-		return _build_percent_text(resource_entry)
+		return _build_amount_text_without_store(resource_entry)
 
 	var remaining: int = GameSession.get_remaining_resource_amount(
 		system_id_r,
@@ -497,7 +557,7 @@ func _apply_lore(info: Dictionary) -> void:
 	var lore_text: String = str(info.get("lore_text", "")).strip_edges()
 
 	if lore_text.is_empty():
-		lore_text = "Keine Beschreibung verfügbar."
+		lore_text = _no_description_lore
 
 	lore_text_label.text = lore_text
 
@@ -518,8 +578,8 @@ func _set_recall_buttons(can_recall_drone: bool, can_recall_mining_ship: bool) -
 	recall_mining_ship_button.disabled = not can_recall_mining_ship
 
 
-func set_distance_text(text: String) -> void:
-	distance_label.text = text
+func set_distance_text(value_text: String) -> void:
+	distance_label.text = _meta_label(_distance_label_prefix, value_text)
 
 
 func _clear_resource_rows() -> void:
@@ -527,40 +587,26 @@ func _clear_resource_rows() -> void:
 		child.queue_free()
 
 
-func _build_percent_text(resource_entry: Dictionary) -> String:
-	# Preferred new scan_info_builder format from ScannedResourceEntry.
-	if resource_entry.has("richness_percent"):
-		return "Richness: %d%%" % int(resource_entry.get("richness_percent", 0))
-
-	# Compatibility with older/local formats.
-	if resource_entry.has("percent"):
-		return "Richness: %d%%" % int(resource_entry.get("percent", 0))
-
-	if resource_entry.has("abundance_percent"):
-		return "Richness: %d%%" % int(resource_entry.get("abundance_percent", 0))
+func _build_amount_text_without_store(resource_entry: Dictionary) -> String:
+	var total_from_entry: int = _read_total_amount_from_resource_entry(resource_entry)
+	if total_from_entry >= 0:
+		return "%d / %d" % [total_from_entry, total_from_entry]
 
 	return "--"
 
 
 func _format_scan_state(scan_state: String) -> String:
-	match scan_state:
-		GameSession.SCAN_UNKNOWN:
-			return "Unknown"
-		GameSession.SCAN_BASIC:
-			return "Basic"
-		GameSession.SCAN_DEEP:
-			return "Deep"
-		GameSession.SCAN_SPECIAL:
-			return "Special"
-		_:
-			return _format_title(scan_state)
+	if _scan_state_labels.has(scan_state):
+		return str(_scan_state_labels.get(scan_state, _empty_value_text))
+
+	return _format_title(scan_state)
 
 
 func _format_title(value: String) -> String:
 	var cleaned: String = value.strip_edges().replace("_", " ")
 
 	if cleaned.is_empty():
-		return "-"
+		return _empty_value_text
 
 	var words: PackedStringArray = cleaned.split(" ", false)
 	var result_words: PackedStringArray = []
@@ -634,13 +680,3 @@ func _on_colonization_pressed() -> void:
 		return
 
 	colonization_requested.emit(current_object_id)
-
-
-func _fit_height_to_content() -> void:
-	if not is_inside_tree():
-		return
-
-	if not visible:
-		return
-
-	size.y = get_combined_minimum_size().y

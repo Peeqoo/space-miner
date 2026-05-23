@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ProductionDefinition" format=3 uid="uid://ce010552xijrh"]
+
+[ext_resource type="Script" uid="uid://dxxon7yjvu8v8" path="res://resources/definitions/production_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mining_ship"
+unit_key = "mining_ships"
+cost = {
+"Hydrogen": 5,
+"Iron": 25,
+"Silicon": 10
+}
+sort_order = 1
+short_description = "Baut sichtbare und minebare Ressourcen ab."
+effect_lines = ["Liefert Cargo zur Basis"]

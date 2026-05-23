@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ScannedResourceEntry" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/scanned_resource_entry.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+resource_id = &"Nickel"
+richness_percent = 15
+layer = 1

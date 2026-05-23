@@ -7,7 +7,9 @@ const SCAN_BASIC := "basic"
 const SCAN_DEEP := "deep"
 const SCAN_SPECIAL := "special"
 
-const DEFAULT_DEPOSIT_AMOUNT: int = 100
+## Legacy fallback for dict/null scan entries without `deposit_amount`.
+## `ScannedResourceEntry` resources use export default `deposit_amount` (10000) from `.tres`/class.
+const DEPOSIT_AMOUNT_LEGACY_FALLBACK: int = 100
 
 
 var object_scan_states: Dictionary = {}
@@ -214,18 +216,18 @@ func _get_resource_id_from_entry(entry: Variant) -> String:
 
 func _get_deposit_amount_from_entry(entry: Variant) -> int:
 	if entry == null:
-		return DEFAULT_DEPOSIT_AMOUNT
+		return DEPOSIT_AMOUNT_LEGACY_FALLBACK
 
 	if entry is Dictionary:
 		var dict: Dictionary = entry as Dictionary
 
 		if dict.has("deposit_amount"):
-			return max(0, int(dict.get("deposit_amount", DEFAULT_DEPOSIT_AMOUNT)))
+			return max(0, int(dict.get("deposit_amount", DEPOSIT_AMOUNT_LEGACY_FALLBACK)))
 
 		if dict.has("amount"):
-			return max(0, int(dict.get("amount", DEFAULT_DEPOSIT_AMOUNT)))
+			return max(0, int(dict.get("amount", DEPOSIT_AMOUNT_LEGACY_FALLBACK)))
 
-		return DEFAULT_DEPOSIT_AMOUNT
+		return DEPOSIT_AMOUNT_LEGACY_FALLBACK
 
 	if entry is Resource:
 		var deposit_amount: Variant = (entry as Resource).get("deposit_amount")
@@ -236,7 +238,7 @@ func _get_deposit_amount_from_entry(entry: Variant) -> int:
 		if amount != null:
 			return max(0, int(amount))
 
-	return DEFAULT_DEPOSIT_AMOUNT
+	return DEPOSIT_AMOUNT_LEGACY_FALLBACK
 
 
 func to_save_data() -> Dictionary:

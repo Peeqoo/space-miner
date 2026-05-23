@@ -241,10 +241,10 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **extends:** RefCounted
 - **Aufgabe:** Verwaltet alle Basen (Ressourcen, Population, Drohnen, Mining Ships)
 - **Wichtige Variablen:**
-  - `BASE_EARTH = "earth"`, `RESOURCE_ORE = "ore"`, `RESOURCE_FUEL = "fuel"`, `RESOURCE_FOOD = "food"`
-  - `DRONE_ORE_COST = 10`, `MINING_SHIP_ORE_COST = 25`
-  - `bases: Dictionary` — Key: base_id, Value: `{resources, population, drones, mining_ships}`
-  - Startwert Earth: `ore=50, fuel=0, food=0, population=1, drones=0, mining_ships=0`
+  - `BASE_EARTH = "earth"`, Production-IDs: `PRODUCTION_SCAN_DRONE`, `PRODUCTION_MINING_SHIP`, `PRODUCTION_COLONY_SHIP`
+  - Production-Kosten aus `data/production/*.tres` via `ProductionCatalog` / `get_production_cost()`
+  - `bases: Dictionary` — Key: base_id, Value: `{resources, population, drones, mining_ships, colony_ships, ...}`
+  - New-Game-Start über `GameStartDefinition` (`data/game_start/default_start.tres`)
 - **Wichtige Funktionen:** `get_resources()`, `get_resource_amount()`, `add_resource()`, `spend_resource()`, `build_drone()`, `build_mining_ship()`, `add_mining_ship()`, `add_drone()`
 - **Definierte Signale:** keine
 - **Risiko:** kein Persistenz-System; Verlust bei Szenenwechsel nicht abgesichert
@@ -320,9 +320,8 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 - **Aufgabe:** Spawnt und steuert Drohnen und Mining Ships; verwaltet Mining-Loop; schreibt direkt in BaseStore über GameSession
 - **Wichtige Variablen:**
   - `DRONE_SCENE`, `MINING_SHIP_SCENE` (preloads)
-  - `DEFAULT_MINING_CARGO_CAPACITY = 20`, `DEFAULT_MINING_RATE_PER_SECOND = 2.0`
-  - `DEFAULT_MINING_UNLOAD_DURATION = 2.0`, `DEFAULT_MINING_RESOURCE_ID = BaseStore.RESOURCE_ORE`
-  - `DRONE_MINING_BONUS_PER_UNIT = 0.02`
+  - Basiswerte aus `data/units/*.tres` via `UnitCatalog`; Fallbacks `DEFAULT_*_FALLBACK`
+  - Mining-Yield-Bonus über `GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent()` / `UpgradeDefinition`
   - `active_units_by_mission_id`, `idle_drones`, `idle_mining_ships`
   - `mining_ship_runtime_by_unit_id: Dictionary` — enthält internen Cargo-Puffer pro Ship
 - **Definierte Signale:** `automation_state_changed`
@@ -448,7 +447,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 ### `res://scripts/ui/system/upgrade_panel.gd`
 - **extends:** PanelContainer
-- **Aufgabe:** Phase-5-Käufe (`buy_base_storage_upgrade_i`, `buy_scan_drone_upgrade_i`, `buy_mining_ship_upgrade_i`); `close_requested`
+- **Aufgabe:** Upgrades über `buy_next_base_upgrade` / `get_next_upgrade_definition` (`data/upgrades/*.tres`); `close_requested`
 - **Genutzte Autoloads:** GameSession
 
 ### `res://scripts/ui/system/storage_row.gd`
@@ -532,7 +531,7 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 
 ### `res://data/celestial_bodies/solar_system/earth.tres`
 - **Typ:** SystemBodyDefinition
-- **Properties:** id="earth", body_type="planet", orbit_center_id="star", size_authoring_mode=USE_REFERENCE_DATA, gameplay_orbit_bias=1.18, keine scan_resources
+- **Properties:** id="earth", body_type="planet", orbit_center_id="star", size_authoring_mode=USE_REFERENCE_DATA, gameplay_orbit_bias=1.18, `scan_resources` (inline SubResources, Solar Deposit Plan)
 
 ### `res://data/celestial_bodies/solar_system/*.tres` (mercury, venus, mars, moon, jupiter, saturn, uranus, neptune)
 - **Typ:** SystemBodyDefinition Resources
@@ -541,10 +540,12 @@ Der gesamte Spielzustand wird durch den Autoload `GameSession` verwaltet, der al
 ### `res://data/celestial_bodies/proxima_system/*.tres`
 - **Typ:** SystemBodyDefinition Resources (proxima_b, proxima_c, proxima_d)
 
-### `res://data/planet_resources/*.tres` (iron, aluminum, carbon, copper, exotic_gas, heavy_metals, helium-3, hydrocarbons, hydrogen, methane, platinum_clusters, quantum_crystals, rare_earth_elements, silicates, solar_crystals, sulfur, superconductive_compounds, titanium, water, antimatter_precursors)
+### `res://data/planet_resources/*.tres`
 - **Typ:** ScannedResourceEntry Resources
 - **Properties:** resource_id (StringName), richness_percent (int)
-- **Nutzende Scripts:** Referenziert in `.tres`-Dateien der SystemBodyDefinitions als Array-Elemente
+- **Aktive IDs:** BASIC (layer=0): Silicon, Iron, Copper, Carbon, Hydrogen, Water. DEEP (layer=1): Oxygen, Aluminium, Calcium, Sodium, Potassium, Magnesium, Nickel, Cobalt, Helium, Methane. Default `richness_percent` in Templates (Body-Deposits können überschreiben).
+- **Legacy (nicht in neuer Liste / Archiv):** aluminum.tres (`Aluminum`), silicates.tres (`Silicates`), heavy_metals.tres, exotic_gas.tres, helium-3.tres, titanium.tres, antimatter_precursors.tres
+- **Nutzende Scripts:** Referenziert in SystemBodyDefinition.scan_resources (Bodies derzeit leer)
 
 ### `res://scenes/ui/*.tres` (m5x7_, manaspace_, pixeloperator8_, pixeloperator_hbsc_, pixeloperator_ label_settings.tres)
 - **Typ:** LabelSettings Resources

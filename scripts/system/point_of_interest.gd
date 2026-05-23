@@ -86,7 +86,7 @@ func get_info() -> Dictionary:
 	}
 
 
-func build_scan_info(scan_state: String, scanner_tier: String) -> Dictionary:
+func build_scan_info(scan_state: String, unlocked_scan_layer: int) -> Dictionary:
 	return ScanInfoBuilder.build_scan_info(
 		definition,
 		poi_id,
@@ -94,7 +94,7 @@ func build_scan_info(scan_state: String, scanner_tier: String) -> Dictionary:
 		"poi_type",
 		poi_type,
 		scan_state,
-		scanner_tier
+		unlocked_scan_layer
 	)
 
 

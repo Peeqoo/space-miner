@@ -1,38 +1,14 @@
 class_name BaseStore
 extends RefCounted
 
-const RESOURCE_ORE := "ore"  # deprecated
-const RESOURCE_FUEL := "fuel"  # deprecated
-const RESOURCE_FOOD := "food"  # deprecated
-
 const BASE_EARTH := "earth"
 
-# deprecated — ersetzt durch DRONE_COST / MINING_SHIP_COST
-const DRONE_ORE_COST: int = 10  # deprecated
-const MINING_SHIP_ORE_COST: int = 25  # deprecated
+const PRODUCTION_SCAN_DRONE := "scan_drone"
+const PRODUCTION_MINING_SHIP := "mining_ship"
+const PRODUCTION_COLONY_SHIP := "colony_ship"
 
-const DRONE_COST: Dictionary = {
-	"Iron": 10,
-	"Copper": 5,
-}
-
-const MINING_SHIP_COST: Dictionary = {
-	"Iron": 25,
-	"Aluminum": 10,
-	"Hydrogen": 5,
-}
-
-const COLONY_SHIP_COST: Dictionary = {
-	"Iron": 80,
-	"Aluminum": 40,
-	"Water": 30,
-	"Carbon": 20,
-	"Hydrogen": 20,
-}
-
-## Total cargo units (summed stack sizes) Earth can hold at game start (Phase 5.1).
-## Also used as fallback when no upgrade catalog is bound.
-const INITIAL_STORAGE_CAPACITY: int = 100
+## Safety fallback only when `storage_0_base.tres` / UpgradeCatalog is unavailable.
+const STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK: int = 100
 
 var bases: Dictionary = {
 	BASE_EARTH: {
@@ -41,7 +17,8 @@ var bases: Dictionary = {
 		"drones": 1,
 		"mining_ships": 1,
 		"colony_ships": 0,
-		"storage_capacity": INITIAL_STORAGE_CAPACITY,
+		## Bootstrap until `get_base()` syncs from `data/upgrades/storage/storage_0_base.tres`.
+		"storage_capacity": STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK,
 		"storage_upgrade_level": 0,
 		"scan_drone_upgrade_level": 0,
 		"mining_ship_upgrade_level": 0,
@@ -50,6 +27,7 @@ var bases: Dictionary = {
 
 ## Phase 5.5: balancing data — catalog is bound externally (see project autoload).
 var _upgrade_catalog: UpgradeCatalog = null
+var _production_catalog: ProductionCatalog = null
 
 
 func set_upgrade_catalog(catalog: UpgradeCatalog) -> void:
@@ -58,6 +36,43 @@ func set_upgrade_catalog(catalog: UpgradeCatalog) -> void:
 
 func get_upgrade_catalog() -> UpgradeCatalog:
 	return _upgrade_catalog
+
+
+func set_production_catalog(catalog: ProductionCatalog) -> void:
+	_production_catalog = catalog
+
+
+func get_production_catalog() -> ProductionCatalog:
+	return _production_catalog
+
+
+## Primary source: `data/upgrades/storage/storage_0_base.tres` (`storage_capacity_units`).
+func get_storage_capacity_level_zero_units() -> int:
+	return _resolve_storage_capacity_level_zero_units()
+
+
+func _resolve_storage_capacity_level_zero_units() -> int:
+	if _upgrade_catalog != null:
+		var def := _upgrade_catalog.get_current_definition(&"storage", 0)
+		if def != null and def.storage_capacity_units >= 0:
+			return def.storage_capacity_units
+	push_warning(
+		"BaseStore: using fallback storage capacity level 0 (upgrade catalog or storage_0_base missing)"
+	)
+	return STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK
+
+
+func get_production_cost(production_id: String) -> Dictionary:
+	if _production_catalog == null:
+		push_warning("BaseStore.get_production_cost: production catalog not bound (%s)" % production_id)
+		return {}
+	return _production_catalog.get_cost(production_id)
+
+
+func get_production_definition(production_id: String) -> ProductionDefinition:
+	if _production_catalog == null:
+		return null
+	return _production_catalog.get_definition(production_id)
 
 
 func get_base(base_id: String) -> Dictionary:
@@ -94,9 +109,9 @@ func _normalize_scan_drone_upgrade_fields(base: Dictionary) -> void:
 
 func _normalize_base_storage_fields(base: Dictionary) -> void:
 	if not base.has("storage_capacity"):
-		base["storage_capacity"] = INITIAL_STORAGE_CAPACITY
+		base["storage_capacity"] = _resolve_storage_capacity_level_zero_units()
 	elif int(base["storage_capacity"]) < 0:
-		base["storage_capacity"] = INITIAL_STORAGE_CAPACITY
+		base["storage_capacity"] = _resolve_storage_capacity_level_zero_units()
 
 	if not base.has("storage_upgrade_level"):
 		base["storage_upgrade_level"] = 0
@@ -187,7 +202,7 @@ func get_storage_capacity(base_id: String) -> int:
 		if def != null and def.storage_capacity_units >= 0:
 			return maxi(0, def.storage_capacity_units)
 
-	return maxi(0, int(get_base(base_id).get("storage_capacity", INITIAL_STORAGE_CAPACITY)))
+	return maxi(0, int(get_base(base_id).get("storage_capacity", _resolve_storage_capacity_level_zero_units())))
 
 
 func get_storage_free(base_id: String) -> int:
@@ -231,53 +246,6 @@ func add_resource(base_id: String, resource_id: String, amount: int) -> int:
 	return accept_amount
 
 
-## --- Phase 5.5 upgrades (data-driven). Legacy `*_upgrade_i_*` names remain as thin wrappers. ---
-
-
-func get_storage_upgrade_i_cost(base_id: String = BASE_EARTH) -> Dictionary:
-	if _upgrade_catalog == null:
-		return {}
-	var nxt := _upgrade_catalog.get_next_definition(&"storage", get_upgrade_level(base_id, &"storage"))
-	if nxt == null:
-		return {}
-	return nxt.cost.duplicate(true)
-
-
-func is_storage_upgrade_i_bought(base_id: String) -> bool:
-	return get_upgrade_level(base_id, &"storage") >= 1
-
-
-func can_buy_storage_upgrade_i(base_id: String) -> bool:
-	if _upgrade_catalog == null:
-		return false
-	var nxt := _upgrade_catalog.get_next_definition(&"storage", get_upgrade_level(base_id, &"storage"))
-	if nxt == null:
-		return false
-	return can_afford_upgrade(base_id, nxt)
-
-
-func buy_storage_upgrade_i(base_id: String) -> bool:
-	if _upgrade_catalog == null:
-		return false
-	var nxt := _upgrade_catalog.get_next_definition(&"storage", get_upgrade_level(base_id, &"storage"))
-	if nxt == null:
-		return false
-	return buy_next_upgrade(base_id, nxt)
-
-
-func get_scan_drone_upgrade_i_cost(base_id: String = BASE_EARTH) -> Dictionary:
-	if _upgrade_catalog == null:
-		return {}
-	var nxt := _upgrade_catalog.get_next_definition(&"scan_drone", get_upgrade_level(base_id, &"scan_drone"))
-	if nxt == null:
-		return {}
-	return nxt.cost.duplicate(true)
-
-
-func is_scan_drone_upgrade_i_bought(base_id: String) -> bool:
-	return get_upgrade_level(base_id, &"scan_drone") >= 1
-
-
 func get_scan_drone_scan_duration_multiplier(base_id: String) -> float:
 	if _upgrade_catalog != null:
 		var def := _upgrade_catalog.get_current_definition(
@@ -287,37 +255,6 @@ func get_scan_drone_scan_duration_multiplier(base_id: String) -> float:
 		if def != null and def.scan_duration_multiplier >= 0.0:
 			return def.scan_duration_multiplier
 	return 1.0
-
-
-func can_buy_scan_drone_upgrade_i(base_id: String) -> bool:
-	if _upgrade_catalog == null:
-		return false
-	var nxt := _upgrade_catalog.get_next_definition(&"scan_drone", get_upgrade_level(base_id, &"scan_drone"))
-	if nxt == null:
-		return false
-	return can_afford_upgrade(base_id, nxt)
-
-
-func buy_scan_drone_upgrade_i(base_id: String) -> bool:
-	if _upgrade_catalog == null:
-		return false
-	var nxt := _upgrade_catalog.get_next_definition(&"scan_drone", get_upgrade_level(base_id, &"scan_drone"))
-	if nxt == null:
-		return false
-	return buy_next_upgrade(base_id, nxt)
-
-
-func get_mining_ship_upgrade_i_cost(base_id: String = BASE_EARTH) -> Dictionary:
-	if _upgrade_catalog == null:
-		return {}
-	var nxt := _upgrade_catalog.get_next_definition(&"mining_ship", get_upgrade_level(base_id, &"mining_ship"))
-	if nxt == null:
-		return {}
-	return nxt.cost.duplicate(true)
-
-
-func is_mining_ship_upgrade_i_bought(base_id: String) -> bool:
-	return get_upgrade_level(base_id, &"mining_ship") >= 1
 
 
 func get_mining_ship_cargo_capacity_multiplier(base_id: String) -> float:
@@ -331,22 +268,38 @@ func get_mining_ship_cargo_capacity_multiplier(base_id: String) -> float:
 	return 1.0
 
 
-func can_buy_mining_ship_upgrade_i(base_id: String) -> bool:
+func get_unlocked_scan_layer(base_id: String) -> int:
 	if _upgrade_catalog == null:
-		return false
-	var nxt := _upgrade_catalog.get_next_definition(&"mining_ship", get_upgrade_level(base_id, &"mining_ship"))
-	if nxt == null:
-		return false
-	return can_afford_upgrade(base_id, nxt)
+		push_warning("BaseStore.get_unlocked_scan_layer: upgrade catalog not bound")
+		return ScannedResourceEntry.Layer.BASIC
+	var def := _upgrade_catalog.get_current_definition(
+		&"scan_drone",
+		get_upgrade_level(base_id, &"scan_drone")
+	)
+	if def == null:
+		push_warning(
+			"BaseStore.get_unlocked_scan_layer: missing scan_drone definition (base_id=%s)"
+			% base_id
+		)
+		return ScannedResourceEntry.Layer.BASIC
+	return clampi(int(def.unlock_scan_layer), ScannedResourceEntry.Layer.BASIC, ScannedResourceEntry.Layer.SPECIAL)
 
 
-func buy_mining_ship_upgrade_i(base_id: String) -> bool:
+func get_unlocked_mining_layer(base_id: String) -> int:
 	if _upgrade_catalog == null:
-		return false
-	var nxt := _upgrade_catalog.get_next_definition(&"mining_ship", get_upgrade_level(base_id, &"mining_ship"))
-	if nxt == null:
-		return false
-	return buy_next_upgrade(base_id, nxt)
+		push_warning("BaseStore.get_unlocked_mining_layer: upgrade catalog not bound")
+		return ScannedResourceEntry.Layer.BASIC
+	var def := _upgrade_catalog.get_current_definition(
+		&"mining_ship",
+		get_upgrade_level(base_id, &"mining_ship")
+	)
+	if def == null:
+		push_warning(
+			"BaseStore.get_unlocked_mining_layer: missing mining_ship definition (base_id=%s)"
+			% base_id
+		)
+		return ScannedResourceEntry.Layer.BASIC
+	return clampi(int(def.unlock_mining_layer), ScannedResourceEntry.Layer.BASIC, ScannedResourceEntry.Layer.SPECIAL)
 
 
 func spend_resource(base_id: String, resource_id: String, amount: int) -> bool:
@@ -412,13 +365,6 @@ func spend_cost(base_id: String, cost: Dictionary) -> bool:
 	return true
 
 
-func format_cost(cost: Dictionary) -> String:
-	var parts: PackedStringArray = []
-	for resource_id in cost:
-		parts.append("%s: %d" % [str(resource_id), int(cost[resource_id])])
-	return ", ".join(parts)
-
-
 func get_population(base_id: String) -> int:
 	var base := get_base(base_id)
 	return int(base.get("population", 0))
@@ -440,11 +386,14 @@ func get_colony_ship_count(base_id: String) -> int:
 
 
 func can_build_drone(base_id: String) -> bool:
-	return can_afford(base_id, DRONE_COST)
+	return can_afford(base_id, get_production_cost(PRODUCTION_SCAN_DRONE))
 
 
 func build_drone(base_id: String) -> bool:
-	if not spend_cost(base_id, DRONE_COST):
+	var cost := get_production_cost(PRODUCTION_SCAN_DRONE)
+	if cost.is_empty():
+		return false
+	if not spend_cost(base_id, cost):
 		return false
 
 	var base := get_base(base_id)
@@ -455,11 +404,14 @@ func build_drone(base_id: String) -> bool:
 
 
 func can_build_mining_ship(base_id: String) -> bool:
-	return can_afford(base_id, MINING_SHIP_COST)
+	return can_afford(base_id, get_production_cost(PRODUCTION_MINING_SHIP))
 
 
 func build_mining_ship(base_id: String) -> bool:
-	if not spend_cost(base_id, MINING_SHIP_COST):
+	var cost := get_production_cost(PRODUCTION_MINING_SHIP)
+	if cost.is_empty():
+		return false
+	if not spend_cost(base_id, cost):
 		return false
 
 	var base := get_base(base_id)
@@ -470,13 +422,16 @@ func build_mining_ship(base_id: String) -> bool:
 
 
 func can_build_colony_ship(base_id: String) -> bool:
-	return can_afford(base_id, COLONY_SHIP_COST)
+	return can_afford(base_id, get_production_cost(PRODUCTION_COLONY_SHIP))
 
 
 func build_colony_ship(base_id: String) -> bool:
 	if not can_build_colony_ship(base_id):
 		return false
-	if not spend_cost(base_id, COLONY_SHIP_COST):
+	var cost := get_production_cost(PRODUCTION_COLONY_SHIP)
+	if cost.is_empty():
+		return false
+	if not spend_cost(base_id, cost):
 		return false
 
 	var base := get_base(base_id)
@@ -539,20 +494,30 @@ func _create_empty_base() -> Dictionary:
 		"drones": 0,
 		"mining_ships": 0,
 		"colony_ships": 0,
-		"storage_capacity": INITIAL_STORAGE_CAPACITY,
+		"storage_capacity": _resolve_storage_capacity_level_zero_units(),
 		"storage_upgrade_level": 0,
 		"scan_drone_upgrade_level": 0,
 		"mining_ship_upgrade_level": 0,
 	}
 
 
-func get_new_game_earth_base() -> Dictionary:
+func create_new_game_base_entry(
+	population: int,
+	drones: int,
+	mining_ships: int,
+	colony_ships: int,
+	resources: Dictionary = {},
+	storage_capacity: int = -1,
+) -> Dictionary:
 	var base_entry: Dictionary = _create_empty_base()
-	base_entry["population"] = 1
-	base_entry["drones"] = 1
-	base_entry["mining_ships"] = 1
-	base_entry["colony_ships"] = 0
-	base_entry["storage_capacity"] = INITIAL_STORAGE_CAPACITY
+	base_entry["population"] = population
+	base_entry["drones"] = drones
+	base_entry["mining_ships"] = mining_ships
+	base_entry["colony_ships"] = colony_ships
+	base_entry["storage_capacity"] = (
+		storage_capacity if storage_capacity >= 0 else _resolve_storage_capacity_level_zero_units()
+	)
+	base_entry["resources"] = resources.duplicate(true)
 	return base_entry
 
 

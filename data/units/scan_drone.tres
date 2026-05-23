@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="UnitDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/unit_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "scan_drone"
+unit_key = "drones"
+scan_duration_seconds = 2.0

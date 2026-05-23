@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeEffectTextDefinition" format=3 uid="uid://b08s671gbvaos"]
+
+[ext_resource type="Script" uid="uid://bb4m15c675dcm" path="res://resources/definitions/upgrade_effect_text_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+templates = {
+"cargo_delta": "Fracht: +{value}%",
+"cargo_final": "Fracht: {value}%",
+"scan_duration_delta": "Scan-Dauer: -{value}%",
+"scan_duration_final": "Scan-Dauer: -{value}%",
+"scan_speed_delta": "Scangeschwindigkeit: +{value}%",
+"scan_speed_final": "Scangeschwindigkeit: {value}%",
+"scan_support_delta": "Support: +{value}%",
+"scan_support_final": "Support: +{value}%",
+"storage_capacity_delta": "Lagerkapazität: +{value}%",
+"storage_capacity_final": "Lagerkapazität: {value}"
+}

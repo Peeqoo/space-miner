@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ProductionDefinition" format=3 uid="uid://jmnhilecb0h1"]
+
+[ext_resource type="Script" uid="uid://dxxon7yjvu8v8" path="res://resources/definitions/production_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "colony_ship"
+unit_key = "colony_ships"
+cost = {
+"Aluminium": 40,
+"Carbon": 20,
+"Hydrogen": 20,
+"Iron": 80,
+"Water": 30
+}
+sort_order = 2
+short_description = "Errichtet neue Basen in Systemen."
+effect_lines = ["Wird bei Kolonisierung verbraucht"]

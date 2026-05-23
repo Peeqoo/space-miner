@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ProductionDefinition" format=3 uid="uid://dcn8sav0mre1f"]
+
+[ext_resource type="Script" uid="uid://dxxon7yjvu8v8" path="res://resources/definitions/production_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "scan_drone"
+unit_key = "drones"
+cost = {
+"Copper": 5,
+"Iron": 10
+}
+short_description = "Scannt Himmelskörper und deckt Ressourcen auf."
+effect_lines = ["Unterstützt MiningShips"]

@@ -8,15 +8,18 @@ signal automation_state_changed
 const DRONE_SCENE: PackedScene = preload("res://scenes/automation/drone.tscn")
 const MINING_SHIP_SCENE: PackedScene = preload("res://scenes/automation/mining_ship.tscn")
 
-const DEFAULT_SCAN_DURATION: float = 2.0
+const UNIT_ID_SCAN_DRONE := "scan_drone"
+const UNIT_ID_MINING_SHIP := "mining_ship"
+
+## Safety fallbacks only when `UnitDefinition` fails to load — not the primary data source.
+const DEFAULT_SCAN_DURATION_FALLBACK: float = 2.0
+const DEFAULT_MINING_CARGO_CAPACITY_FALLBACK: int = 20
+const DEFAULT_MINING_RATE_PER_SECOND_FALLBACK: float = 2.0
+const DEFAULT_MINING_UNLOAD_DURATION_FALLBACK: float = 2.0
+
 # Work duration is intentionally huge: mining completes when internal cargo fills,
 # not when AutomationUnit.work_timer runs out.
 const DEFAULT_MINING_DURATION: float = 999999.0
-const DEFAULT_MINING_CARGO_CAPACITY: int = 20
-const DEFAULT_MINING_RATE_PER_SECOND: float = 2.0
-const DEFAULT_MINING_UNLOAD_DURATION: float = 2.0
-## Deprecated: yield per supporting scan drone now comes from `GameSession` / upgrade data.
-const DRONE_MINING_BONUS_PER_UNIT: float = 0.02
 
 var automation_root: Node2D
 var spawner: SystemSpawner
@@ -46,6 +49,47 @@ var scan_drone_target_by_unit_id: Dictionary = {}
 
 ## Coalesces automation_state_changed emits to at most once per idle frame (fewer UI rebuilds).
 var _automation_state_emit_scheduled: bool = false
+
+var _unit_catalog: UnitCatalog = null
+
+
+func _ensure_unit_catalog() -> UnitCatalog:
+	if _unit_catalog == null:
+		_unit_catalog = UnitCatalog.new()
+		_unit_catalog.load_all()
+	return _unit_catalog
+
+
+func _get_scan_duration_seconds_base() -> float:
+	var def := _ensure_unit_catalog().get_definition(UNIT_ID_SCAN_DRONE)
+	if def != null and def.scan_duration_seconds > 0.0:
+		return def.scan_duration_seconds
+	push_warning("AutomationController: using fallback scan duration (definition missing or invalid)")
+	return DEFAULT_SCAN_DURATION_FALLBACK
+
+
+func _get_mining_cargo_capacity_base() -> int:
+	var def := _ensure_unit_catalog().get_definition(UNIT_ID_MINING_SHIP)
+	if def != null and def.mining_cargo_capacity > 0:
+		return def.mining_cargo_capacity
+	push_warning("AutomationController: using fallback mining cargo capacity (definition missing or invalid)")
+	return DEFAULT_MINING_CARGO_CAPACITY_FALLBACK
+
+
+func _get_mining_rate_per_second_base() -> float:
+	var def := _ensure_unit_catalog().get_definition(UNIT_ID_MINING_SHIP)
+	if def != null and def.mining_rate_per_second > 0.0:
+		return def.mining_rate_per_second
+	push_warning("AutomationController: using fallback mining rate (definition missing or invalid)")
+	return DEFAULT_MINING_RATE_PER_SECOND_FALLBACK
+
+
+func _get_mining_unload_duration_seconds_base() -> float:
+	var def := _ensure_unit_catalog().get_definition(UNIT_ID_MINING_SHIP)
+	if def != null and def.mining_unload_duration_seconds > 0.0:
+		return def.mining_unload_duration_seconds
+	push_warning("AutomationController: using fallback mining unload duration (definition missing or invalid)")
+	return DEFAULT_MINING_UNLOAD_DURATION_FALLBACK
 
 
 func _get_session_base_id() -> String:
@@ -122,7 +166,7 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 		if unit == null:
 			continue
 
-		unit.work_duration = DEFAULT_SCAN_DURATION
+		unit.work_duration = _get_scan_duration_seconds_base()
 		unit.start_orbiting_base(base_node)
 		idle_drones.append(unit)
 
@@ -173,7 +217,7 @@ func spawn_idle_drone_at_base(base_id: String = "") -> void:
 	if unit == null:
 		return
 
-	unit.work_duration = DEFAULT_SCAN_DURATION
+	unit.work_duration = _get_scan_duration_seconds_base()
 	unit.start_orbiting_base(base_node)
 	idle_drones.append(unit)
 
@@ -244,7 +288,7 @@ func launch_scan_drone(target_id: String) -> void:
 	_ensure_returned_to_base_connected(unit)
 
 	unit.work_duration = (
-		DEFAULT_SCAN_DURATION
+		_get_scan_duration_seconds_base()
 		* GameSession.get_scan_drone_scan_duration_multiplier(session_bid_ls)
 	)
 
@@ -301,7 +345,7 @@ func launch_mining_ship(target_id: String) -> bool:
 		1,
 		int(
 			round(
-				float(DEFAULT_MINING_CARGO_CAPACITY)
+				float(_get_mining_cargo_capacity_base())
 				* GameSession.get_mining_ship_cargo_capacity_multiplier(mining_base_id)
 			)
 		)
@@ -316,8 +360,8 @@ func launch_mining_ship(target_id: String) -> bool:
 		"cargo_resource_id": "",
 		"current_cargo": 0.0,
 		"cargo_capacity": cargo_cap_mission,
-		"mining_rate_per_second": DEFAULT_MINING_RATE_PER_SECOND,
-		"unload_duration": DEFAULT_MINING_UNLOAD_DURATION,
+		"mining_rate_per_second": _get_mining_rate_per_second_base(),
+		"unload_duration": _get_mining_unload_duration_seconds_base(),
 		"unload_timer": 0.0,
 		"unload_xfer_buffers": {} as Dictionary,
 		"loop_active": true,
@@ -348,7 +392,11 @@ func has_mining_candidates_for_target(object_id: String) -> bool:
 	if definition == null:
 		return false
 
-	var allowed_entries: Array = _get_allowed_scanned_entries_for_object_scan(definition, scan_state)
+	var allowed_entries: Array = _get_allowed_scanned_entries_for_object_scan(
+		definition,
+		scan_state,
+		GameSession.get_unlocked_mining_layer_for_base(_get_session_base_id())
+	)
 	var probe_ids: Array = []
 
 	for entry_variant: Variant in allowed_entries:
@@ -675,10 +723,16 @@ func _complete_scan_mission(target_id: String) -> void:
 	if GameSession.current_system_id.is_empty():
 		return
 
+	var session_base_id: String = _get_session_base_id()
+	var unlocked_scan_layer: int = GameSession.get_unlocked_scan_layer_for_base(session_base_id)
+	var completion_state: String = GameSession.scan_completion_state_for_unlocked_scan_layer(
+		unlocked_scan_layer
+	)
+
 	GameSession.set_object_scan_state(
 		GameSession.current_system_id,
 		target_id,
-		GameSession.SCAN_BASIC
+		completion_state
 	)
 
 	var target_node: Node2D = _get_target_node(target_id)
@@ -693,8 +747,8 @@ func _complete_scan_mission(target_id: String) -> void:
 
 	var visible_resources: Array = _get_visible_resource_entries_for_scan_state(
 		definition,
-		GameSession.get_active_scanner_tier(),
-		GameSession.SCAN_BASIC
+		unlocked_scan_layer,
+		completion_state
 	)
 
 	GameSession.ensure_object_resources_initialized(
@@ -741,7 +795,7 @@ func _process(delta: float) -> void:
 					sid_min = GameSession.current_system_id
 
 				var target_id_min: String = str(runtime.get("target_id", ""))
-				var cargo_cap_min: int = int(runtime.get("cargo_capacity", DEFAULT_MINING_CARGO_CAPACITY))
+				var cargo_cap_min: int = int(runtime.get("cargo_capacity", _get_mining_cargo_capacity_base()))
 
 				var cargo_res_min: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
 				var cargo_total_min: int = _cargo_resources_total(cargo_res_min)
@@ -821,7 +875,7 @@ func _process(delta: float) -> void:
 					continue
 
 				var mining_rate_min: float = float(
-					runtime.get("mining_rate_per_second", DEFAULT_MINING_RATE_PER_SECOND)
+					runtime.get("mining_rate_per_second", _get_mining_rate_per_second_base())
 				)
 				var bonus_min: float = get_mining_bonus_for_target(target_id_min)
 				var effective_rate_min: float = mining_rate_min * (1.0 + bonus_min)
@@ -928,7 +982,7 @@ func _process(delta: float) -> void:
 				var base_id_ul: String = _runtime_base_id_with_session_fallback(runtime)
 				var unload_timer_ul: float = float(runtime.get("unload_timer", 0.0))
 				var unload_dur_ul: float = float(
-					runtime.get("unload_duration", DEFAULT_MINING_UNLOAD_DURATION)
+					runtime.get("unload_duration", _get_mining_unload_duration_seconds_base())
 				)
 
 				var cargo_res_ul: Dictionary = runtime.get("cargo_resources", {}) as Dictionary
@@ -1149,7 +1203,7 @@ func _on_mining_ship_returned_to_base(unit: AutomationUnit) -> void:
 	if total_rb <= 0:
 		runtime["unload_timer"] = 0.0
 	else:
-		runtime["unload_timer"] = float(runtime.get("unload_duration", DEFAULT_MINING_UNLOAD_DURATION))
+		runtime["unload_timer"] = float(runtime.get("unload_duration", _get_mining_unload_duration_seconds_base()))
 
 	runtime["status"] = MiningShipStatus.UNLOADING
 	mining_ship_runtime_by_unit_id[unit_id] = runtime
@@ -1313,7 +1367,7 @@ func _get_definition_from_target_node(target_node: Node2D) -> Resource:
 
 func _get_visible_resource_entries_for_scan_state(
 	definition: Resource,
-	scanner_tier: String,
+	unlocked_scan_layer: int,
 	scan_state: String
 ) -> Array:
 	var result: Array = []
@@ -1329,7 +1383,7 @@ func _get_visible_resource_entries_for_scan_state(
 				definition,
 				&"get_basic_scan_resources",
 				GameSession.SCANNER_BASIC,
-				scanner_tier
+				unlocked_scan_layer
 			)
 		)
 
@@ -1339,7 +1393,7 @@ func _get_visible_resource_entries_for_scan_state(
 				definition,
 				&"get_deep_scan_resources",
 				GameSession.SCANNER_DEEP,
-				scanner_tier
+				unlocked_scan_layer
 			)
 		)
 
@@ -1349,7 +1403,7 @@ func _get_visible_resource_entries_for_scan_state(
 				definition,
 				&"get_special_scan_resources",
 				GameSession.SCANNER_SPECIAL,
-				scanner_tier
+				unlocked_scan_layer
 			)
 		)
 
@@ -1360,7 +1414,7 @@ func _get_resource_entries_for_tier(
 	definition: Resource,
 	method_name: StringName,
 	resource_tier: String,
-	scanner_tier: String
+	unlocked_scan_layer: int
 ) -> Array:
 	var result: Array = []
 
@@ -1370,7 +1424,7 @@ func _get_resource_entries_for_tier(
 	if not definition.has_method(method_name):
 		return result
 
-	if not _can_scanner_see_resource_tier(scanner_tier, resource_tier):
+	if not _can_unlocked_scan_layer_see_resource_tier(unlocked_scan_layer, resource_tier):
 		return result
 
 	var entries: Array = definition.call(method_name)
@@ -1381,19 +1435,11 @@ func _get_resource_entries_for_tier(
 	return result
 
 
-func _can_scanner_see_resource_tier(scanner_tier: String, resource_tier: String) -> bool:
-	match scanner_tier:
-		GameSession.SCANNER_BASIC:
-			return resource_tier == GameSession.SCANNER_BASIC
-
-		GameSession.SCANNER_DEEP:
-			return resource_tier == GameSession.SCANNER_BASIC or resource_tier == GameSession.SCANNER_DEEP
-
-		GameSession.SCANNER_SPECIAL:
-			return true
-
-		_:
-			return false
+func _can_unlocked_scan_layer_see_resource_tier(
+	unlocked_scan_layer: int,
+	resource_tier: String
+) -> bool:
+	return unlocked_scan_layer >= GameSession.resource_tier_string_to_layer_int(resource_tier)
 
 
 func _get_object_id_from_node(node: Node) -> String:
@@ -1522,7 +1568,11 @@ func _append_scanned_entries_from_method(dst: Array, definition: Resource, metho
 			dst.append(sre)
 
 
-func _get_allowed_scanned_entries_for_object_scan(definition: Resource, scan_state: String) -> Array:
+func _get_allowed_scanned_entries_for_object_scan(
+	definition: Resource,
+	scan_state: String,
+	unlocked_mining_layer: int = ScannedResourceEntry.Layer.BASIC
+) -> Array:
 	var out: Array = []
 
 	if definition == null:
@@ -1541,7 +1591,19 @@ func _get_allowed_scanned_entries_for_object_scan(definition: Resource, scan_sta
 		_:
 			pass
 
-	return out
+	return _filter_scanned_entries_for_mining_layer(out, unlocked_mining_layer)
+
+
+func _filter_scanned_entries_for_mining_layer(entries: Array, unlocked_mining_layer: int) -> Array:
+	var filtered: Array = []
+	for entry_variant: Variant in entries:
+		var entry: ScannedResourceEntry = entry_variant as ScannedResourceEntry
+		if entry == null:
+			continue
+		if int(entry.layer) > unlocked_mining_layer:
+			continue
+		filtered.append(entry)
+	return filtered
 
 
 func _list_mining_weighted_candidates(
@@ -1555,7 +1617,11 @@ func _list_mining_weighted_candidates(
 	if system_id.is_empty() or object_id.is_empty():
 		return result
 
-	var entries: Array = _get_allowed_scanned_entries_for_object_scan(definition, scan_state)
+	var entries: Array = _get_allowed_scanned_entries_for_object_scan(
+		definition,
+		scan_state,
+		GameSession.get_unlocked_mining_layer_for_base(_get_session_base_id())
+	)
 	var by_id: Dictionary = {} as Dictionary
 
 	for entry_variant: Variant in entries:

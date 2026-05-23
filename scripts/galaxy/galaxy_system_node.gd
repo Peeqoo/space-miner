@@ -110,12 +110,10 @@ func apply_progression_state() -> void:
 	if system_definition == null:
 		return
 
-	var is_unlocked: bool = GameSession.is_system_unlocked(system_definition.id)
-	var canvas: CanvasItem = body_sprite if body_sprite != null else self
-	if is_unlocked:
-		canvas.modulate = Color(1.0, 1.0, 1.0, 1.0)
-	else:
-		canvas.modulate = Color(0.55, 0.55, 0.55, 0.55)
+	if body_sprite != null:
+		body_sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		body_sprite.self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+	modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:

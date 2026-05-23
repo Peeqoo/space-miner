@@ -2,24 +2,23 @@
 
 [ext_resource type="Script" uid="uid://0a2kf782psjp" path="res://scripts/ui/system/base_management_panel.gd" id="1_base_panel"]
 [ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/titel_label.tres" id="2_kq77j"]
-[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="3_4em1t"]
 [ext_resource type="FontFile" uid="uid://biga5mah242s8" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_kq77j"]
+[ext_resource type="Texture2D" uid="uid://cetanfgcejvo8" path="res://assets/sprites/ui/landscapes/Landscapes/Terran/2.png" id="4_3xxhb"]
+[ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="5_3xxhb"]
 [ext_resource type="FontFile" uid="uid://bt3p1wh0fgq6" path="res://assets/fonts/PixelOperatorHBSC.ttf" id="5_4em1t"]
 
 [node name="BaseManagementPanel" type="PanelContainer" unique_id=995273956]
 custom_minimum_size = Vector2(170, 0)
-offset_left = 6.0
-offset_top = 6.0
-offset_right = 176.0
-offset_bottom = 6.0
+offset_right = 170.0
+offset_bottom = 162.0
 script = ExtResource("1_base_panel")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=1006074701]
 layout_mode = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
 
 [node name="Root" type="VBoxContainer" parent="Margin" unique_id=619935699]
 layout_mode = 2
@@ -36,65 +35,65 @@ label_settings = ExtResource("2_kq77j")
 [node name="CloseBasePanelButton" type="Button" parent="Margin/Root/HeaderRow" unique_id=1790966029]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kq77j")
-theme_override_font_sizes/font_size = 4
+theme_override_font_sizes/font_size = 6
 text = "x"
 
 [node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=94281195]
 layout_mode = 2
-theme_override_constants/separation = 0
 
 [node name="MainRow" type="HBoxContainer" parent="Margin/Root" unique_id=1461824378]
 layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="PreviewPanel" type="PanelContainer" parent="Margin/Root/MainRow" unique_id=948920512]
-custom_minimum_size = Vector2(42, 42)
+custom_minimum_size = Vector2(62, 52)
 layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 0
+size_flags_horizontal = 4
+size_flags_vertical = 4
 
 [node name="PreviewCenter" type="CenterContainer" parent="Margin/Root/MainRow/PreviewPanel" unique_id=311240413]
+custom_minimum_size = Vector2(58, 48)
 layout_mode = 2
 
 [node name="PreviewTexture" type="TextureRect" parent="Margin/Root/MainRow/PreviewPanel/PreviewCenter" unique_id=1493017759]
-custom_minimum_size = Vector2(36, 36)
+custom_minimum_size = Vector2(56, 46)
 layout_mode = 2
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
+texture = ExtResource("4_3xxhb")
+expand_mode = 5
+stretch_mode = 6
 
 [node name="MetaColumn" type="VBoxContainer" parent="Margin/Root/MainRow" unique_id=2025853276]
 layout_mode = 2
 theme_override_constants/separation = 2
+alignment = 1
 
 [node name="BaseNameLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=941842450]
 layout_mode = 2
 text = "Earth Base"
-label_settings = ExtResource("3_4em1t")
+label_settings = ExtResource("5_3xxhb")
 
 [node name="StatusLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=1160767719]
 layout_mode = 2
 text = "Homebasis"
-label_settings = ExtResource("3_4em1t")
+label_settings = ExtResource("5_3xxhb")
 
 [node name="PopulationLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=1423240984]
 layout_mode = 2
 text = "Population: 1"
-label_settings = ExtResource("3_4em1t")
+label_settings = ExtResource("5_3xxhb")
 
 [node name="FoodLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=658561264]
 layout_mode = 2
 text = "Food: -"
-label_settings = ExtResource("3_4em1t")
+label_settings = ExtResource("5_3xxhb")
 
 [node name="PopulationGrowthLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=470783230]
 layout_mode = 2
 text = "Growth: -"
-label_settings = ExtResource("3_4em1t")
+label_settings = ExtResource("5_3xxhb")
 
 [node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=1435959339]
 layout_mode = 2
-theme_override_constants/separation = 0
 
 [node name="ManagementButtonSection" type="VBoxContainer" parent="Margin/Root" unique_id=685243678]
 layout_mode = 2
@@ -103,21 +102,20 @@ theme_override_constants/separation = 2
 [node name="OpenProductionButton" type="Button" parent="Margin/Root/ManagementButtonSection" unique_id=377406676]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("5_4em1t")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "Production"
 
 [node name="OpenUpgradeButton" type="Button" parent="Margin/Root/ManagementButtonSection" unique_id=1067151551]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("5_4em1t")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "Upgrades"
 
 [node name="OpenStorageButton" type="Button" parent="Margin/Root/ManagementButtonSection" unique_id=2100567123]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("5_4em1t")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "Storage"
 
 [node name="DividerC" type="HSeparator" parent="Margin/Root" unique_id=1727888585]
 layout_mode = 2
-theme_override_constants/separation = 0

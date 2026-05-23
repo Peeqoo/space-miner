@@ -4,30 +4,54 @@
 [ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_qsy51"]
 [ext_resource type="Texture2D" uid="uid://ckmthn4f332ki" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mars/1.png" id="2_puof5"]
 
-[sub_resource type="Resource" id="Resource_3yfu8"]
-script = ExtResource("1_qsy51")
-resource_id = &"Water"
-richness_percent = 90
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
-
-[sub_resource type="Resource" id="Resource_qsy51"]
+[sub_resource type="Resource" id="mars_res_iron"]
 script = ExtResource("1_qsy51")
 resource_id = &"Iron"
-richness_percent = 90
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
+richness_percent = 60
+deposit_amount = 12000
 
-[sub_resource type="Resource" id="Resource_fxs00"]
+[sub_resource type="Resource" id="mars_res_silicon"]
 script = ExtResource("1_qsy51")
-resource_id = &"Rare Earth Elements"
-richness_percent = 30
-layer = 2
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
+resource_id = &"Silicon"
+richness_percent = 50
 
-[sub_resource type="Resource" id="Resource_ykjev"]
+[sub_resource type="Resource" id="mars_res_carbon"]
+script = ExtResource("1_qsy51")
+resource_id = &"Carbon"
+richness_percent = 45
+deposit_amount = 9000
+
+[sub_resource type="Resource" id="mars_res_water"]
+script = ExtResource("1_qsy51")
+resource_id = &"Water"
+deposit_amount = 8000
+
+[sub_resource type="Resource" id="mars_res_copper"]
 script = ExtResource("1_qsy51")
 resource_id = &"Copper"
-richness_percent = 90
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
+richness_percent = 18
+deposit_amount = 5000
+
+[sub_resource type="Resource" id="mars_res_magnesium"]
+script = ExtResource("1_qsy51")
+resource_id = &"Magnesium"
+richness_percent = 30
+deposit_amount = 6000
+layer = 1
+
+[sub_resource type="Resource" id="mars_res_aluminium"]
+script = ExtResource("1_qsy51")
+resource_id = &"Aluminium"
+richness_percent = 25
+deposit_amount = 6000
+layer = 1
+
+[sub_resource type="Resource" id="mars_res_nickel"]
+script = ExtResource("1_qsy51")
+resource_id = &"Nickel"
+richness_percent = 15
+deposit_amount = 4000
+layer = 1
 
 [resource]
 script = ExtResource("1_fodo3")
@@ -46,5 +70,5 @@ reference_orbit_au = 1.52
 reference_period_days = 687.0
 size_authoring_mode = 1
 gameplay_orbit_bias = 1.42
-scan_resources = Array[ExtResource("1_qsy51")]([SubResource("Resource_3yfu8"), SubResource("Resource_qsy51"), SubResource("Resource_fxs00"), SubResource("Resource_ykjev")])
+scan_resources = Array[ExtResource("1_qsy51")]([SubResource("mars_res_iron"), SubResource("mars_res_silicon"), SubResource("mars_res_carbon"), SubResource("mars_res_water"), SubResource("mars_res_copper"), SubResource("mars_res_magnesium"), SubResource("mars_res_aluminium"), SubResource("mars_res_nickel")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ScannedResourceEntry" format=3 uid="uid://b8aev3q80d0f3"]
+
+[ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+resource_id = &"Cobalt"
+richness_percent = 10
+layer = 1

@@ -3,20 +3,6 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_onv7t"]
 [ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_waq7n"]
 [ext_resource type="Texture2D" uid="uid://4l8vep62kyq" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Neptune/1.png" id="2_123c8"]
-[ext_resource type="Resource" uid="uid://bilt1hotrn4ip" path="res://data/planet_resources/antimatter_precursors.tres" id="4_6kwjp"]
-
-[sub_resource type="Resource" id="Resource_me0bn"]
-script = ExtResource("1_waq7n")
-resource_id = &"Methane"
-richness_percent = 90
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
-
-[sub_resource type="Resource" id="Resource_ex0dn"]
-script = ExtResource("1_waq7n")
-resource_id = &"Exotic Gas"
-richness_percent = 30
-layer = 1
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
 
 [resource]
 script = ExtResource("1_onv7t")
@@ -34,5 +20,4 @@ reference_radius_earth = 3.88
 reference_orbit_au = 30.07
 reference_period_days = 60196.0
 size_authoring_mode = 1
-scan_resources = Array[ExtResource("1_waq7n")]([SubResource("Resource_me0bn"), SubResource("Resource_ex0dn"), ExtResource("4_6kwjp")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

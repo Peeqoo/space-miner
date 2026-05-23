@@ -110,9 +110,6 @@ func refresh_from_game_session() -> void:
 	var population := GameSession.get_base_population(base_id)
 	population_label.text = "Population: %d" % population
 
-	call_deferred("_fit_height_to_content")
-
-
 
 func _on_close_base_panel_pressed() -> void:
 	hide_panel()
@@ -140,16 +137,6 @@ func _on_open_storage_pressed() -> void:
 func _connect_button(button: Button, callback: Callable) -> void:
 	if button != null and not button.pressed.is_connected(callback):
 		button.pressed.connect(callback)
-
-
-func _fit_height_to_content() -> void:
-	var fixed_width := custom_minimum_size.x
-	if fixed_width <= 0.0:
-		fixed_width = size.x
-	var saved_pos := position
-	var target_size := get_combined_minimum_size()
-	size = Vector2(fixed_width, target_size.y)
-	position = saved_pos
 
 
 func _get_current_base_id() -> String:

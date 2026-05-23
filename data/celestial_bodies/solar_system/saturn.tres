@@ -4,38 +4,31 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_ak16d"]
 [ext_resource type="Texture2D" uid="uid://dmkyem5otemdk" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Saturn/With_rings/1.png" id="2_4ya0n"]
 
-[sub_resource type="Resource" id="Resource_tib0c"]
-script = ExtResource("1_2q1uy")
-resource_id = &"Copper"
-richness_percent = 60
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
-
-[sub_resource type="Resource" id="Resource_ivy0k"]
-script = ExtResource("1_2q1uy")
-resource_id = &"Iron"
-richness_percent = 90
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
-
-[sub_resource type="Resource" id="Resource_2jg7d"]
-script = ExtResource("1_2q1uy")
-resource_id = &"Methane"
-richness_percent = 90
-layer = 1
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
-
-[sub_resource type="Resource" id="Resource_2q1uy"]
+[sub_resource type="Resource" id="saturn_res_hydrogen"]
 script = ExtResource("1_2q1uy")
 resource_id = &"Hydrogen"
-richness_percent = 90
-layer = 1
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
+richness_percent = 80
+deposit_amount = 16000
 
-[sub_resource type="Resource" id="Resource_v6405"]
+[sub_resource type="Resource" id="saturn_res_carbon"]
 script = ExtResource("1_2q1uy")
-resource_id = &"Helium-3"
-richness_percent = 30
-layer = 2
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
+resource_id = &"Carbon"
+richness_percent = 20
+deposit_amount = 6000
+
+[sub_resource type="Resource" id="saturn_res_helium"]
+script = ExtResource("1_2q1uy")
+resource_id = &"Helium"
+richness_percent = 40
+deposit_amount = 9000
+layer = 1
+
+[sub_resource type="Resource" id="saturn_res_methane"]
+script = ExtResource("1_2q1uy")
+resource_id = &"Methane"
+richness_percent = 40
+deposit_amount = 9000
+layer = 1
 
 [resource]
 script = ExtResource("1_ak16d")
@@ -53,5 +46,5 @@ reference_radius_earth = 9.45
 reference_orbit_au = 9.54
 reference_period_days = 10762.0
 size_authoring_mode = 1
-scan_resources = Array[ExtResource("1_2q1uy")]([SubResource("Resource_tib0c"), SubResource("Resource_ivy0k"), SubResource("Resource_2jg7d"), SubResource("Resource_2q1uy"), SubResource("Resource_v6405")])
+scan_resources = Array[ExtResource("1_2q1uy")]([SubResource("saturn_res_hydrogen"), SubResource("saturn_res_carbon"), SubResource("saturn_res_helium"), SubResource("saturn_res_methane")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

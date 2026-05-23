@@ -12,7 +12,11 @@ const SCAN_BASIC := ObjectScanStore.SCAN_BASIC
 const SCAN_DEEP := ObjectScanStore.SCAN_DEEP
 const SCAN_SPECIAL := ObjectScanStore.SCAN_SPECIAL
 
-const COLONIZATION_OPERATION_DURATION_MS := 60000
+const DEFAULT_GAME_START_DEFINITION_PATH := "res://data/game_start/default_start.tres"
+const DEFAULT_COLONIZATION_DEFINITION_PATH := "res://data/colonization/default_colonization.tres"
+const DEFAULT_UPGRADE_EFFECT_TEXTS_PATH := "res://data/ui_text/upgrade_effect_texts.tres"
+## Safety fallback only when `ColonizationDefinition` fails to load — not the primary data source.
+const COLONIZATION_OPERATION_DURATION_MS_FALLBACK := 60000
 
 const SCANNER_BASIC := ScannerStore.SCANNER_BASIC
 const SCANNER_DEEP := ScannerStore.SCANNER_DEEP
@@ -30,11 +34,18 @@ var scanner := ScannerStore.new()
 
 ## Phase 5.5: data-driven upgrade tiers (`data/upgrades/*.tres`).
 var upgrade_catalog: UpgradeCatalog = null
+## Data-driven production build costs (`data/production/*.tres`).
+var production_catalog: ProductionCatalog = null
+## Data-driven colonization operation balancing (`data/colonization/*.tres`).
+var colonization_definition: ColonizationDefinition = null
+## Data-driven new-game start (`data/game_start/*.tres`). Not applied on Continue/Load.
+var game_start_definition: GameStartDefinition = null
 
 ## Phase 6.1b: session-only galaxy progression (no savegame).
 var discovered_system_ids: Array[String] = []
 var unlocked_system_ids: Array[String] = []
 var _galaxy_progression_seeded: bool = false
+var _system_definition_by_id: Dictionary = {}
 
 ## Phase 6.3e: bases that truly exist (`BaseStore.get_base` auto-inserts placeholders — NOT established).
 ## Mirrors keys in `_established_base_records` for quick membership checks / compatibility.
@@ -50,6 +61,7 @@ var _next_colonization_operation_id: int = 1
 
 signal object_remaining_resources_changed(system_id: String, object_id: String)
 signal base_resources_changed(base_id: String)
+signal base_upgrades_changed(base_id: String)
 ## Emitted when `discovered_system_ids` or `unlocked_system_ids` change (not during initial seed).
 signal galaxy_progression_changed()
 
@@ -62,6 +74,15 @@ func _ready() -> void:
 	upgrade_catalog = UpgradeCatalog.new()
 	upgrade_catalog.load_all()
 	bases.set_upgrade_catalog(upgrade_catalog)
+
+	production_catalog = ProductionCatalog.new()
+	production_catalog.load_all()
+	bases.set_production_catalog(production_catalog)
+
+	_load_colonization_definition()
+	_load_game_start_definition()
+	_load_upgrade_effect_texts()
+
 	mark_base_established(BaseStore.BASE_EARTH)
 	ensure_default_system_loaded()
 
@@ -117,12 +138,56 @@ func ensure_galaxy_progression_boot() -> void:
 	_seed_default_galaxy_progression()
 
 
-func _seed_default_galaxy_progression() -> void:
+func _load_game_start_definition() -> void:
+	var res: Resource = load(DEFAULT_GAME_START_DEFINITION_PATH)
+	if res is GameStartDefinition:
+		game_start_definition = res as GameStartDefinition
+		return
+	push_warning(
+		"GameSession: failed to load GameStartDefinition from %s"
+		% DEFAULT_GAME_START_DEFINITION_PATH
+	)
+	game_start_definition = null
+
+
+func _get_game_start_definition() -> GameStartDefinition:
+	if game_start_definition == null:
+		_load_game_start_definition()
+	return game_start_definition
+
+
+func _get_preferred_colonization_source_base_id() -> String:
+	var def := _get_game_start_definition()
+	if def != null:
+		var pid := def.preferred_colonization_source_base_id.strip_edges()
+		if not pid.is_empty():
+			return pid
+	return BaseStore.BASE_EARTH
+
+
+func _apply_galaxy_progression_from_game_start(def: GameStartDefinition) -> void:
 	discovered_system_ids.clear()
 	unlocked_system_ids.clear()
-	discovered_system_ids.append(START_SYSTEM_ID)
-	unlocked_system_ids.append(START_SYSTEM_ID)
-	discovered_system_ids.append(PROXIMA_SYSTEM_ID)
+	if def == null:
+		push_warning("GameSession: using fallback galaxy progression seed (GameStartDefinition missing)")
+		discovered_system_ids.append(START_SYSTEM_ID)
+		unlocked_system_ids.append(START_SYSTEM_ID)
+		discovered_system_ids.append(PROXIMA_SYSTEM_ID)
+		return
+	for sid_var: Variant in def.discovered_system_ids:
+		var sid := str(sid_var).strip_edges()
+		if sid.is_empty() or discovered_system_ids.has(sid):
+			continue
+		discovered_system_ids.append(sid)
+	for uid_var: Variant in def.unlocked_system_ids:
+		var uid := str(uid_var).strip_edges()
+		if uid.is_empty() or unlocked_system_ids.has(uid):
+			continue
+		unlocked_system_ids.append(uid)
+
+
+func _seed_default_galaxy_progression() -> void:
+	_apply_galaxy_progression_from_game_start(_get_game_start_definition())
 
 
 func is_system_discovered(system_id: String) -> bool:
@@ -130,13 +195,6 @@ func is_system_discovered(system_id: String) -> bool:
 	if sid.is_empty():
 		return false
 	return discovered_system_ids.has(sid)
-
-
-func is_system_unlocked(system_id: String) -> bool:
-	var sid := system_id.strip_edges()
-	if sid.is_empty():
-		return false
-	return unlocked_system_ids.has(sid)
 
 
 func discover_system(system_id: String) -> void:
@@ -162,6 +220,25 @@ func unlock_system(system_id: String) -> void:
 		changed = true
 	if changed:
 		galaxy_progression_changed.emit()
+
+
+## Galaxy map / system entry: whether the player may open this system view.
+func can_enter_system(system_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return false
+	if sid == START_SYSTEM_ID:
+		return true
+	if has_established_base_in_system(sid):
+		return true
+	if has_pending_colonization_to_system(sid):
+		return true
+
+	var source_base_id := get_colonization_source_base_id()
+	if source_base_id.is_empty():
+		return false
+
+	return get_base_colony_ship_count(source_base_id) > 0
 
 
 # --------------------------------------------------
@@ -281,6 +358,37 @@ func establish_base_at_body(system_id: String, body_id: String) -> bool:
 # --------------------------------------------------
 
 
+func _load_colonization_definition() -> void:
+	var res: Resource = load(DEFAULT_COLONIZATION_DEFINITION_PATH)
+	if res is ColonizationDefinition:
+		colonization_definition = res as ColonizationDefinition
+		return
+	push_warning(
+		"GameSession: failed to load ColonizationDefinition from %s"
+		% DEFAULT_COLONIZATION_DEFINITION_PATH
+	)
+	colonization_definition = null
+
+
+func _load_upgrade_effect_texts() -> void:
+	var res: Resource = load(DEFAULT_UPGRADE_EFFECT_TEXTS_PATH)
+	if res is UpgradeEffectTextDefinition:
+		UpgradeDefinition.set_effect_texts(res as UpgradeEffectTextDefinition)
+		return
+	push_warning(
+		"GameSession: failed to load UpgradeEffectTextDefinition from %s"
+		% DEFAULT_UPGRADE_EFFECT_TEXTS_PATH
+	)
+	UpgradeDefinition.set_effect_texts(null)
+
+
+func get_colonization_operation_duration_ms() -> int:
+	if colonization_definition != null and colonization_definition.operation_duration_ms > 0:
+		return colonization_definition.operation_duration_ms
+	push_warning("GameSession: using fallback colonization operation duration (definition missing or invalid)")
+	return COLONIZATION_OPERATION_DURATION_MS_FALLBACK
+
+
 func start_colonization_operation(source_base_id: String, target_system_id: String, target_body_id: String) -> String:
 	var src := source_base_id.strip_edges()
 	var tsid := target_system_id.strip_edges()
@@ -314,6 +422,7 @@ func start_colonization_operation(source_base_id: String, target_system_id: Stri
 
 	var op_id := _allocate_colonization_operation_id()
 	var created_tick: int = Time.get_ticks_msec()
+	var duration_ms: int = get_colonization_operation_duration_ms()
 	var rec: Dictionary = {
 		"operation_id": op_id,
 		"source_base_id": src,
@@ -323,8 +432,8 @@ func start_colonization_operation(source_base_id: String, target_system_id: Stri
 		"reserved_colony_ships": 1,
 		"created_at_tick": created_tick,
 		"completed_at_tick": -1,
-		"duration_ms": COLONIZATION_OPERATION_DURATION_MS,
-		"arrival_at_tick": created_tick + COLONIZATION_OPERATION_DURATION_MS,
+		"duration_ms": duration_ms,
+		"arrival_at_tick": created_tick + duration_ms,
 	}
 	_colonization_operations[op_id] = rec
 	base_resources_changed.emit(src)
@@ -464,17 +573,21 @@ func get_colonization_operation_remaining_ms(operation_id: String) -> int:
 	return maxi(0, arrival - Time.get_ticks_msec())
 
 
-func get_colonization_operation_status_text(operation_id: String) -> String:
+func get_colonization_operation_status_view(operation_id: String) -> Dictionary:
 	var rec := get_colonization_operation(operation_id)
 	if rec.is_empty():
-		return ""
-	if str(rec.get("status", "")).strip_edges() != "pending":
-		return ""
+		return {}
+
+	var status := str(rec.get("status", "")).strip_edges()
+	if status != "pending":
+		return {"status_key": status}
+
 	var remaining_ms: int = get_colonization_operation_remaining_ms(operation_id)
 	if remaining_ms <= 0:
-		return "Bereit zur Ankunft"
+		return {"status_key": "ready", "remaining_sec": 0}
+
 	var sec: int = int(ceil(float(remaining_ms) / 1000.0))
-	return "Läuft %ds" % sec
+	return {"status_key": "pending", "remaining_sec": sec}
 
 
 func get_colonization_source_base_id() -> String:
@@ -493,11 +606,11 @@ func get_colonization_source_base_id() -> String:
 	if candidates.is_empty():
 		return ""
 
-	var earth_id: String = BaseStore.BASE_EARTH
+	var preferred_id: String = _get_preferred_colonization_source_base_id()
 	for c in candidates:
 		var cid: String = str(c).strip_edges()
-		if cid == earth_id:
-			return earth_id
+		if cid == preferred_id:
+			return preferred_id
 
 	candidates.sort()
 	return candidates[0]
@@ -507,14 +620,6 @@ func _allocate_colonization_operation_id() -> String:
 	var id_str: String = "colony_%d" % _next_colonization_operation_id
 	_next_colonization_operation_id += 1
 	return id_str
-
-
-## DEV / foundation: uses colonization operation flow (start → complete) for tests.
-func dev_consume_colony_ship_and_establish_base(source_base_id: String, target_system_id: String, target_body_id: String) -> bool:
-	var op_id := start_colonization_operation(source_base_id, target_system_id, target_body_id)
-	if op_id.is_empty():
-		return false
-	return complete_colonization_operation(op_id)
 
 
 func has_established_base(base_id: String) -> bool:
@@ -558,13 +663,152 @@ func _apply_established_base_record(base_id: String, system_id: String, body_id:
 	_established_base_ids[base_id] = true
 
 	## Design note: Today `body_id` is the celestial id; tomorrow `base_id` may encode a colony key.
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
 	var rec: Dictionary = {
 		"base_id": base_id,
-		"system_id": system_id.strip_edges(),
-		"body_id": body_id.strip_edges(),
+		"system_id": sid,
+		"body_id": bod,
 		"established": true,
 	}
 	_established_base_records[base_id] = rec
+	ensure_basic_intel_for_established_base(sid, bod)
+
+
+func _has_established_base_at_body(system_id: String, body_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
+	if sid.is_empty() or bod.is_empty():
+		return false
+
+	for bid_var: Variant in _established_base_records.keys():
+		var bid := str(bid_var).strip_edges()
+		if bid.is_empty():
+			continue
+		var rec := get_established_base_record(bid)
+		if rec.is_empty():
+			continue
+		if not bool(rec.get("established", false)):
+			continue
+		if str(rec.get("system_id", "")).strip_edges() != sid:
+			continue
+		if str(rec.get("body_id", "")).strip_edges() != bod:
+			continue
+		return true
+
+	return false
+
+
+## Established bases grant BASIC scan intel for that body only (no resources, no Deep/Special).
+func ensure_basic_intel_for_established_base(system_id: String, body_id: String) -> void:
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
+	if sid.is_empty() or bod.is_empty():
+		return
+	if not _has_established_base_at_body(sid, bod):
+		return
+
+	var current: String = get_object_scan_state(sid, bod)
+	if scan_state_rank(current) < scan_state_rank(SCAN_BASIC):
+		set_object_scan_state(sid, bod, SCAN_BASIC)
+
+	_ensure_object_resources_for_scan_state(sid, bod)
+
+
+func _load_body_definition_for_system(system_id: String, body_id: String) -> Resource:
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
+	if sid.is_empty() or bod.is_empty():
+		return null
+
+	var system_def := _get_system_definition_by_id(sid)
+	if system_def == null:
+		return null
+
+	for body_variant: Variant in system_def.bodies:
+		var body_def := body_variant as SystemBodyDefinition
+		if body_def != null and body_def.id == bod:
+			return body_def
+
+	return null
+
+
+func _collect_body_scan_entries_for_scan_state(body_def: Resource, scan_state: String) -> Array:
+	var result: Array = []
+	if body_def == null or not body_def.has_method(&"get_basic_scan_resources"):
+		return result
+
+	var rank: int = scan_state_rank(scan_state)
+	if rank < scan_state_rank(SCAN_BASIC):
+		return result
+
+	for entry: Variant in body_def.call(&"get_basic_scan_resources"):
+		if entry != null:
+			result.append(entry)
+
+	if rank >= scan_state_rank(SCAN_DEEP):
+		for entry_deep: Variant in body_def.call(&"get_deep_scan_resources"):
+			if entry_deep != null:
+				result.append(entry_deep)
+
+	if rank >= scan_state_rank(SCAN_SPECIAL):
+		for entry_special: Variant in body_def.call(&"get_special_scan_resources"):
+			if entry_special != null:
+				result.append(entry_special)
+
+	return result
+
+
+## Initializes deposit remaining amounts for visible scan layers (no base storage grant).
+func _ensure_object_resources_for_scan_state(system_id: String, body_id: String) -> void:
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
+	if sid.is_empty() or bod.is_empty():
+		return
+
+	if get_object_scan_state(sid, bod) == SCAN_UNKNOWN:
+		return
+
+	var body_def := _load_body_definition_for_system(sid, bod)
+	if body_def == null:
+		return
+
+	var entries: Array = _collect_body_scan_entries_for_scan_state(
+		body_def,
+		get_object_scan_state(sid, bod)
+	)
+	if entries.is_empty():
+		return
+
+	ensure_object_resources_initialized(sid, bod, entries)
+
+
+func _sync_basic_intel_from_all_established_bases() -> void:
+	for bid_var: Variant in _established_base_records.keys():
+		var bid := str(bid_var).strip_edges()
+		if bid.is_empty():
+			continue
+		var rec := get_established_base_record(bid)
+		if rec.is_empty():
+			push_warning(
+				"GameSession._sync_basic_intel_from_all_established_bases: invalid record (base_id=%s)"
+				% bid
+			)
+			continue
+		if not bool(rec.get("established", false)):
+			continue
+		var sid := str(rec.get("system_id", "")).strip_edges()
+		var bod := str(rec.get("body_id", "")).strip_edges()
+		if sid.is_empty() or bod.is_empty():
+			push_warning(
+				(
+					"GameSession._sync_basic_intel_from_all_established_bases: "
+					+ "missing system_id/body_id (base_id=%s)"
+				)
+				% bid
+			)
+			continue
+		ensure_basic_intel_for_established_base(sid, bod)
 
 
 # --------------------------------------------------
@@ -638,8 +882,15 @@ func get_active_scanner_tier() -> String:
 	return scanner.get_active_tier()
 
 
-func set_active_scanner_tier(scanner_tier: String) -> void:
-	scanner.set_active_tier(scanner_tier)
+func get_scanner_tier_for_base(base_id: String) -> String:
+	var layer := get_unlocked_scan_layer_for_base(base_id)
+	match layer:
+		ScannedResourceEntry.Layer.DEEP:
+			return SCANNER_DEEP
+		ScannedResourceEntry.Layer.SPECIAL:
+			return SCANNER_SPECIAL
+		_:
+			return SCANNER_BASIC
 
 
 # --------------------------------------------------
@@ -778,14 +1029,36 @@ func buy_next_base_upgrade(base_id: String, category: StringName) -> bool:
 	if not bases.buy_next_upgrade(base_id, nxt):
 		return false
 	base_resources_changed.emit(base_id)
+	base_upgrades_changed.emit(base_id)
 	return true
 
 
+func get_unlocked_scan_layer_for_base(base_id: String) -> int:
+	return bases.get_unlocked_scan_layer(base_id)
+
+
+func get_unlocked_mining_layer_for_base(base_id: String) -> int:
+	return bases.get_unlocked_mining_layer(base_id)
+
+
+func resource_tier_string_to_layer_int(resource_tier: String) -> int:
+	match resource_tier:
+		SCANNER_DEEP:
+			return ScannedResourceEntry.Layer.DEEP
+		SCANNER_SPECIAL:
+			return ScannedResourceEntry.Layer.SPECIAL
+		_:
+			return ScannedResourceEntry.Layer.BASIC
+
+
+func scan_completion_state_for_unlocked_scan_layer(unlocked_scan_layer: int) -> String:
+	if unlocked_scan_layer >= ScannedResourceEntry.Layer.DEEP:
+		return SCAN_DEEP
+	return SCAN_BASIC
+
+
 func get_base_storage_capacity_percent(base_id: String = BaseStore.BASE_EARTH) -> int:
-	var base0 := upgrade_catalog.get_definition(&"storage", 0) if upgrade_catalog != null else null
-	var units0 := BaseStore.INITIAL_STORAGE_CAPACITY
-	if base0 != null and base0.storage_capacity_units >= 0:
-		units0 = base0.storage_capacity_units
+	var units0 := bases.get_storage_capacity_level_zero_units()
 	var cur := get_base_storage_capacity(base_id)
 	return int(round(float(cur) / float(maxi(1, units0)) * 100.0))
 
@@ -811,56 +1084,8 @@ func get_mining_ship_cargo_capacity_percent(base_id: String = BaseStore.BASE_EAR
 	return int(round(get_mining_ship_cargo_capacity_multiplier(base_id) * 100.0))
 
 
-func can_buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return can_buy_next_base_upgrade(base_id, &"storage")
-
-
-func buy_base_storage_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return buy_next_base_upgrade(base_id, &"storage")
-
-
-func get_base_storage_upgrade_i_cost(base_id: String = BaseStore.BASE_EARTH) -> Dictionary:
-	return bases.get_storage_upgrade_i_cost(base_id)
-
-
-func is_base_storage_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return bases.is_storage_upgrade_i_bought(base_id)
-
-
-func can_buy_scan_drone_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return can_buy_next_base_upgrade(base_id, &"scan_drone")
-
-
-func buy_scan_drone_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return buy_next_base_upgrade(base_id, &"scan_drone")
-
-
-func is_scan_drone_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return bases.is_scan_drone_upgrade_i_bought(base_id)
-
-
-func get_scan_drone_upgrade_i_cost(base_id: String = BaseStore.BASE_EARTH) -> Dictionary:
-	return bases.get_scan_drone_upgrade_i_cost(base_id)
-
-
 func get_scan_drone_scan_duration_multiplier(base_id: String = BaseStore.BASE_EARTH) -> float:
 	return clampf(bases.get_scan_drone_scan_duration_multiplier(base_id), 0.05, 10.0)
-
-
-func can_buy_mining_ship_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return can_buy_next_base_upgrade(base_id, &"mining_ship")
-
-
-func buy_mining_ship_upgrade_i(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return buy_next_base_upgrade(base_id, &"mining_ship")
-
-
-func is_mining_ship_upgrade_i_bought(base_id: String = BaseStore.BASE_EARTH) -> bool:
-	return bases.is_mining_ship_upgrade_i_bought(base_id)
-
-
-func get_mining_ship_upgrade_i_cost(base_id: String = BaseStore.BASE_EARTH) -> Dictionary:
-	return bases.get_mining_ship_upgrade_i_cost(base_id)
 
 
 func get_mining_ship_cargo_capacity_multiplier(base_id: String = BaseStore.BASE_EARTH) -> float:
@@ -868,11 +1093,11 @@ func get_mining_ship_cargo_capacity_multiplier(base_id: String = BaseStore.BASE_
 
 
 func can_build_base_drone(base_id: String) -> bool:
-	return bases.can_afford(base_id, BaseStore.DRONE_COST)
+	return bases.can_build_drone(base_id)
 
 
 func can_build_base_mining_ship(base_id: String) -> bool:
-	return bases.can_afford(base_id, BaseStore.MINING_SHIP_COST)
+	return bases.can_build_mining_ship(base_id)
 
 
 func can_build_base_colony_ship(base_id: String) -> bool:
@@ -884,58 +1109,12 @@ func can_build_base_colony_ship(base_id: String) -> bool:
 	return bases.can_build_colony_ship(bid)
 
 
-func get_build_cost_text(unit_type: String) -> String:
-	match unit_type:
-		"drone":
-			return bases.format_cost(BaseStore.DRONE_COST)
-		"mining_ship":
-			return bases.format_cost(BaseStore.MINING_SHIP_COST)
-		"colony_ship":
-			return bases.format_cost(BaseStore.COLONY_SHIP_COST)
-		_:
-			return ""
+func get_production_cost(production_id: String) -> Dictionary:
+	return bases.get_production_cost(production_id)
 
 
-# Adds units without cost. Used for starting units and event grants.
-func add_base_mining_ship(base_id: String, amount: int = 1) -> void:
-	bases.add_mining_ship(base_id, amount)
-
-
-func add_base_drone(base_id: String, amount: int = 1) -> void:
-	bases.add_drone(base_id, amount)
-
-
-# Temporary Earth aliases for current UI
-func get_earth_resource_amount(resource_id: String) -> int:
-	return get_base_resource_amount(BaseStore.BASE_EARTH, resource_id)
-
-
-func add_earth_resource(resource_id: String, amount: int) -> void:
-	add_base_resource(BaseStore.BASE_EARTH, resource_id, amount)
-
-
-func spend_earth_resource(resource_id: String, amount: int) -> bool:
-	return spend_base_resource(BaseStore.BASE_EARTH, resource_id, amount)
-
-
-func get_earth_population() -> int:
-	return get_base_population(BaseStore.BASE_EARTH)
-
-
-func get_drone_count() -> int:
-	return get_base_drone_count(BaseStore.BASE_EARTH)
-
-
-func get_mining_ship_count() -> int:
-	return get_base_mining_ship_count(BaseStore.BASE_EARTH)
-
-
-func build_drone() -> bool:
-	return build_base_drone(BaseStore.BASE_EARTH)
-
-
-func build_mining_ship() -> bool:
-	return build_base_mining_ship(BaseStore.BASE_EARTH)
+func get_production_definition(production_id: String) -> ProductionDefinition:
+	return bases.get_production_definition(production_id)
 
 
 # --------------------------------------------------
@@ -964,12 +1143,46 @@ func complete_automation_mission(mission_id: int) -> Dictionary:
 
 
 func reset_for_new_game() -> void:
+	var def := _get_game_start_definition()
+
+	var primary_base_id: String = BaseStore.BASE_EARTH
+	var start_system_id: String = START_SYSTEM_ID
+	if def != null:
+		primary_base_id = def.primary_base_body_id.strip_edges()
+		if primary_base_id.is_empty():
+			primary_base_id = BaseStore.BASE_EARTH
+		start_system_id = def.start_system_id.strip_edges()
+		if start_system_id.is_empty():
+			start_system_id = START_SYSTEM_ID
+	else:
+		push_warning("GameSession.reset_for_new_game: using fallback start ids (GameStartDefinition missing)")
+
 	_colonization_operations.clear()
 	_next_colonization_operation_id = 1
 	_established_base_ids.clear()
 	_established_base_records.clear()
 
-	bases.bases = {BaseStore.BASE_EARTH: bases.get_new_game_earth_base()}
+	var start_resources: Dictionary = {}
+	var start_population: int = 1
+	var start_drones: int = 1
+	var start_mining_ships: int = 1
+	var start_colony_ships: int = 0
+	if def != null:
+		start_resources = def.start_resources.duplicate(true)
+		start_population = def.start_population
+		start_drones = def.start_drones
+		start_mining_ships = def.start_mining_ships
+		start_colony_ships = def.start_colony_ships
+
+	bases.bases = {
+		primary_base_id: bases.create_new_game_base_entry(
+			start_population,
+			start_drones,
+			start_mining_ships,
+			start_colony_ships,
+			start_resources,
+		),
+	}
 
 	object_scans.object_scan_states = {}
 	object_scans.remaining_resources_by_object = {}
@@ -977,18 +1190,16 @@ func reset_for_new_game() -> void:
 	automation.missions.clear()
 	automation.next_mission_id = 1
 
-	_galaxy_progression_seeded = false
-	discovered_system_ids.clear()
-	unlocked_system_ids.clear()
-	ensure_galaxy_progression_boot()
+	_galaxy_progression_seeded = true
+	_apply_galaxy_progression_from_game_start(def)
 
-	mark_base_established_at(BaseStore.BASE_EARTH, START_SYSTEM_ID, BaseStore.BASE_EARTH)
+	mark_base_established_at(primary_base_id, start_system_id, primary_base_id)
 
 	current_system_definition = null
-	current_system_id = START_SYSTEM_ID
+	current_system_id = start_system_id
 	ensure_default_system_loaded()
 
-	base_resources_changed.emit(BaseStore.BASE_EARTH)
+	base_resources_changed.emit(primary_base_id)
 	galaxy_progression_changed.emit()
 
 
@@ -1055,6 +1266,8 @@ func apply_save_data(data: Dictionary) -> bool:
 	if scans_variant is Dictionary:
 		object_scans.apply_save_data(scans_variant as Dictionary)
 
+	_sync_basic_intel_from_all_established_bases()
+
 	automation.missions.clear()
 	automation.next_mission_id = 1
 
@@ -1063,7 +1276,9 @@ func apply_save_data(data: Dictionary) -> bool:
 
 	galaxy_progression_changed.emit()
 	for bid_var: Variant in bases.bases.keys():
-		base_resources_changed.emit(str(bid_var))
+		var bid := str(bid_var)
+		base_resources_changed.emit(bid)
+		base_upgrades_changed.emit(bid)
 
 	return true
 
@@ -1108,14 +1323,40 @@ func _load_system_definition_for_id(system_id: String) -> void:
 	if sid.is_empty():
 		ensure_default_system_loaded()
 		return
-	var path := _system_definition_path_for_id(sid)
-	var def := load(path) as SystemDefinition
+	var def := _get_system_definition_by_id(sid)
 	if def == null:
-		push_warning("GameSession: SystemDefinition nicht gefunden für '%s' (%s)" % [sid, path])
+		push_warning("GameSession: SystemDefinition nicht gefunden für '%s'" % sid)
 		ensure_default_system_loaded()
 		return
 	set_current_system(def)
 
 
-func _system_definition_path_for_id(system_id: String) -> String:
-	return "res://data/galaxy_systems/%s_system.tres" % system_id.replace("-", "_")
+func _get_system_definition_by_id(system_id: String) -> SystemDefinition:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return null
+	if _system_definition_by_id.is_empty():
+		_build_system_definition_catalog()
+	if _system_definition_by_id.has(sid):
+		return _system_definition_by_id[sid] as SystemDefinition
+	push_warning("GameSession: SystemDefinition nicht gefunden für id '%s'" % sid)
+	return null
+
+
+func _build_system_definition_catalog() -> void:
+	_system_definition_by_id.clear()
+	var dir := DirAccess.open("res://data/galaxy_systems")
+	if dir == null:
+		push_warning("GameSession: Verzeichnis data/galaxy_systems nicht lesbar")
+		return
+	for file_name: String in dir.get_files():
+		if not file_name.ends_with(".tres"):
+			continue
+		var def := load("res://data/galaxy_systems/%s" % file_name) as SystemDefinition
+		if def == null:
+			continue
+		var def_id := def.id.strip_edges()
+		if def_id.is_empty():
+			push_warning("GameSession: SystemDefinition ohne id in '%s'" % file_name)
+			continue
+		_system_definition_by_id[def_id] = def

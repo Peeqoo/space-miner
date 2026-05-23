@@ -4,31 +4,36 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_ke4rx"]
 [ext_resource type="Texture2D" uid="uid://b2qpbiuh4cq3u" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mercury/1.png" id="2_dnc3y"]
 
-[sub_resource type="Resource" id="Resource_e30or"]
+[sub_resource type="Resource" id="mercury_res_iron"]
 script = ExtResource("1_e30or")
 resource_id = &"Iron"
-richness_percent = 90
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
+richness_percent = 75
+deposit_amount = 15000
 
-[sub_resource type="Resource" id="Resource_f8nue"]
+[sub_resource type="Resource" id="mercury_res_silicon"]
 script = ExtResource("1_e30or")
-resource_id = &"Titanium"
-richness_percent = 60
+resource_id = &"Silicon"
+richness_percent = 65
+deposit_amount = 12000
+
+[sub_resource type="Resource" id="mercury_res_copper"]
+script = ExtResource("1_e30or")
+resource_id = &"Copper"
+deposit_amount = 9000
+
+[sub_resource type="Resource" id="mercury_res_nickel"]
+script = ExtResource("1_e30or")
+resource_id = &"Nickel"
+richness_percent = 25
+deposit_amount = 6000
 layer = 1
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
 
-[sub_resource type="Resource" id="Resource_fvy4b"]
+[sub_resource type="Resource" id="mercury_res_cobalt"]
 script = ExtResource("1_e30or")
-resource_id = &"Solar Crystals"
-richness_percent = 30
-layer = 2
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
-
-[sub_resource type="Resource" id="Resource_2dfrw"]
-script = ExtResource("1_e30or")
-resource_id = &"Aluminum"
-richness_percent = 60
-metadata/_custom_type_script = "uid://de5akqgbobdkp"
+resource_id = &"Cobalt"
+richness_percent = 12
+deposit_amount = 3500
+layer = 1
 
 [resource]
 script = ExtResource("1_ke4rx")
@@ -47,5 +52,5 @@ reference_orbit_au = 0.39
 reference_period_days = 89.0
 size_authoring_mode = 1
 gameplay_orbit_bias = 0.78
-scan_resources = Array[ExtResource("1_e30or")]([SubResource("Resource_e30or"), SubResource("Resource_f8nue"), SubResource("Resource_fvy4b"), SubResource("Resource_2dfrw")])
+scan_resources = Array[ExtResource("1_e30or")]([SubResource("mercury_res_iron"), SubResource("mercury_res_silicon"), SubResource("mercury_res_copper"), SubResource("mercury_res_nickel"), SubResource("mercury_res_cobalt")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

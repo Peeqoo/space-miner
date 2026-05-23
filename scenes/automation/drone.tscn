@@ -11,8 +11,6 @@ region = Rect2(0, 0, 52, 31)
 script = ExtResource("1_jfh3j")
 min_orbit_speed = 0.6
 max_orbit_speed = 0.9
-orbit_y_scale_min = 0.9
-orbit_y_scale_max = 0.9
 
 [node name="VisualRoot" type="Node2D" parent="." unique_id=489994150]
 

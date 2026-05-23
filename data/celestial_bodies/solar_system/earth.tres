@@ -4,6 +4,56 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_c2uki"]
 [ext_resource type="Texture2D" uid="uid://cyp5c64hdqm15" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Earth/Eurasia_Africa/Clouds/1.png" id="2_6t3dt"]
 
+[sub_resource type="Resource" id="earth_res_water"]
+script = ExtResource("1_41mm2")
+resource_id = &"Water"
+richness_percent = 70
+deposit_amount = 12000
+
+[sub_resource type="Resource" id="earth_res_carbon"]
+script = ExtResource("1_41mm2")
+resource_id = &"Carbon"
+richness_percent = 50
+
+[sub_resource type="Resource" id="earth_res_silicon"]
+script = ExtResource("1_41mm2")
+resource_id = &"Silicon"
+deposit_amount = 8000
+
+[sub_resource type="Resource" id="earth_res_iron"]
+script = ExtResource("1_41mm2")
+resource_id = &"Iron"
+richness_percent = 25
+deposit_amount = 7000
+
+[sub_resource type="Resource" id="earth_res_oxygen"]
+script = ExtResource("1_41mm2")
+resource_id = &"Oxygen"
+richness_percent = 45
+deposit_amount = 8000
+layer = 1
+
+[sub_resource type="Resource" id="earth_res_calcium"]
+script = ExtResource("1_41mm2")
+resource_id = &"Calcium"
+richness_percent = 25
+deposit_amount = 6000
+layer = 1
+
+[sub_resource type="Resource" id="earth_res_sodium"]
+script = ExtResource("1_41mm2")
+resource_id = &"Sodium"
+richness_percent = 20
+deposit_amount = 5000
+layer = 1
+
+[sub_resource type="Resource" id="earth_res_potassium"]
+script = ExtResource("1_41mm2")
+resource_id = &"Potassium"
+richness_percent = 20
+deposit_amount = 5000
+layer = 1
+
 [resource]
 script = ExtResource("1_c2uki")
 id = "earth"
@@ -11,11 +61,11 @@ display_name = "Earth"
 description = "Heimatplanet der Menschheit mit vielfältiger Flora und Fauna. Die Oberfläche besteht größtenteils aus Wasser und bietet ideale Bedingungen für Leben."
 body_type = "planet"
 orbit_center_id = "star"
-can_build_base = true
 orbit_radius = 265.0
 orbit_speed = 0.22
 orbit_start_angle_degrees = 140.0
 texture = ExtResource("2_6t3dt")
 size_authoring_mode = 1
 gameplay_orbit_bias = 1.18
+scan_resources = Array[ExtResource("1_41mm2")]([SubResource("earth_res_water"), SubResource("earth_res_carbon"), SubResource("earth_res_silicon"), SubResource("earth_res_iron"), SubResource("earth_res_oxygen"), SubResource("earth_res_calcium"), SubResource("earth_res_sodium"), SubResource("earth_res_potassium")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

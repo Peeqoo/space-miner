@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bc4fthjt74n78" path="res://scripts/ui/galaxy/galaxy_map_hud.gd" id="1_thtu1"]
 [ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/titel_label.tres" id="2_g1njk"]
+[ext_resource type="FontFile" uid="uid://biga5mah242s8" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_3tpsn"]
 [ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="4_3tpsn"]
 [ext_resource type="FontFile" uid="uid://jblqblyfadu5" path="res://assets/fonts/PixelOperator8.ttf" id="5_0qajj"]
 [ext_resource type="LabelSettings" uid="uid://dc6q25ofjyema" path="res://scenes/ui/font_labels/text_label_small.tres" id="5_3tpsn"]
@@ -17,14 +18,16 @@ mouse_filter = 2
 script = ExtResource("1_thtu1")
 
 [node name="GalaxyInfoPanel" type="PanelContainer" parent="." unique_id=603520267]
-custom_minimum_size = Vector2(170, 0)
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -177.0
-offset_top = 42.0
-offset_bottom = 260.0
+offset_left = -200.0
+offset_top = 40.0
+offset_right = -8.0
+offset_bottom = 393.0
+grow_horizontal = 0
 
 [node name="Margin" type="MarginContainer" parent="GalaxyInfoPanel" unique_id=1232266166]
 layout_mode = 2
@@ -41,11 +44,21 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="HeaderLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/SystemHeaderSection" unique_id=1587084086]
+[node name="HeaderRow" type="HBoxContainer" parent="GalaxyInfoPanel/Margin/Root/SystemHeaderSection" unique_id=920000080]
 layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/SystemHeaderSection/HeaderRow" unique_id=1587084086]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 8
 text = "System"
 label_settings = ExtResource("2_g1njk")
+
+[node name="CloseButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/SystemHeaderSection/HeaderRow" unique_id=920000081]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_3tpsn")
+theme_override_font_sizes/font_size = 6
+text = "x"
 
 [node name="SystemNameLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/SystemHeaderSection" unique_id=749187470]
 layout_mode = 2
@@ -74,7 +87,8 @@ label_settings = ExtResource("2_g1njk")
 
 [node name="StatsGrid" type="GridContainer" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection" unique_id=901785336]
 layout_mode = 2
-theme_override_constants/h_separation = 4
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 2
 theme_override_constants/v_separation = 2
 columns = 2
 
@@ -91,18 +105,35 @@ text = "0"
 label_settings = ExtResource("5_3tpsn")
 horizontal_alignment = 2
 
-[node name="KnownResourcesTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection/StatsGrid" unique_id=528362028]
+[node name="KnownResourcesTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection" unique_id=528362028]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
 text = "Bekannte Ressourcen:"
 label_settings = ExtResource("4_3tpsn")
 
-[node name="KnownResourcesValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection/StatsGrid" unique_id=1579823603]
+[node name="KnownResourcesPanel" type="PanelContainer" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection" unique_id=920000060]
+custom_minimum_size = Vector2(0, 25)
 layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="KnownResourcesMargin" type="MarginContainer" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection/KnownResourcesPanel" unique_id=920000061]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="KnownResourcesScroll" type="ScrollContainer" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection/KnownResourcesPanel/KnownResourcesMargin" unique_id=920000062]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="KnownResourcesValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection/KnownResourcesPanel/KnownResourcesMargin/KnownResourcesScroll" unique_id=1579823603]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 6
 text = "Unbekannt"
 label_settings = ExtResource("5_3tpsn")
-horizontal_alignment = 2
+autowrap_mode = 3
 
 [node name="DividerB" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1645926760]
 layout_mode = 2
@@ -111,38 +142,42 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="InfoHeaderRow" type="HBoxContainer" parent="GalaxyInfoPanel/Margin/Root/InfoSection" unique_id=920000038]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="InfoTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/InfoSection/InfoHeaderRow" unique_id=1692793820]
+[node name="InfoTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/InfoSection" unique_id=1692793820]
 layout_mode = 2
 text = "Info"
 label_settings = ExtResource("2_g1njk")
 
-[node name="InfoButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/InfoSection/InfoHeaderRow" unique_id=920000040]
+[node name="InfoTextPanel" type="PanelContainer" parent="GalaxyInfoPanel/Margin/Root/InfoSection" unique_id=920000070]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-theme_override_fonts/font = ExtResource("5_0qajj")
-theme_override_font_sizes/font_size = 6
-text = "i"
+size_flags_horizontal = 3
 
-[node name="InfoTextLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/InfoSection" unique_id=909580677]
-visible = false
-custom_minimum_size = Vector2(0, 48)
+[node name="InfoTextMargin" type="MarginContainer" parent="GalaxyInfoPanel/Margin/Root/InfoSection/InfoTextPanel" unique_id=920000071]
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
+mouse_filter = 0
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="InfoTextScroll" type="ScrollContainer" parent="GalaxyInfoPanel/Margin/Root/InfoSection/InfoTextPanel/InfoTextMargin" unique_id=920000072]
+layout_mode = 2
+mouse_filter = 0
+horizontal_scroll_mode = 0
+
+[node name="InfoTextLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/InfoSection/InfoTextPanel/InfoTextMargin/InfoTextScroll" unique_id=909580677]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
 text = "Kein System ausgewählt."
 label_settings = ExtResource("4_3tpsn")
 autowrap_mode = 3
-clip_text = true
-text_overrun_behavior = 3
 
 [node name="DividerC" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=892001001]
 layout_mode = 2
 
 [node name="ColonizationSection" type="VBoxContainer" parent="GalaxyInfoPanel/Margin/Root" unique_id=892001010]
 layout_mode = 2
-theme_override_constants/separation = 2
 
 [node name="ColonizationTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection" unique_id=892001002]
 layout_mode = 2
@@ -152,20 +187,19 @@ label_settings = ExtResource("2_g1njk")
 
 [node name="GridContainer" type="GridContainer" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection" unique_id=103775647]
 layout_mode = 2
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 2
 columns = 2
 
 [node name="ColonizationStateLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=892001013]
 layout_mode = 2
-text = "Kolonisationsstatus:"
+text = "Kolo.status:"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationStateValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=1196761442]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "-"
 label_settings = ExtResource("5_3tpsn")
-horizontal_alignment = 2
+autowrap_mode = 3
 
 [node name="ColonizationTargetLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=892001014]
 layout_mode = 2
@@ -174,9 +208,10 @@ label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationTargetValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=1959242497]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "-"
 label_settings = ExtResource("5_3tpsn")
-horizontal_alignment = 2
+autowrap_mode = 3
 
 [node name="ColonizationShipsLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=892001015]
 layout_mode = 2
@@ -188,7 +223,6 @@ label_settings = ExtResource("4_3tpsn")
 layout_mode = 2
 text = "-"
 label_settings = ExtResource("5_3tpsn")
-horizontal_alignment = 2
 
 [node name="ColonizationIntelLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=892001016]
 layout_mode = 2
@@ -198,31 +232,35 @@ label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationIntelValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=1780985601]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Unbekannt"
 label_settings = ExtResource("5_3tpsn")
-horizontal_alignment = 2
+autowrap_mode = 3
+
+[node name="DividerD" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection" unique_id=1186621531]
+layout_mode = 2
 
 [node name="ColonizationSecondaryRow" type="GridContainer" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection" unique_id=1809860005]
 layout_mode = 2
-theme_override_constants/h_separation = 2
-theme_override_constants/v_separation = 2
-columns = 2
+size_flags_horizontal = 3
 
 [node name="ColonizationCancelButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow" unique_id=892001006]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_0qajj")
-theme_override_font_sizes/font_size = 4
+theme_override_font_sizes/font_size = 8
 disabled = true
 text = "Kolonisierung abbrechen"
 
 [node name="ColonizationDevButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow" unique_id=892001007]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_0qajj")
-theme_override_font_sizes/font_size = 4
+theme_override_font_sizes/font_size = 8
 disabled = true
 text = "DEV: Ankunft simulieren"
 
-[node name="DividerD" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1186621531]
+[node name="DividerE" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1314729952]
 layout_mode = 2
 
 [node name="ActionSection" type="VBoxContainer" parent="GalaxyInfoPanel/Margin/Root" unique_id=920000004]
@@ -231,38 +269,108 @@ theme_override_constants/separation = 2
 
 [node name="EnterButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ActionSection" unique_id=131344656]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_0qajj")
-theme_override_font_sizes/font_size = 6
+theme_override_font_sizes/font_size = 10
 text = "System betreten"
 
-[node name="InfoPopupPanel" type="PanelContainer" parent="." unique_id=920000050]
-z_index = 50
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -278.0
-offset_top = 132.0
-offset_right = -178.0
-offset_bottom = 156.00008
-grow_horizontal = 0
-
-[node name="Margin" type="MarginContainer" parent="InfoPopupPanel" unique_id=920000051]
+[node name="AccessStatusCurrentTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138101]
+visible = false
 layout_mode = 2
-theme_override_constants/margin_left = 4
-theme_override_constants/margin_top = 2
-theme_override_constants/margin_right = 4
-theme_override_constants/margin_bottom = 2
-
-[node name="InfoPopupTextLabel" type="Label" parent="InfoPopupPanel/Margin" unique_id=920000052]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-text = "Keine Daten verfügbar."
+text = "Aktuelles System"
 label_settings = ExtResource("4_3tpsn")
-autowrap_mode = 3
 
-[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/InfoSection/InfoHeaderRow/InfoButton" to="." method="_on_info_button_pressed"]
+[node name="AccessStatusReadyTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138102]
+visible = false
+layout_mode = 2
+text = "Bereit"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="AccessStatusLockedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138103]
+visible = false
+layout_mode = 2
+text = "Gesperrt"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="AccessStatusUnreachableTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138104]
+visible = false
+layout_mode = 2
+text = "Nicht erreichbar"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="EnterTooltipLockedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138105]
+visible = false
+layout_mode = 2
+text = "Zugriff gesperrt"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="EnterTooltipUnreachableTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138106]
+visible = false
+layout_mode = 2
+text = "System nicht erreichbar"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="EnterTooltipDefaultTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138107]
+visible = false
+layout_mode = 2
+text = "Zugang derzeit nicht möglich"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="ColonizationEstablishedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138108]
+visible = false
+layout_mode = 2
+text = "Etabliert"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="ColonizationHomeTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138109]
+visible = false
+layout_mode = 2
+text = "Heimat"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="ColonizationUncolonizedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138110]
+visible = false
+layout_mode = 2
+text = "Unkolonisiert"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="ColonizationBlockedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138111]
+visible = false
+layout_mode = 2
+text = "Gesperrt"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="ColonizationPendingFallbackTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138112]
+visible = false
+layout_mode = 2
+text = "Läuft"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="IntelKnownTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138113]
+visible = false
+layout_mode = 2
+text = "Bekannt"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="IntelUnknownTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138114]
+visible = false
+layout_mode = 2
+text = "Unbekannt"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="NoDescriptionTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138115]
+visible = false
+layout_mode = 2
+text = "Keine Beschreibung verfügbar"
+label_settings = ExtResource("4_3tpsn")
+
+[node name="NoSelectionInfoTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138116]
+visible = false
+layout_mode = 2
+text = "Kein System ausgewählt"
+label_settings = ExtResource("4_3tpsn")
+
+[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/SystemHeaderSection/HeaderRow/CloseButton" to="." method="_on_close_button_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationCancelButton" to="." method="_on_colon_cancel_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDevButton" to="." method="_on_colon_dev_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ActionSection/EnterButton" to="." method="_on_enter_button_pressed"]

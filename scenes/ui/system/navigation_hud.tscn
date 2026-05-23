@@ -4,23 +4,14 @@
 [ext_resource type="FontFile" uid="uid://bt3p1wh0fgq6" path="res://assets/fonts/PixelOperatorHBSC.ttf" id="2_6vyar"]
 
 [node name="NavigationHUD" type="PanelContainer" unique_id=1895239768]
-anchors_preset = -1
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -25.0
-offset_top = -23.0
-offset_right = 25.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 0
+offset_right = 50.0
+offset_bottom = 23.0
 script = ExtResource("1_nav")
 
 [node name="GalaxyButton" type="Button" parent="." unique_id=514176750]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_6vyar")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 12
 text = "GALAXY"
 
 [connection signal="pressed" from="GalaxyButton" to="." method="_on_galaxy_button_pressed"]

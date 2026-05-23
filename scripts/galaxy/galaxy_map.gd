@@ -53,10 +53,6 @@ func _ready() -> void:
 		hud.show_no_selection_state()
 
 	call_deferred("_apply_start_camera_target")
-	call_deferred("_debug_unlock_proxima")
-	
-func _debug_unlock_proxima() -> void:
-	GameSession.unlock_system("proxima")
 
 func _connect_galaxy_map_signals() -> void:
 	if not GameSession.galaxy_progression_changed.is_connected(_on_galaxy_progression_changed):
@@ -255,22 +251,45 @@ func _get_selected_system_access_state(system_id: String) -> String:
 	if sid == GameSession.current_system_id:
 		return ACCESS_CURRENT
 
-	if not GameSession.is_system_unlocked(sid):
+	if not GameSession.is_system_discovered(sid):
 		return ACCESS_LOCKED
 
 	var current_id: String = GameSession.current_system_id.strip_edges()
 	if current_id.is_empty():
 		return ACCESS_UNREACHABLE
 
-	if _are_systems_directly_connected(current_id, sid):
+	if not _are_systems_directly_connected(current_id, sid):
+		return ACCESS_UNREACHABLE
+
+	if GameSession.can_enter_system(sid):
 		return ACCESS_READY
 
 	return ACCESS_UNREACHABLE
 
 
 func _can_enter_system(system_id: String) -> bool:
-	var access_state: String = _get_selected_system_access_state(system_id)
-	return access_state == ACCESS_CURRENT or access_state == ACCESS_READY
+	if not GameSession.can_enter_system(system_id):
+		return false
+
+	var sid: String = system_id.strip_edges()
+	if sid.is_empty():
+		return false
+	if sid == GameSession.current_system_id:
+		return true
+	if sid == GameSession.START_SYSTEM_ID:
+		return true
+	if GameSession.has_established_base_in_system(sid):
+		return true
+	if GameSession.has_pending_colonization_to_system(sid):
+		var current_id: String = GameSession.current_system_id.strip_edges()
+		if current_id.is_empty():
+			return false
+		return _are_systems_directly_connected(current_id, sid)
+
+	var current_id: String = GameSession.current_system_id.strip_edges()
+	if current_id.is_empty():
+		return false
+	return _are_systems_directly_connected(current_id, sid)
 
 
 func _update_current_system_display() -> void:
@@ -461,9 +480,9 @@ func _refresh_transit_routes() -> void:
 			)
 			continue
 
-		var from_unlocked: bool = GameSession.is_system_unlocked(from_system_id)
-		var to_unlocked: bool = GameSession.is_system_unlocked(to_system_id)
-		var route_active: bool = from_unlocked and to_unlocked
+		var from_discovered: bool = GameSession.is_system_discovered(from_system_id)
+		var to_discovered: bool = GameSession.is_system_discovered(to_system_id)
+		var route_active: bool = from_discovered and to_discovered
 
 		var line := Line2D.new()
 		line.antialiased = true

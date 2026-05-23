@@ -6,21 +6,6 @@ signal build_scan_drone_requested
 signal build_mining_ship_requested
 signal close_requested
 
-const BUTTON_INFO: Dictionary = {
-	"BuildScanDroneButton": {
-		"title": "ScanDrone",
-		"desc": "Scans unknown objects. Required before mining.",
-	},
-	"BuildMiningShipButton": {
-		"title": "MiningShip",
-		"desc": "Mines resources from scanned objects.",
-	},
-	"BuildColonyShipButton": {
-		"title": "ColonyShip",
-		"desc": "Costs resources. Stored for future colony expansion.",
-	},
-}
-
 ## Target BaseStore base id (`SystemBody.body_id`). Set by SystemUI from session primary base.
 var _economy_body_id: String = BaseStore.BASE_EARTH
 
@@ -42,15 +27,23 @@ func _economy_body_id_for_ops() -> String:
 @onready var build_mining_ship_button: Button = $Margin/Root/ProductionList/BuildMiningShipButton
 @onready var build_colony_ship_button: Button = $Margin/Root/ProductionList/BuildColonyShipButton
 @onready var close_button: Button = $Margin/Root/HeaderRow/CloseButton
-@onready var hover_info_panel: PanelContainer = $Margin/Root/HoverInfoPanel
-@onready var hover_title_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel
-@onready var hover_desc_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel
-@onready var hover_cost_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel
+@onready var hover_info_section: PanelContainer = $Margin/Root/HoverInfoSection
+@onready var hover_info_panel: PanelContainer = $Margin/Root/HoverInfoSection/HoverInfoPanel
+@onready var hover_title_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel
+@onready var hover_desc_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel
+@onready var hover_cost_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel
+
+
+var _hover_desc_placeholder: String = ""
+var _hover_cost_header: String = ""
 
 
 func _ready() -> void:
 	visible = false
-	hover_info_panel.visible = false
+	hover_info_section.visible = false
+	hover_info_panel.visible = true
+	_hover_desc_placeholder = hover_desc_label.text.strip_edges()
+	_hover_cost_header = hover_cost_label.text.strip_edges()
 
 	_connect_button(close_button, _on_close_pressed)
 	_connect_button(build_scan_drone_button, _on_build_scan_drone_pressed)
@@ -80,8 +73,7 @@ func refresh_from_game_session() -> void:
 
 
 func _on_close_pressed() -> void:
-	hover_info_panel.visible = false
-	call_deferred("_fit_height_to_content")
+	hover_info_section.visible = false
 	close_requested.emit()
 
 
@@ -121,63 +113,49 @@ func _register_hover(button: Button) -> void:
 
 
 func _on_button_hover_entered(button: Button) -> void:
-	var info: Dictionary = BUTTON_INFO.get(button.name, {})
-	if info.is_empty():
-		return
+	var production_id := _production_id_from_button(button)
+	var production_def: ProductionDefinition = GameSession.get_production_definition(production_id)
 
-	hover_title_label.text = str(info.get("title", ""))
-	hover_desc_label.text = str(info.get("desc", ""))
-	hover_cost_label.text = _build_cost_text(button.name)
-	hover_info_panel.visible = true
-	call_deferred("_fit_height_to_content")
+	hover_title_label.text = button.text
+	hover_desc_label.text = _build_hover_description(production_def)
+	hover_cost_label.text = _build_cost_text(production_id)
+	hover_info_section.visible = true
 
 
 func _on_button_hover_exited(_button: Button) -> void:
-	hover_info_panel.visible = false
-	call_deferred("_fit_height_to_content")
+	hover_info_section.visible = false
 
 
-func _build_cost_text(button_name: String) -> String:
-	var resources := GameSession.get_base_resources(_economy_body_id_for_ops())
-	match button_name:
+func _production_id_from_button(button: Button) -> String:
+	match button.name:
 		"BuildScanDroneButton":
-			return _format_cost_lines(BaseStore.DRONE_COST, resources)
+			return BaseStore.PRODUCTION_SCAN_DRONE
 		"BuildMiningShipButton":
-			return _format_cost_lines(BaseStore.MINING_SHIP_COST, resources)
+			return BaseStore.PRODUCTION_MINING_SHIP
 		"BuildColonyShipButton":
-			return _format_cost_lines(BaseStore.COLONY_SHIP_COST, resources)
-	return ""
+			return BaseStore.PRODUCTION_COLONY_SHIP
+		_:
+			return ""
 
 
-func _format_cost_lines(cost: Dictionary, available: Dictionary) -> String:
-	var lines: PackedStringArray = []
-	for res_id: Variant in cost.keys():
-		var need := int(cost.get(res_id, 0))
-		var have := int(available.get(res_id, 0))
-		lines.append("%s: %d / %d" % [_format_title(str(res_id)), have, need])
+func _build_hover_description(production_def: ProductionDefinition) -> String:
+	var lines := ProductionDefinition.build_hover_description_lines(production_def)
+	if lines.is_empty():
+		return _hover_desc_placeholder
 	return "\n".join(lines)
 
 
-func _format_title(value: String) -> String:
-	var cleaned := value.strip_edges().replace("_", " ")
-	if cleaned.is_empty():
-		return "-"
-	var words := cleaned.split(" ", false)
-	var result: PackedStringArray = []
-	for word in words:
-		if not word.is_empty():
-			result.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
-	return " ".join(result)
+func _build_cost_text(production_id: String) -> String:
+	var resources := GameSession.get_base_resources(_economy_body_id_for_ops())
+	var cost := GameSession.get_production_cost(production_id)
+	var lines := ProductionDefinition.format_cost_lines_with_availability(cost, resources)
+	if lines.is_empty():
+		return _hover_cost_header
 
-
-func _fit_height_to_content() -> void:
-	var fixed_width := custom_minimum_size.x
-	if fixed_width <= 0.0:
-		fixed_width = size.x
-	var saved_pos := position
-	var target_size := get_combined_minimum_size()
-	size = Vector2(fixed_width, target_size.y)
-	position = saved_pos
+	var body := "\n".join(lines)
+	if _hover_cost_header.is_empty():
+		return body
+	return "%s\n%s" % [_hover_cost_header, body]
 
 
 func _connect_button(button: Button, callback: Callable) -> void:

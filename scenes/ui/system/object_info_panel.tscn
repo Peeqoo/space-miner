@@ -6,26 +6,21 @@
 [ext_resource type="FontFile" uid="uid://biga5mah242s8" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_oi0nm"]
 [ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="4_ckpwi"]
 [ext_resource type="FontFile" uid="uid://bt3p1wh0fgq6" path="res://assets/fonts/PixelOperatorHBSC.ttf" id="5_ckpwi"]
+[ext_resource type="LabelSettings" uid="uid://b7bsxvpf2qqlj" path="res://scenes/ui/font_labels/titel_label_small.tres" id="6_2ibr3"]
 [ext_resource type="LabelSettings" uid="uid://dc6q25ofjyema" path="res://scenes/ui/font_labels/text_label_small.tres" id="6_oi0nm"]
 
 [node name="ObjectInfoPanel" type="PanelContainer" unique_id=987163130]
 custom_minimum_size = Vector2(170, 0)
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -178.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = 8.0
-grow_horizontal = 0
+offset_right = 170.0
+offset_bottom = 275.0
 script = ExtResource("1_c2q1o")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=556540]
 layout_mode = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
 
 [node name="Root" type="VBoxContainer" parent="Margin" unique_id=1877917777]
 layout_mode = 2
@@ -36,14 +31,13 @@ layout_mode = 2
 [node name="HeaderLabel" type="Label" parent="Margin/Root/HBoxContainer" unique_id=994376410]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 8
 text = "Object-Info"
 label_settings = ExtResource("2_2h3fg")
 
 [node name="CloseBasePanelButton" type="Button" parent="Margin/Root/HBoxContainer" unique_id=815001315]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_oi0nm")
-theme_override_font_sizes/font_size = 4
+theme_override_font_sizes/font_size = 6
 text = "x"
 
 [node name="DividerA" type="HSeparator" parent="Margin/Root" unique_id=116953324]
@@ -73,43 +67,38 @@ stretch_mode = 5
 [node name="MetaColumn" type="VBoxContainer" parent="Margin/Root/MainRow" unique_id=101171211]
 layout_mode = 2
 theme_override_constants/separation = 2
+alignment = 1
 
 [node name="NameLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=1875272523]
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
 text = "Name: Earth"
 label_settings = ExtResource("4_ckpwi")
 
 [node name="TypeLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=764784357]
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
 text = "Typ: Planet"
 label_settings = ExtResource("4_ckpwi")
 
 [node name="ScanStatusLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=586031701]
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
 text = "Scanstatus: Unknown"
 label_settings = ExtResource("4_ckpwi")
 
 [node name="DistanceLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=476233926]
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
 text = "Distanz: 184 u"
 label_settings = ExtResource("4_ckpwi")
 
 [node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=342453918]
 layout_mode = 2
-theme_override_constants/separation = 0
 
 [node name="ResourceTitleLabel" type="Label" parent="Margin/Root" unique_id=214492717]
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
 text = "Sichtbare Ressourcen"
-label_settings = ExtResource("2_2h3fg")
+label_settings = ExtResource("6_2ibr3")
 
 [node name="ResourcePanel" type="PanelContainer" parent="Margin/Root" unique_id=1943916076]
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
 [node name="ResourceMargin" type="MarginContainer" parent="Margin/Root/ResourcePanel" unique_id=1033628948]
@@ -129,24 +118,37 @@ theme_override_constants/separation = 2
 
 [node name="DividerC" type="HSeparator" parent="Margin/Root" unique_id=1506989608]
 layout_mode = 2
-theme_override_constants/separation = 0
 
 [node name="LoreTitleLabel" type="Label" parent="Margin/Root" unique_id=730334323]
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
-text = "Hinweis"
-label_settings = ExtResource("2_2h3fg")
+text = "Info"
+label_settings = ExtResource("6_2ibr3")
 
-[node name="LoreTextLabel" type="Label" parent="Margin/Root" unique_id=50513453]
+[node name="LorePanel" type="PanelContainer" parent="Margin/Root" unique_id=920000090]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-theme_override_font_sizes/font_size = 6
+size_flags_horizontal = 3
+
+[node name="LoreMargin" type="MarginContainer" parent="Margin/Root/LorePanel" unique_id=920000091]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="LoreScroll" type="ScrollContainer" parent="Margin/Root/LorePanel/LoreMargin" unique_id=920000092]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="LoreTextLabel" type="Label" parent="Margin/Root/LorePanel/LoreMargin/LoreScroll" unique_id=50513453]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Bewohnter Gesteinsplanet mit bekannter Infrastruktur."
 label_settings = ExtResource("4_ckpwi")
 autowrap_mode = 3
 
 [node name="DividerD" type="HSeparator" parent="Margin/Root" unique_id=1788739762]
 layout_mode = 2
-theme_override_constants/separation = 0
 
 [node name="OrbitStatusSection" type="VBoxContainer" parent="Margin/Root" unique_id=910843747]
 layout_mode = 2
@@ -167,6 +169,13 @@ layout_mode = 2
 text = "Mining Bonus: +0%"
 label_settings = ExtResource("6_oi0nm")
 
+[node name="EconomyBlockLabel" type="Label" parent="Margin/Root" unique_id=920000100]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+label_settings = ExtResource("6_oi0nm")
+autowrap_mode = 3
+
 [node name="GridContainer" type="GridContainer" parent="Margin/Root" unique_id=1253186436]
 layout_mode = 2
 theme_override_constants/h_separation = 2
@@ -177,14 +186,14 @@ columns = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_ckpwi")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "Scan"
 
 [node name="SendMiningShipButton" type="Button" parent="Margin/Root/GridContainer" unique_id=1413547153]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_ckpwi")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "Mine"
 
 [node name="RecallDroneButton" type="Button" parent="Margin/Root/GridContainer" unique_id=458234119]
@@ -192,7 +201,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_ckpwi")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "Drone zurück"
 
 [node name="RecallMiningShipButton" type="Button" parent="Margin/Root/GridContainer" unique_id=920113405]
@@ -200,7 +209,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_ckpwi")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "Mining Ship zurück"
 
 [node name="ColonizationButton" type="Button" parent="Margin/Root/GridContainer" unique_id=920113406]
@@ -208,10 +217,82 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_ckpwi")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 disabled = true
 text = "Kolonisierung starten"
 
 [node name="DividerE" type="HSeparator" parent="Margin/Root" unique_id=1043062862]
+visible = false
 layout_mode = 2
-theme_override_constants/separation = 0
+
+[node name="EmptyValueTemplate" type="Label" parent="Margin/Root" unique_id=1781138001]
+visible = false
+layout_mode = 2
+text = "-"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="ScanStateUnknownTemplate" type="Label" parent="Margin/Root" unique_id=1781138002]
+visible = false
+layout_mode = 2
+text = "Unknown"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="ScanStateBasicTemplate" type="Label" parent="Margin/Root" unique_id=1781138003]
+visible = false
+layout_mode = 2
+text = "Basic"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="ScanStateDeepTemplate" type="Label" parent="Margin/Root" unique_id=1781138004]
+visible = false
+layout_mode = 2
+text = "Deep"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="ScanStateSpecialTemplate" type="Label" parent="Margin/Root" unique_id=1781138005]
+visible = false
+layout_mode = 2
+text = "Special"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="EmptySelectionLoreTemplate" type="Label" parent="Margin/Root" unique_id=1781138006]
+visible = false
+layout_mode = 2
+text = "Kein Objekt ausgewählt."
+label_settings = ExtResource("6_oi0nm")
+
+[node name="NoDescriptionLoreTemplate" type="Label" parent="Margin/Root" unique_id=1781138007]
+visible = false
+layout_mode = 2
+text = "Keine Beschreibung verfügbar."
+label_settings = ExtResource("6_oi0nm")
+
+[node name="MiningButtonDepletedTemplate" type="Label" parent="Margin/Root" unique_id=1781138008]
+visible = false
+layout_mode = 2
+text = "Depleted"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="ColonizationRunningTemplate" type="Label" parent="Margin/Root" unique_id=1781138009]
+visible = false
+layout_mode = 2
+text = "Läuft..."
+label_settings = ExtResource("6_oi0nm")
+
+[node name="ColonizationNoShipTooltipTemplate" type="Label" parent="Margin/Root" unique_id=1781138010]
+visible = false
+layout_mode = 2
+text = "Kein ColonyShip verfügbar."
+label_settings = ExtResource("6_oi0nm")
+
+[node name="AutomationDroneSupportingTemplate" type="Label" parent="Margin/Root" unique_id=1781138011]
+visible = false
+layout_mode = 2
+text = "%d unterstützend"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="AutomationDroneOnMissionTemplate" type="Label" parent="Margin/Root" unique_id=1781138012]
+visible = false
+layout_mode = 2
+text = "%d im Einsatz"
+label_settings = ExtResource("6_oi0nm")

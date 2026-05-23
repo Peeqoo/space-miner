@@ -24,15 +24,35 @@ func _economy_body_id_for_ops() -> String:
 @onready var scan_drone_upgrade_button: Button = $Margin/Root/UpgradeList/ScanDroneUpgradeButton
 @onready var mining_ship_upgrade_button: Button = $Margin/Root/UpgradeList/MiningShipUpgradeButton
 @onready var close_button: Button = $Margin/Root/HeaderRow/CloseButton
-@onready var hover_info_panel: PanelContainer = $Margin/Root/HoverInfoPanel
-@onready var hover_title_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel
-@onready var hover_desc_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel
-@onready var hover_cost_label: Label = $Margin/Root/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel
+@onready var hover_info_section: PanelContainer = $Margin/Root/HoverInfoSection
+@onready var hover_info_panel: PanelContainer = $Margin/Root/HoverInfoSection/HoverInfoPanel
+@onready var hover_title_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverTitleLabel
+@onready var hover_desc_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverDescLabel
+@onready var hover_cost_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverCostLabel
+@onready var hover_effects_section_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverEffectsSectionLabel
+@onready var hover_status_section_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverStatusSectionLabel
+@onready var hover_max_level_message_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverMaxLevelMessageLabel
+@onready var hover_upgrade_fallback_label: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/HoverUpgradeFallbackLabel
+@onready var max_level_caption_storage: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/MaxLevelCaptionStorage
+@onready var max_level_caption_scan_drone: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/MaxLevelCaptionScanDrone
+@onready var max_level_caption_mining_ship: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/MaxLevelCaptionMiningShip
+@onready var max_level_caption_default: Label = $Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot/MaxLevelCaptionDefault
+
+var _upgrade_fallback_caption: String = ""
+var _hover_section_label_texts: Dictionary = {}
 
 
 func _ready() -> void:
 	visible = false
-	hover_info_panel.visible = false
+	hover_info_section.visible = false
+	hover_info_panel.visible = true
+	_upgrade_fallback_caption = hover_upgrade_fallback_label.text.strip_edges()
+	_hover_section_label_texts = {
+		"cost": hover_cost_label.text.strip_edges(),
+		"effects": hover_effects_section_label.text.strip_edges(),
+		"status": hover_status_section_label.text.strip_edges(),
+		"max_level_message": hover_max_level_message_label.text.strip_edges(),
+	}
 
 	_connect_button(close_button, _on_close_pressed)
 	_connect_button(storage_upgrade_button, _on_storage_upgrade_pressed)
@@ -46,12 +66,21 @@ func _ready() -> void:
 	if not GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.connect(_on_resources_changed)
 
+	if not GameSession.base_upgrades_changed.is_connected(_on_upgrades_changed):
+		GameSession.base_upgrades_changed.connect(_on_upgrades_changed)
+
 	refresh_from_game_session()
 
 
 func _exit_tree() -> void:
 	if GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.disconnect(_on_resources_changed)
+	if GameSession.base_upgrades_changed.is_connected(_on_upgrades_changed):
+		GameSession.base_upgrades_changed.disconnect(_on_upgrades_changed)
+
+
+func _on_upgrades_changed(_base_id: String) -> void:
+	refresh_from_game_session()
 
 
 func refresh_from_game_session() -> void:
@@ -71,24 +100,29 @@ func _refresh_upgrade_button(button: Button, category: StringName) -> void:
 
 func _upgrade_button_caption(category: StringName, is_max: bool) -> String:
 	if is_max:
-		match String(category):
-			"storage":
-				return "Storage Max Level"
-			"scan_drone":
-				return "ScanDrone Max Level"
-			"mining_ship":
-				return "MiningShip Max Level"
-			_:
-				return "Max Level"
+		return _max_level_caption_for_category(category)
 	var nxt := GameSession.get_next_upgrade_definition(_economy_body_id_for_ops(), category)
 	if nxt != null and not nxt.title.is_empty():
 		return nxt.title
-	return "Upgrade"
+	if not _upgrade_fallback_caption.is_empty():
+		return _upgrade_fallback_caption
+	return max_level_caption_default.text.strip_edges()
+
+
+func _max_level_caption_for_category(category: StringName) -> String:
+	match String(category):
+		"storage":
+			return max_level_caption_storage.text.strip_edges()
+		"scan_drone":
+			return max_level_caption_scan_drone.text.strip_edges()
+		"mining_ship":
+			return max_level_caption_mining_ship.text.strip_edges()
+		_:
+			return max_level_caption_default.text.strip_edges()
 
 
 func _on_close_pressed() -> void:
-	hover_info_panel.visible = false
-	call_deferred("_fit_height_to_content")
+	hover_info_section.visible = false
 	close_requested.emit()
 
 
@@ -129,17 +163,14 @@ func _on_button_hover_entered(button: Button) -> void:
 	var cat := _category_from_button(button)
 	if cat.is_empty():
 		return
-
 	hover_title_label.text = _hover_title_for_category(cat)
 	hover_desc_label.text = _build_upgrade_hover_description(cat)
 	hover_cost_label.text = ""
-	hover_info_panel.visible = true
-	call_deferred("_fit_height_to_content")
+	hover_info_section.visible = true
 
 
 func _on_button_hover_exited(_button: Button) -> void:
-	hover_info_panel.visible = false
-	call_deferred("_fit_height_to_content")
+	hover_info_section.visible = false
 
 
 func _category_from_button(button: Button) -> StringName:
@@ -156,139 +187,26 @@ func _category_from_button(button: Button) -> StringName:
 
 func _hover_title_for_category(category: StringName) -> String:
 	if not GameSession.has_next_base_upgrade(_economy_body_id_for_ops(), category):
-		match String(category):
-			"storage":
-				return "Storage Max Level"
-			"scan_drone":
-				return "ScanDrone Max Level"
-			"mining_ship":
-				return "MiningShip Max Level"
+		return _max_level_caption_for_category(category)
 	var nxt := GameSession.get_next_upgrade_definition(_economy_body_id_for_ops(), category)
 	if nxt != null and not nxt.title.is_empty():
 		return nxt.title
-	return "Upgrade"
+	if not _upgrade_fallback_caption.is_empty():
+		return _upgrade_fallback_caption
+	return max_level_caption_default.text.strip_edges()
 
 
-func _storage_level0_units() -> int:
-	var z := GameSession.upgrade_catalog.get_definition(&"storage", 0) if GameSession.upgrade_catalog != null else null
-	if z != null and z.storage_capacity_units >= 0:
-		return z.storage_capacity_units
-	return BaseStore.INITIAL_STORAGE_CAPACITY
+func _hover_section_labels() -> Dictionary:
+	return _hover_section_label_texts
 
 
 func _build_upgrade_hover_description(category: StringName) -> String:
-	var lines: PackedStringArray = []
-	var cur: UpgradeDefinition = GameSession.get_current_upgrade_definition(_economy_body_id_for_ops(), category)
-	var nxt: UpgradeDefinition = GameSession.get_next_upgrade_definition(_economy_body_id_for_ops(), category)
-
-	if not GameSession.has_next_base_upgrade(_economy_body_id_for_ops(), category):
-		lines.append("Status:")
-		lines.append("Max Level reached.")
-		lines.append("Effects:")
-		match String(category):
-			"storage":
-				lines.append(
-					"Base Storage Capacity: %d%%" % GameSession.get_base_storage_capacity_percent(_economy_body_id_for_ops())
-				)
-			"scan_drone":
-				lines.append("Scan Speed: %d%%" % GameSession.get_scan_drone_scan_speed_percent(_economy_body_id_for_ops()))
-				lines.append(
-					"Mining Support: +%d%% Mining Yield per supporting ScanDrone"
-					% GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(_economy_body_id_for_ops())
-				)
-			"mining_ship":
-				lines.append(
-					"Cargo Capacity: %d%%" % GameSession.get_mining_ship_cargo_capacity_percent(_economy_body_id_for_ops())
-				)
-				if cur != null and cur.applies_to_new_jobs_only:
-					lines.append("Applies to newly launched mining missions.")
-		return "\n".join(lines)
-
-	## Next tier preview
-	if nxt == null:
-		return ""
-
-	lines.append("Cost:")
-	lines.append_array(_format_cost_required_amount_lines(nxt.cost))
-	lines.append("Effects:")
-	match String(category):
-		"storage":
-			if cur != null and nxt.storage_capacity_units >= 0 and cur.storage_capacity_units >= 0:
-				var u0 := maxi(1, _storage_level0_units())
-				var delta_u := nxt.storage_capacity_units - cur.storage_capacity_units
-				var d_pct := int(round(float(delta_u) / float(u0) * 100.0))
-				lines.append("+%d%% Base Storage Capacity" % d_pct)
-		"scan_drone":
-			if cur != null and nxt.scan_speed_percent >= 0 and cur.scan_speed_percent >= 0:
-				lines.append("+%d%% Scan Speed" % (nxt.scan_speed_percent - cur.scan_speed_percent))
-			if (
-				cur != null
-				and nxt.mining_yield_bonus_per_support_drone_percent >= 0
-				and cur.mining_yield_bonus_per_support_drone_percent >= 0
-			):
-				var d_m := (
-					nxt.mining_yield_bonus_per_support_drone_percent
-					- cur.mining_yield_bonus_per_support_drone_percent
-				)
-				if d_m != 0:
-					lines.append(
-						"+%d%% Mining Yield per supporting ScanDrone" % d_m
-					)
-		"mining_ship":
-			if cur != null and nxt.cargo_capacity_percent >= 0 and cur.cargo_capacity_percent >= 0:
-				lines.append("+%d%% Cargo Capacity" % (nxt.cargo_capacity_percent - cur.cargo_capacity_percent))
-
-	if nxt.note.strip_edges() != "":
-		lines.append(nxt.note.strip_edges())
-
+	var base_id := _economy_body_id_for_ops()
+	var cur: UpgradeDefinition = GameSession.get_current_upgrade_definition(base_id, category)
+	var nxt: UpgradeDefinition = GameSession.get_next_upgrade_definition(base_id, category)
+	var has_next := GameSession.has_next_base_upgrade(base_id, category)
+	var lines := UpgradeDefinition.build_panel_hover_lines(cur, nxt, has_next, _hover_section_labels())
 	return "\n".join(lines)
-
-
-func _format_cost_required_amount_lines(cost: Dictionary) -> PackedStringArray:
-	var out: PackedStringArray = []
-	var keys: Array = cost.keys()
-	keys.sort_custom(
-		func(a: Variant, b: Variant) -> bool:
-			return str(a).to_lower() < str(b).to_lower()
-	)
-	for res_id: Variant in keys:
-		var need := int(cost.get(res_id, 0))
-		out.append("%s: %d" % [_format_title(str(res_id)), need])
-	return out
-
-
-func _format_title(value: String) -> String:
-	var cleaned := value.strip_edges().replace("_", " ")
-	if cleaned.is_empty():
-		return "-"
-	var words := cleaned.split(" ", false)
-	var result: PackedStringArray = []
-	for word in words:
-		if not word.is_empty():
-			result.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
-	return " ".join(result)
-
-
-func _fit_height_to_content() -> void:
-	if hover_info_panel.visible:
-		call_deferred("_fit_height_to_content_after_hover_layout")
-	else:
-		_apply_panel_body_height_fit()
-
-
-func _fit_height_to_content_after_hover_layout() -> void:
-	await get_tree().process_frame
-	_apply_panel_body_height_fit()
-
-
-func _apply_panel_body_height_fit() -> void:
-	var fixed_width := custom_minimum_size.x
-	if fixed_width <= 0.0:
-		fixed_width = size.x
-	var saved_pos := position
-	var target_size := get_combined_minimum_size()
-	size = Vector2(fixed_width, target_size.y)
-	position = saved_pos
 
 
 func _connect_button(button: Button, callback: Callable) -> void:

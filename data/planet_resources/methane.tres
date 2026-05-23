@@ -5,5 +5,6 @@
 [resource]
 script = ExtResource("1_gw3gb")
 resource_id = &"Methane"
-richness_percent = 90
+richness_percent = 20
+layer = 1
 metadata/_custom_type_script = "uid://de5akqgbobdkp"

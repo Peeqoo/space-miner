@@ -5,5 +5,6 @@
 [resource]
 script = ExtResource("1_0o4n7")
 resource_id = &"Hydrogen"
-richness_percent = 90
+richness_percent = 60
+layer = 0
 metadata/_custom_type_script = "uid://de5akqgbobdkp"

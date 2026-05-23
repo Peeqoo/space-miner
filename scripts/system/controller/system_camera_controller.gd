@@ -99,6 +99,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not mb.pressed:
 			return
 
+		if mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			if get_viewport().gui_get_hovered_control() != null:
+				return
+
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_zoom_target(zoom_step)
 			get_viewport().set_input_as_handled()
@@ -201,11 +205,6 @@ func clear_follow() -> void:
 func set_focus_target(target: Node2D, enable_follow: bool = true) -> void:
 	focus_target = target
 	follow_enabled = enable_follow and target != null and is_instance_valid(target)
-
-
-## Backwards-compatible alias (e.g. older callers expecting the old name).
-func set_follow_target(target: Node2D, enable_follow: bool = true) -> void:
-	set_focus_target(target, enable_follow)
 
 
 func focus_current_target() -> void:
