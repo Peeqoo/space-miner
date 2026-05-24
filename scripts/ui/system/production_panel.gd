@@ -82,7 +82,10 @@ func _on_build_scan_drone_pressed() -> void:
 	if not GameSession.has_established_base(oid):
 		return
 	if GameSession.build_base_drone(oid):
+		AudioManager.play_sfx_optional(&"build_success")
 		build_scan_drone_requested.emit()
+	else:
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 	refresh_from_game_session()
 
 
@@ -91,7 +94,10 @@ func _on_build_mining_ship_pressed() -> void:
 	if not GameSession.has_established_base(oid):
 		return
 	if GameSession.build_base_mining_ship(oid):
+		AudioManager.play_sfx_optional(&"build_success")
 		build_mining_ship_requested.emit()
+	else:
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 	refresh_from_game_session()
 
 
@@ -99,7 +105,10 @@ func _on_build_colony_ship_pressed() -> void:
 	var oid := _economy_body_id_for_ops()
 	if not GameSession.has_established_base(oid):
 		return
-	GameSession.build_base_colony_ship(oid)
+	if GameSession.build_base_colony_ship(oid):
+		AudioManager.play_sfx_optional(&"build_success")
+	else:
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 	refresh_from_game_session()
 
 
@@ -159,7 +168,10 @@ func _build_cost_text(production_id: String) -> String:
 
 
 func _connect_button(button: Button, callback: Callable) -> void:
-	if button != null and not button.pressed.is_connected(callback):
+	if button == null:
+		return
+	AudioManager.bind_ui_button_optional(button)
+	if not button.pressed.is_connected(callback):
 		button.pressed.connect(callback)
 
 

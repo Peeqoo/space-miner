@@ -3,6 +3,8 @@
 extends Node2D
 
 @export var system_definition: SystemDefinition
+## Scene fallback only when no `SystemDefinition` is loaded (Inspector override).
+@export var music_track_id: StringName = &"music_system_default"
 
 @onready var camera: SystemCameraController = $CameraRoot/SystemCamera2D
 
@@ -63,6 +65,8 @@ func _finish_initial_setup() -> void:
 		camera.set_focus_target(start_node, true)
 
 	system_ui.update_all()
+
+	AudioManager.play_music_optional(_resolve_system_music_track_id())
 
 
 func _setup_controllers() -> void:
@@ -164,6 +168,14 @@ func _on_poi_spawned_camera_refocus_wire(poi: PointOfInterest) -> void:
 func _on_surface_refocus_camera_requested(node: Node2D) -> void:
 	if selection != null:
 		selection.notify_focus_selected_requested(node)
+
+
+func _resolve_system_music_track_id() -> StringName:
+	if system_definition != null:
+		return AudioManager.resolve_music_track_id_optional(system_definition.music_track_id)
+	if not music_track_id.is_empty():
+		return AudioManager.resolve_music_track_id_optional(music_track_id)
+	return AudioManager.resolve_music_track_id_optional(&"music_system_default")
 
 
 func _resolve_active_system_definition() -> void:

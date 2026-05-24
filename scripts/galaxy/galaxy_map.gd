@@ -34,6 +34,8 @@ const _EMPTY_MAP_CLICK_DRAG_THRESHOLD_PX: float = 4.0
 
 
 func _ready() -> void:
+	AudioManager.play_music_optional(&"music_galaxy_map")
+	AudioManager.bind_ui_buttons_in_tree_optional(self)
 	add_to_group("galaxy_map_root")
 	_resolve_transit_route_root()
 	GameSession.ensure_galaxy_progression_boot()

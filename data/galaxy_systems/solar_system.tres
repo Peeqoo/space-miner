@@ -18,6 +18,7 @@
 script = ExtResource("3_vnau3")
 id = "solar-system"
 display_name = "Solar System"
+music_track_id = &"music_solar_system"
 description = "Heimatregion der Menschheit mit vielfältigen Planeten, Monden und Asteroidenfeldern. Seine inneren und äußeren Welten bilden das Zentrum von Expansion, Industrie und interplanetarer Versorgung."
 star_texture = ExtResource("4_s0d8x")
 star_scale = Vector2(0.5, 0.5)

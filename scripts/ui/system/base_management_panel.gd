@@ -108,7 +108,7 @@ func refresh_from_game_session() -> void:
 	status_label.text = "Homebasis" if base_id == BaseStore.BASE_EARTH else "Basis"
 
 	var population := GameSession.get_base_population(base_id)
-	population_label.text = "Population: %d" % population
+	population_label.text = "Population: %s" % NumberFormat.format_compact(population)
 
 
 func _on_close_base_panel_pressed() -> void:
@@ -135,7 +135,10 @@ func _on_open_storage_pressed() -> void:
 
 
 func _connect_button(button: Button, callback: Callable) -> void:
-	if button != null and not button.pressed.is_connected(callback):
+	if button == null:
+		return
+	AudioManager.bind_ui_button_optional(button)
+	if not button.pressed.is_connected(callback):
 		button.pressed.connect(callback)
 
 

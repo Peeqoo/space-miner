@@ -14,11 +14,16 @@ config/name="SpaceMining"
 run/main_scene="res://scenes/core/main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
+[audio]
+
+buses/default_bus_layout="uid://bjbbf7ck12bkf"
+
 [autoload]
 
 GameSession="*res://scripts/autoload/game_session.gd"
 SceneFlow="*res://scripts/autoload/scene_flow.gd"
 SaveManager="*res://scripts/autoload/save_manager.gd"
+AudioManager="*res://scripts/autoload/audio_manager.gd"
 
 [debug]
 

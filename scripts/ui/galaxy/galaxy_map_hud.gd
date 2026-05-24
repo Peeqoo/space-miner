@@ -242,7 +242,7 @@ func show_system_info(
 	if is_instance_valid(access_status_label):
 		access_status_label.text = _access_status_text_for_state(access_state)
 	if is_instance_valid(known_planets_value_label):
-		known_planets_value_label.text = str(max(known_planets_count, 0))
+		known_planets_value_label.text = NumberFormat.format_compact(max(known_planets_count, 0))
 	if is_instance_valid(known_resources_value_label):
 		if access_state == ACCESS_LOCKED or _is_unknown_resources_summary(known_resources_text):
 			known_resources_value_label.text = _intel_unknown_text
@@ -340,7 +340,7 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 		_set_colonization_block(
 			state_short,
 			_colonization_target_value_text(system_def, sid),
-			str(ships_n),
+			NumberFormat.format_compact(ships_n),
 			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
 		_set_cancel_dev_disabled()
@@ -379,7 +379,7 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 	_set_colonization_block(
 		uncolonized_text,
 		_colonization_target_value_text(system_def, sid),
-		str(cs_n),
+		NumberFormat.format_compact(cs_n),
 		_colonization_intel_value_text(system_def, sid, pending_rec),
 	)
 	_set_cancel_dev_disabled()
@@ -427,11 +427,11 @@ func _colonization_ships_count_text(sid: String) -> String:
 	if GameSession.has_established_base_in_system(sid):
 		var bid := GameSession.get_established_base_id_for_system(sid).strip_edges()
 		if not bid.is_empty():
-			return str(GameSession.get_base_colony_ship_count(bid))
+			return NumberFormat.format_compact(GameSession.get_base_colony_ship_count(bid))
 	var src := GameSession.get_colonization_source_base_id().strip_edges()
 	if src.is_empty():
 		return "0"
-	return str(GameSession.get_base_colony_ship_count(src))
+	return NumberFormat.format_compact(GameSession.get_base_colony_ship_count(src))
 
 
 func _colonization_intel_value_text(

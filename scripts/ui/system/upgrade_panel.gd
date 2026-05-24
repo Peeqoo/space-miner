@@ -131,7 +131,10 @@ func _on_storage_upgrade_pressed() -> void:
 	if not GameSession.has_established_base(oid):
 		return
 	if GameSession.buy_next_base_upgrade(oid, &"storage"):
+		AudioManager.play_sfx_optional(&"build_success")
 		refresh_from_game_session()
+	else:
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 
 
 func _on_scan_drone_upgrade_pressed() -> void:
@@ -139,7 +142,10 @@ func _on_scan_drone_upgrade_pressed() -> void:
 	if not GameSession.has_established_base(oid):
 		return
 	if GameSession.buy_next_base_upgrade(oid, &"scan_drone"):
+		AudioManager.play_sfx_optional(&"build_success")
 		refresh_from_game_session()
+	else:
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 
 
 func _on_mining_ship_upgrade_pressed() -> void:
@@ -147,7 +153,10 @@ func _on_mining_ship_upgrade_pressed() -> void:
 	if not GameSession.has_established_base(oid):
 		return
 	if GameSession.buy_next_base_upgrade(oid, &"mining_ship"):
+		AudioManager.play_sfx_optional(&"build_success")
 		refresh_from_game_session()
+	else:
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 
 
 func _register_hover(button: Button) -> void:
@@ -210,7 +219,10 @@ func _build_upgrade_hover_description(category: StringName) -> String:
 
 
 func _connect_button(button: Button, callback: Callable) -> void:
-	if button != null and not button.pressed.is_connected(callback):
+	if button == null:
+		return
+	AudioManager.bind_ui_button_optional(button)
+	if not button.pressed.is_connected(callback):
 		button.pressed.connect(callback)
 
 

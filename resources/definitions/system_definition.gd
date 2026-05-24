@@ -7,6 +7,10 @@ extends Resource
 @export var display_name: String = ""
 @export_multiline var description: String = ""
 
+@export_group("Audio")
+## Music track id for `AudioManager.play_music` when this system is loaded (see `MUSIC_TRACKS`).
+@export var music_track_id: StringName = &"music_system_default"
+
 @export_group("Star")
 @export var star_texture: Texture2D
 @export var star_scale: Vector2 = Vector2.ONE

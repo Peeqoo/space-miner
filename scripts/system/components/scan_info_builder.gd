@@ -172,7 +172,8 @@ static func _entry_to_scan_resource(entry: Variant) -> Dictionary:
 
 		if deposit_total >= 0:
 			out["total"] = deposit_total
-			out["display_text"] = "%s %d/%d" % [String(resource_id), deposit_total, deposit_total]
+			var compact_total := NumberFormat.format_compact(deposit_total)
+			out["display_text"] = "%s %s/%s" % [String(resource_id), compact_total, compact_total]
 		else:
 			out["display_text"] = String(resource_id)
 

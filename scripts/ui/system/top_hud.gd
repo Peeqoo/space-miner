@@ -71,7 +71,7 @@ func set_primary_base_body_id(body_id: String) -> void:
 
 
 func set_jobs_count(count: int) -> void:
-	jobs_label.text = "%s%d" % [_jobs_prefix, maxi(0, count)]
+	jobs_label.text = "%s%s" % [_jobs_prefix, NumberFormat.format_compact(maxi(0, count))]
 
 
 func _effective_display_base_id() -> String:
@@ -93,15 +93,22 @@ func refresh_from_game_session() -> void:
 
 	var used: int = GameSession.get_base_storage_used(bid)
 	var cap: int = GameSession.get_base_storage_capacity(bid)
-	storage_label.text = "%s%d/%d" % [_storage_prefix, used, cap]
+	storage_label.text = "%s%s/%s" % [
+		_storage_prefix,
+		NumberFormat.format_compact(used),
+		NumberFormat.format_compact(cap),
+	]
 
 	var drones: int = GameSession.get_base_drone_count(bid)
-	scan_drone_label.text = "%s%d" % [_scan_drone_prefix, drones]
+	scan_drone_label.text = "%s%s" % [_scan_drone_prefix, NumberFormat.format_compact(drones)]
 
 	var ships: int = GameSession.get_base_mining_ship_count(bid)
-	mining_ship_label.text = "%s%d" % [_mining_ship_prefix, ships]
+	mining_ship_label.text = "%s%s" % [_mining_ship_prefix, NumberFormat.format_compact(ships)]
 
-	colony_ship_label.text = "%s%d" % [_colony_ship_prefix, GameSession.get_base_colony_ship_count(bid)]
+	colony_ship_label.text = "%s%s" % [
+		_colony_ship_prefix,
+		NumberFormat.format_compact(GameSession.get_base_colony_ship_count(bid)),
+	]
 
 
 func _connect_widget_hover(widget: Control, kind: String) -> void:

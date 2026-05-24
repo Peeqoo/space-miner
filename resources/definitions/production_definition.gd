@@ -51,5 +51,12 @@ static func format_cost_lines_with_availability(p_cost: Dictionary, available: D
 	for res_id: Variant in keys:
 		var need := int(p_cost.get(res_id, 0))
 		var have := int(available.get(res_id, 0))
-		lines.append("%s: %d / %d" % [format_resource_title(str(res_id)), have, need])
+		lines.append(
+			"%s: %s / %s"
+			% [
+				format_resource_title(str(res_id)),
+				NumberFormat.format_compact(have),
+				NumberFormat.format_compact(need),
+			]
+		)
 	return lines

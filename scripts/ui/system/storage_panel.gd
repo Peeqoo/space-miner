@@ -25,6 +25,7 @@ func _ready() -> void:
 
 	if close_button != null and not close_button.pressed.is_connected(_on_close_pressed):
 		close_button.pressed.connect(_on_close_pressed)
+	AudioManager.bind_ui_button_optional(close_button)
 
 	if not GameSession.base_resources_changed.is_connected(_on_game_session_base_resources_changed):
 		GameSession.base_resources_changed.connect(_on_game_session_base_resources_changed)
@@ -86,7 +87,7 @@ func _apply_refresh() -> void:
 		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		name_l.size_flags_stretch_ratio = 1.0
-		name_l.text = "%s: %d" % [rid.capitalize(), amt]
+		name_l.text = "%s: %s" % [rid.capitalize(), NumberFormat.format_compact(amt)]
 		name_l.label_settings = _TEXT_SMALL_LS
 		name_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 		name_l.clip_text = true
@@ -99,6 +100,7 @@ func _apply_refresh() -> void:
 		b10.size_flags_horizontal = Control.SIZE_SHRINK_END
 		b10.tooltip_text = ""
 		b10.pressed.connect(_on_discard_pressed.bind(rid, 10))
+		AudioManager.bind_ui_button_optional(b10)
 		row.add_child(b10)
 
 		resource_list.add_child(row)

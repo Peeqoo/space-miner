@@ -9,6 +9,8 @@ var _slot_ui: Array[Dictionary] = []
 
 
 func _ready() -> void:
+	AudioManager.play_music_optional(&"music_main_menu")
+	AudioManager.bind_ui_buttons_in_tree_optional(self)
 	_build_slot_ui()
 	_show_main_menu_buttons()
 	_refresh_all_slots()

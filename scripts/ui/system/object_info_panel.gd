@@ -113,6 +113,16 @@ func _ready() -> void:
 
 	_mining_button_text_default = send_mining_ship_button.text
 
+	for ui_button: Button in [
+		close_base_panel_button,
+		scan_with_drone_button,
+		send_mining_ship_button,
+		recall_drone_button,
+		recall_mining_ship_button,
+		colonization_button,
+	]:
+		AudioManager.bind_ui_button_optional(ui_button)
+
 	if not GameSession.object_remaining_resources_changed.is_connected(
 		_on_game_session_object_resources_changed
 	):
@@ -422,13 +432,18 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var drone_parts: PackedStringArray = []
 
 	if drone_supporting > 0 and not _automation_drone_supporting_format.is_empty():
-		drone_parts.append(_automation_drone_supporting_format % drone_supporting)
+		drone_parts.append(
+			_format_count_template(_automation_drone_supporting_format, drone_supporting)
+		)
 
 	if drone_on_mission > 0 and not _automation_drone_on_mission_format.is_empty():
-		drone_parts.append(_automation_drone_on_mission_format % drone_on_mission)
+		drone_parts.append(_format_count_template(_automation_drone_on_mission_format, drone_on_mission))
 
 	drone_orbit_label.text = _meta_label(_drone_orbit_label_prefix, ", ".join(drone_parts))
-	mine_orbit_label.text = _meta_label(_mine_orbit_label_prefix, str(mining_mining_count))
+	mine_orbit_label.text = _meta_label(
+		_mine_orbit_label_prefix,
+		NumberFormat.format_compact(mining_mining_count),
+	)
 	mining_bonus_label.text = _meta_label(_mining_bonus_label_prefix, "+%d%%" % bonus_pct)
 
 
@@ -516,9 +531,12 @@ func _build_resource_detail_text(resource_entry: Dictionary) -> String:
 		total = maxi(total_from_entry, remaining)
 
 	if remaining <= 0:
-		return "0 / %d" % total
+		return "0 / %s" % NumberFormat.format_compact(total)
 
-	return "%d / %d" % [remaining, total]
+	return "%s / %s" % [
+		NumberFormat.format_compact(remaining),
+		NumberFormat.format_compact(total),
+	]
 
 
 ## Reads an optional cap/total from the scan `resources_visible` dict only (no store/API).
@@ -590,9 +608,17 @@ func _clear_resource_rows() -> void:
 func _build_amount_text_without_store(resource_entry: Dictionary) -> String:
 	var total_from_entry: int = _read_total_amount_from_resource_entry(resource_entry)
 	if total_from_entry >= 0:
-		return "%d / %d" % [total_from_entry, total_from_entry]
+		var compact_total := NumberFormat.format_compact(total_from_entry)
+		return "%s / %s" % [compact_total, compact_total]
 
 	return "--"
+
+
+func _format_count_template(format_str: String, count: int) -> String:
+	var compact := NumberFormat.format_compact(count)
+	if format_str.contains("%d"):
+		return format_str.replace("%d", compact)
+	return format_str % compact
 
 
 func _format_scan_state(scan_state: String) -> String:

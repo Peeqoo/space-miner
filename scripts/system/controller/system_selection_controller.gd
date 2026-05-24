@@ -77,6 +77,7 @@ func _on_body_selected(body: SystemBody) -> void:
 	selected_node = body
 	body.set_selected(true)
 
+	_play_object_selected_sfx()
 	selection_changed.emit(body)
 
 
@@ -89,4 +90,9 @@ func _on_poi_selected(poi: PointOfInterest) -> void:
 	selected_node = poi
 	poi.set_selected(true)
 
+	_play_object_selected_sfx()
 	selection_changed.emit(poi)
+
+
+func _play_object_selected_sfx() -> void:
+	AudioManager.play_sfx_optional(&"object_selected")

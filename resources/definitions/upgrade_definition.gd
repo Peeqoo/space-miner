@@ -66,7 +66,9 @@ static func format_resource_cost_lines(p_cost: Dictionary) -> PackedStringArray:
 	)
 	for res_id: Variant in keys:
 		var need := int(p_cost.get(res_id, 0))
-		out.append("%s: %d" % [format_resource_title(str(res_id)), need])
+		out.append(
+			"%s: %s" % [format_resource_title(str(res_id)), NumberFormat.format_compact(need)]
+		)
 	return out
 
 

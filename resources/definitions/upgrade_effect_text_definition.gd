@@ -15,4 +15,11 @@ func format_template(template_key: String, value: Variant) -> String:
 	if template.is_empty():
 		push_warning("UpgradeEffectTextDefinition: missing template '%s'" % template_key)
 		return ""
-	return template.format({"value": str(value)})
+	var display_value: String
+	if value is int:
+		display_value = NumberFormat.format_compact(value)
+	elif value is float:
+		display_value = NumberFormat.format_compact_float(value)
+	else:
+		display_value = str(value)
+	return template.format({"value": display_value})

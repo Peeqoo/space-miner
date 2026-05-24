@@ -1002,7 +1002,9 @@ func _hover_append_simple_object_count_lines(details: Array, counts_by_object: D
 		var n: int = int(counts_by_object.get(oid, 0))
 		if n <= 0:
 			continue
-		details.append("%s: %d" % [_hover_display_name_for_object_id(oid), n])
+		details.append(
+			"%s: %s" % [_hover_display_name_for_object_id(oid), NumberFormat.format_compact(n)]
+		)
 
 
 func _top_hud_effects_section_caption() -> String:
@@ -1038,7 +1040,9 @@ func _build_hover_details(kind: String) -> Dictionary:
 				if amt_s <= 0:
 					continue
 				has_any = true
-				details.append("%s: %d" % [str(res_id).capitalize(), amt_s])
+				details.append(
+					"%s: %s" % [str(res_id).capitalize(), NumberFormat.format_compact(amt_s)]
+				)
 			if not has_any:
 				details.append("No resources stored.")
 			var storage_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(
@@ -1059,8 +1063,8 @@ func _build_hover_details(kind: String) -> Dictionary:
 				busy_sd = automation_controller.scan_drone_target_by_unit_id.size()
 			var idle_sd := maxi(0, total_sd - busy_sd)
 			title = "ScanDrones"
-			details.append("Total: %d" % total_sd)
-			details.append("Base: %d" % idle_sd)
+			details.append("Total: %s" % NumberFormat.format_compact(total_sd))
+			details.append("Base: %s" % NumberFormat.format_compact(idle_sd))
 			_hover_append_simple_object_count_lines(details, _hover_scan_drone_counts_by_target())
 			var scan_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(
 				base_id, &"scan_drone"
@@ -1080,8 +1084,8 @@ func _build_hover_details(kind: String) -> Dictionary:
 				busy_ms = automation_controller.mining_ship_runtime_by_unit_id.size()
 			var idle_ms := maxi(0, total_ms - busy_ms)
 			title = "MiningShips"
-			details.append("Total: %d" % total_ms)
-			details.append("Base: %d" % idle_ms)
+			details.append("Total: %s" % NumberFormat.format_compact(total_ms))
+			details.append("Base: %s" % NumberFormat.format_compact(idle_ms))
 			_hover_append_simple_object_count_lines(details, _hover_mining_ship_counts_by_group_object())
 			var ms_def: UpgradeDefinition = GameSession.get_current_upgrade_definition(
 				base_id, &"mining_ship"
@@ -1098,7 +1102,7 @@ func _build_hover_details(kind: String) -> Dictionary:
 			var total_cs: int = GameSession.get_base_colony_ship_count(base_id)
 			title = "ColonyShips"
 			details = [
-				"Total: %d" % total_cs,
+				"Total: %s" % NumberFormat.format_compact(total_cs),
 				"Status: stored",
 			]
 			hint = "Used later to establish colonies in other systems."
@@ -1111,9 +1115,9 @@ func _build_hover_details(kind: String) -> Dictionary:
 				mining_jobs = automation_controller.get_active_mining_job_count_for_session_base(base_id)
 			title = "Jobs"
 			details = [
-				"Active: %d" % (scan_jobs + mining_jobs),
-				"Scanning: %d" % scan_jobs,
-				"Mining: %d" % mining_jobs,
+				"Active: %s" % NumberFormat.format_compact(scan_jobs + mining_jobs),
+				"Scanning: %s" % NumberFormat.format_compact(scan_jobs),
+				"Mining: %s" % NumberFormat.format_compact(mining_jobs),
 			]
 			hint = "Current automation tasks."
 
