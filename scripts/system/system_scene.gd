@@ -14,6 +14,9 @@ extends Node2D
 @onready var system_ui: SystemUIController = $SystemUIController
 @onready var automation_controller: AutomationController = $AutomationController
 @onready var pause_menu_overlay: Control = $UI/PauseMenuOverlay
+# VISUAL_LIGHTING_EXPERIMENT_START
+@onready var system_light_controller: SystemLightController = $SystemLightController
+# VISUAL_LIGHTING_EXPERIMENT_END
 
 var _resolved_start_body_id: String = ""
 
@@ -31,6 +34,11 @@ func _ready() -> void:
 
 	spawner.spawn_from_definition(system_definition)
 	orbit_guides.update_orbit_guides()
+
+	# VISUAL_LIGHTING_EXPERIMENT_START
+	if system_light_controller != null:
+		system_light_controller.setup_from_spawner(spawner)
+	# VISUAL_LIGHTING_EXPERIMENT_END
 
 	call_deferred("_finish_initial_setup")
 

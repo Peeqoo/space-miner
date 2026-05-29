@@ -5,7 +5,9 @@
 [ext_resource type="Resource" uid="uid://cam66sjyghlas" path="res://data/galaxy_systems/solar_system.tres" id="2_hak25"]
 [ext_resource type="Texture2D" uid="uid://cmp8ysrannpyb" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_02-1024x1024.png" id="3_frd62"]
 [ext_resource type="Texture2D" uid="uid://oyhhwffeut2x" path="res://assets/sprites/backgrounds/large 1024x1024/Starfields/Starfield_04-1024x1024.png" id="4_e0kxw"]
+[ext_resource type="Shader" uid="uid://whcua2xod72s" path="res://shaders/visual/background_star_twinkle_2d.gdshader" id="4_we18v"]
 [ext_resource type="Script" uid="uid://djqpjinh8jmm4" path="res://scripts/system/controller/system_camera_controller.gd" id="5_5mh7d"]
+[ext_resource type="Shader" uid="uid://dnhd8454cp6x5" path="res://shaders/visual/background_star_twinkle_2d_with_add.gdshader" id="5_akc63"]
 [ext_resource type="Script" uid="uid://d10x3h0e3va32" path="res://scripts/system/controller/automation_controller.gd" id="7_oj33q"]
 [ext_resource type="Script" uid="uid://bitfpb2llsdp7" path="res://scripts/system/controller/system_spawner.gd" id="8_dc3br"]
 [ext_resource type="Script" uid="uid://b54e05xmyiitf" path="res://scripts/system/controller/system_orbit_guides_controller.gd" id="9_06sa2"]
@@ -20,9 +22,23 @@
 [ext_resource type="PackedScene" uid="uid://bocekpsnvfpgx" path="res://scenes/ui/system/storage_panel.tscn" id="18_storage"]
 [ext_resource type="PackedScene" uid="uid://dvq6ackye3vtv" path="res://scenes/ui/system/navigation_hud.tscn" id="19_navhud"]
 [ext_resource type="PackedScene" uid="uid://7n8gwptymab5" path="res://scenes/ui/system/pause_menu_overlay.tscn" id="20_pause"]
+[ext_resource type="Script" uid="uid://d2egcld3ew741" path="res://scripts/visual/system_light_controller.gd" id="21_light"]
 
-[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_e0kxw"]
-blend_mode = 1
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_36xxu"]
+shader = ExtResource("4_we18v")
+shader_parameter/glow_strength = 0.08
+shader_parameter/twinkle_strength = 0.04
+shader_parameter/twinkle_speed = 0.45
+shader_parameter/star_threshold = 0.55
+shader_parameter/glow_tint = Color(0.86, 0.92, 1, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_akc63"]
+shader = ExtResource("5_akc63")
+shader_parameter/glow_strength = 0.08
+shader_parameter/twinkle_strength = 0.04
+shader_parameter/twinkle_speed = 0.45
+shader_parameter/star_threshold = 0.55
+shader_parameter/glow_tint = Color(0.86, 0.92, 1, 1)
 
 [node name="SystemScene" type="Node2D" unique_id=652065169]
 script = ExtResource("1_f7o5m")
@@ -31,10 +47,11 @@ system_definition = ExtResource("2_hak25")
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=185956986]
 
 [node name="FarStarsParallax" type="Parallax2D" parent="BackgroundRoot" unique_id=1804456338]
-scroll_scale = Vector2(0.65, 0.65)
+scroll_scale = Vector2(0.75, 0.75)
 
 [node name="FarStars" type="Sprite2D" parent="BackgroundRoot/FarStarsParallax" unique_id=520030357]
 texture_repeat = 2
+material = SubResource("ShaderMaterial_36xxu")
 texture = ExtResource("3_frd62")
 region_enabled = true
 region_rect = Rect2(0, 0, 10000, 10000)
@@ -50,7 +67,7 @@ scroll_scale = Vector2(0.85, 0.85)
 
 [node name="MidStars" type="Sprite2D" parent="BackgroundRoot/MidStarsParallax" unique_id=348178512]
 texture_repeat = 2
-material = SubResource("CanvasItemMaterial_e0kxw")
+material = SubResource("ShaderMaterial_akc63")
 texture = ExtResource("4_e0kxw")
 region_enabled = true
 region_rect = Rect2(0, 0, 10000, 10000)
@@ -84,6 +101,18 @@ script = ExtResource("7_oj33q")
 [node name="SystemSpawner" type="Node2D" parent="." unique_id=965017483]
 script = ExtResource("8_dc3br")
 
+[node name="SystemLightController" type="Node" parent="." unique_id=2062233604]
+script = ExtResource("21_light")
+star_node_path = NodePath("WorldRoot/StarRoot")
+true_lighting_canvas_modulate_color = Color(0.059911326, 0.070476435, 0.112851225, 1)
+real_star_light_color = Color(0.91654724, 0.9510632, 0.9999996, 1)
+real_star_light_radius_px = 12000.0
+enable_vignette = false
+vignette_color = Color(0.05882353, 0.07058824, 0.11372549, 1)
+vignette_strength = 0.8
+vignette_radius = 0.19
+vignette_softness = 0.9
+
 [node name="SystemOrbitGuidesController" type="Node2D" parent="." unique_id=2030945301]
 script = ExtResource("9_06sa2")
 
@@ -94,6 +123,7 @@ script = ExtResource("11_owt6d")
 script = ExtResource("12_dc3br")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1790193946]
+layer = 2
 
 [node name="TopHUD" parent="UI" unique_id=1772545870 instance=ExtResource("14_hrum5")]
 anchors_preset = 10
@@ -112,10 +142,10 @@ offset_bottom = 83.99992
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -170.0
+offset_left = -186.0
 offset_top = 30.0
 offset_right = -8.0
-offset_bottom = 279.0
+offset_bottom = 380.0
 grow_horizontal = 0
 
 [node name="BaseManagementPanel" parent="UI" unique_id=995273956 instance=ExtResource("11_8gesb")]

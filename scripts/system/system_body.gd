@@ -52,6 +52,10 @@ var is_selected: bool:
 # --------------------------------------------------
 
 func _ready() -> void:
+	# VISUAL_LIGHTING_EXPERIMENT_START
+	add_to_group(&"system_planets")
+	# VISUAL_LIGHTING_EXPERIMENT_END
+
 	if definition != null:
 		_apply_definition()
 

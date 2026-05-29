@@ -10,9 +10,9 @@
 [ext_resource type="LabelSettings" uid="uid://dc6q25ofjyema" path="res://scenes/ui/font_labels/text_label_small.tres" id="6_oi0nm"]
 
 [node name="ObjectInfoPanel" type="PanelContainer" unique_id=987163130]
-custom_minimum_size = Vector2(170, 0)
-offset_right = 170.0
-offset_bottom = 275.0
+custom_minimum_size = Vector2(200, 0)
+offset_right = 200.0
+offset_bottom = 350.0
 script = ExtResource("1_c2q1o")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=556540]
@@ -45,7 +45,6 @@ layout_mode = 2
 
 [node name="MainRow" type="HBoxContainer" parent="Margin/Root" unique_id=394734506]
 layout_mode = 2
-theme_override_constants/separation = 6
 
 [node name="PreviewPanel" type="PanelContainer" parent="Margin/Root/MainRow" unique_id=1583092633]
 custom_minimum_size = Vector2(36, 36)
@@ -66,6 +65,7 @@ stretch_mode = 5
 
 [node name="MetaColumn" type="VBoxContainer" parent="Margin/Root/MainRow" unique_id=101171211]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 2
 alignment = 1
 
@@ -83,6 +83,7 @@ label_settings = ExtResource("4_ckpwi")
 layout_mode = 2
 text = "Scanstatus: Unknown"
 label_settings = ExtResource("4_ckpwi")
+text_overrun_behavior = 3
 
 [node name="DistanceLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=476233926]
 layout_mode = 2
@@ -141,6 +142,7 @@ layout_mode = 2
 horizontal_scroll_mode = 0
 
 [node name="LoreTextLabel" type="Label" parent="Margin/Root/LorePanel/LoreMargin/LoreScroll" unique_id=50513453]
+custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Bewohnter Gesteinsplanet mit bekannter Infrastruktur."
@@ -171,6 +173,7 @@ label_settings = ExtResource("6_oi0nm")
 
 [node name="EconomyBlockLabel" type="Label" parent="Margin/Root" unique_id=920000100]
 visible = false
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 size_flags_horizontal = 3
 label_settings = ExtResource("6_oi0nm")

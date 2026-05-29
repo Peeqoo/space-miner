@@ -22,6 +22,11 @@ enum SizeAuthoringMode {
 @export var texture: Texture2D
 @export var can_build_base: bool = true
 
+# VISUAL_LIGHTING_EXPERIMENT_START
+## Optional per-body lighting overrides for SystemLightController (null = scene defaults).
+@export var planet_lighting: PlanetLightingVisualDefinition
+# VISUAL_LIGHTING_EXPERIMENT_END
+
 # Neu: kanonische Referenzdaten
 @export var reference_radius_earth: float = 1.0
 @export var reference_orbit_au: float = 1.0

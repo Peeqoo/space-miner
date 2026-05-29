@@ -8,7 +8,7 @@
 [ext_resource type="FontFile" uid="uid://bt3p1wh0fgq6" path="res://assets/fonts/PixelOperatorHBSC.ttf" id="5_4em1t"]
 
 [node name="BaseManagementPanel" type="PanelContainer" unique_id=995273956]
-custom_minimum_size = Vector2(170, 0)
+custom_minimum_size = Vector2(200, 0)
 offset_right = 170.0
 offset_bottom = 162.0
 script = ExtResource("1_base_panel")

@@ -25,10 +25,6 @@ SceneFlow="*res://scripts/autoload/scene_flow.gd"
 SaveManager="*res://scripts/autoload/save_manager.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
 
-[debug]
-
-settings/stdout/print_fps=true
-
 [display]
 
 window/size/viewport_width=960
@@ -43,7 +39,8 @@ folder_colors={
 "res://data/": "red",
 "res://resources/": "orange",
 "res://scenes/": "green",
-"res://scripts/": "teal"
+"res://scripts/": "teal",
+"res://shaders/": "blue"
 }
 
 [input]

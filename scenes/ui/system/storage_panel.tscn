@@ -8,7 +8,7 @@
 
 [node name="StoragePanel" type="PanelContainer" unique_id=60499174]
 visible = false
-custom_minimum_size = Vector2(170, 0)
+custom_minimum_size = Vector2(200, 0)
 offset_right = 170.0
 offset_bottom = 54.0
 script = ExtResource("1_script")

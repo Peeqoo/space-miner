@@ -7,7 +7,7 @@
 [ext_resource type="LabelSettings" uid="uid://dc6q25ofjyema" path="res://scenes/ui/font_labels/text_label_small.tres" id="5_3o1oa"]
 
 [node name="ProductionPanel" type="PanelContainer" unique_id=55424944]
-custom_minimum_size = Vector2(170, 0)
+custom_minimum_size = Vector2(200, 0)
 offset_right = 170.0
 offset_bottom = 104.0
 script = ExtResource("1_script")

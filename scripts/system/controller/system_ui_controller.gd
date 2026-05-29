@@ -160,11 +160,12 @@ func update_object_info() -> void:
 	var selected_node := selection.get_selected_node()
 
 	if selected_node == null:
-		object_info_panel.visible = false
+		var was_object_info_visible := object_info_panel.visible
 
-		if object_info_panel.has_method("show_empty"):
+		if was_object_info_visible and object_info_panel.has_method("show_empty"):
 			object_info_panel.call("show_empty")
 
+		object_info_panel.visible = false
 		return
 
 	object_info_panel.visible = true
