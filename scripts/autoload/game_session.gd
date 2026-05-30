@@ -33,6 +33,9 @@ var automation := AutomationStore.new()
 ## Pending automation runtime from save; consumed when SystemScene hydrates AutomationController.
 var _automation_runtime_pending: Dictionary = {}
 
+## Pending system camera state from save; consumed when SystemScene finishes setup.
+var _camera_state_pending: Dictionary = {}
+
 var scanner := ScannerStore.new()
 
 ## Phase 5.5: data-driven upgrade tiers (`data/upgrades/*.tres`).
@@ -1208,14 +1211,30 @@ func reset_for_new_game() -> void:
 
 
 func refresh_automation_snapshot_from_scene() -> void:
-	var controller := _find_automation_controller_in_tree()
-	if controller == null:
-		return
-	if not controller.has_method("to_save_data"):
-		return
-	var runtime_variant: Variant = controller.call("to_save_data")
-	if runtime_variant is Dictionary:
-		_automation_runtime_pending = (runtime_variant as Dictionary).duplicate(true)
+	_automation_runtime_pending = _capture_live_automation_runtime_snapshot()
+
+
+func refresh_camera_snapshot_from_scene() -> void:
+	_camera_state_pending = _capture_live_camera_snapshot()
+
+
+func take_camera_state_pending() -> Dictionary:
+	var pending := _camera_state_pending.duplicate(true)
+	_camera_state_pending.clear()
+	return pending
+
+
+func has_camera_state_pending_for_system(system_id: String) -> bool:
+	if _camera_state_pending.is_empty():
+		return false
+
+	var saved_sid: String = str(_camera_state_pending.get("system_id", "")).strip_edges()
+	var want_sid: String = system_id.strip_edges()
+
+	if saved_sid.is_empty() or want_sid.is_empty():
+		return false
+
+	return saved_sid == want_sid
 
 
 func take_automation_runtime_pending() -> Dictionary:
@@ -1228,10 +1247,20 @@ func has_automation_runtime_pending() -> bool:
 	return not _automation_runtime_pending.is_empty()
 
 
+func _capture_live_automation_runtime_snapshot() -> Dictionary:
+	var controller := _find_automation_controller_in_tree()
+	if controller != null and controller.has_method("to_save_data"):
+		var live_variant: Variant = controller.call("to_save_data")
+		if live_variant is Dictionary:
+			return (live_variant as Dictionary).duplicate(true)
+
+	return _automation_runtime_pending.duplicate(true)
+
+
 func _build_automation_save_payload() -> Dictionary:
 	return {
 		"store": automation.to_save_data(),
-		"runtime": _automation_runtime_pending.duplicate(true),
+		"runtime": _capture_live_automation_runtime_snapshot(),
 	}
 
 
@@ -1252,6 +1281,40 @@ func _find_automation_controller_recursive(node: Node) -> Node:
 	return null
 
 
+func _capture_live_camera_snapshot() -> Dictionary:
+	var camera := _find_system_camera_controller_in_tree()
+
+	if camera != null and camera.has_method("to_save_state"):
+		var live_variant: Variant = camera.call("to_save_state")
+
+		if live_variant is Dictionary:
+			return (live_variant as Dictionary).duplicate(true)
+
+	return _camera_state_pending.duplicate(true)
+
+
+func _find_system_camera_controller_in_tree() -> Node:
+	var root := get_tree().root if is_inside_tree() else null
+
+	if root == null:
+		return null
+
+	return _find_system_camera_controller_recursive(root)
+
+
+func _find_system_camera_controller_recursive(node: Node) -> Node:
+	if node is SystemCameraController:
+		return node
+
+	for child: Node in node.get_children():
+		var found := _find_system_camera_controller_recursive(child)
+
+		if found != null:
+			return found
+
+	return null
+
+
 func to_save_data() -> Dictionary:
 	return {
 		"current_system_id": current_system_id,
@@ -1263,6 +1326,7 @@ func to_save_data() -> Dictionary:
 		"bases": bases.to_save_data(),
 		"object_scans": object_scans.to_save_data(),
 		"automation": _build_automation_save_payload(),
+		"camera_state": _capture_live_camera_snapshot(),
 	}
 
 
@@ -1311,6 +1375,7 @@ func apply_save_data(data: Dictionary) -> bool:
 	var bases_variant: Variant = data.get("bases", {})
 	if bases_variant is Dictionary:
 		bases.apply_save_data(bases_variant as Dictionary)
+		_refresh_all_base_upgrade_derived_fields()
 
 	var scans_variant: Variant = data.get("object_scans", {})
 	if scans_variant is Dictionary:
@@ -1319,6 +1384,7 @@ func apply_save_data(data: Dictionary) -> bool:
 	_sync_basic_intel_from_all_established_bases()
 
 	_apply_automation_from_save_data(data.get("automation", {}))
+	_apply_camera_state_from_save_data(data.get("camera_state", {}))
 
 	current_system_definition = null
 	_load_system_definition_for_id(current_system_id)
@@ -1330,6 +1396,23 @@ func apply_save_data(data: Dictionary) -> bool:
 		base_upgrades_changed.emit(bid)
 
 	return true
+
+
+func _refresh_all_base_upgrade_derived_fields() -> void:
+	for base_id_variant: Variant in bases.bases.keys():
+		var base_id := str(base_id_variant).strip_edges()
+
+		if base_id.is_empty():
+			continue
+
+		bases.get_base(base_id)
+
+
+func _apply_camera_state_from_save_data(camera_variant: Variant) -> void:
+	_camera_state_pending.clear()
+
+	if camera_variant is Dictionary:
+		_camera_state_pending = (camera_variant as Dictionary).duplicate(true)
 
 
 func _apply_automation_from_save_data(automation_variant: Variant) -> void:

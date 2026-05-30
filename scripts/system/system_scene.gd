@@ -59,22 +59,48 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _finish_initial_setup() -> void:
+	get_tree().paused = false
+
+	await get_tree().process_frame
 	await get_tree().process_frame
 
 	if automation_controller.has_method("apply_automation_save_if_pending"):
-		automation_controller.apply_automation_save_if_pending()
+		await automation_controller.apply_automation_save_if_pending()
 
 	automation_controller.ensure_starting_units(_resolved_start_body_id)
 
-	var start_node: Node2D = null
-	if not _resolved_start_body_id.is_empty():
-		start_node = spawner.get_spawned_object(_resolved_start_body_id) as Node2D
-	if start_node != null:
-		camera.set_focus_target(start_node, true)
+	var restored_camera := _try_restore_saved_camera_state()
+
+	if not restored_camera:
+		var start_node: Node2D = null
+
+		if not _resolved_start_body_id.is_empty():
+			start_node = spawner.get_spawned_object(_resolved_start_body_id) as Node2D
+
+		if start_node != null:
+			camera.set_focus_target(start_node, true)
 
 	system_ui.update_all()
 
 	AudioManager.play_music_optional(_resolve_system_music_track_id())
+
+
+func _try_restore_saved_camera_state() -> bool:
+	if not GameSession.has_camera_state_pending_for_system(GameSession.current_system_id):
+		return false
+
+	var camera_state: Dictionary = GameSession.take_camera_state_pending()
+
+	if camera_state.is_empty():
+		return false
+
+	var saved_sid: String = str(camera_state.get("system_id", "")).strip_edges()
+	var current_sid: String = GameSession.current_system_id.strip_edges()
+
+	if not saved_sid.is_empty() and not current_sid.is_empty() and saved_sid != current_sid:
+		return false
+
+	return camera.restore_saved_state(camera_state)
 
 
 func _setup_controllers() -> void:

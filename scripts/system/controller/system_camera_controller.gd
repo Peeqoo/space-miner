@@ -56,8 +56,12 @@ func _ready() -> void:
 	make_current()
 	zoom_target = zoom
 
-	if auto_frame_on_ready:
+	if auto_frame_on_ready and not _should_skip_start_frame_for_pending_save():
 		call_deferred("_apply_start_frame")
+
+
+func _should_skip_start_frame_for_pending_save() -> bool:
+	return GameSession.has_camera_state_pending_for_system(GameSession.current_system_id)
 
 
 func _process(delta: float) -> void:
@@ -218,6 +222,43 @@ func disable_follow_from_manual_input() -> void:
 func clear_focus_target() -> void:
 	focus_target = null
 	follow_enabled = false
+
+
+func to_save_state() -> Dictionary:
+	return {
+		"system_id": GameSession.current_system_id,
+		"global_position": {"x": global_position.x, "y": global_position.y},
+		"zoom": {"x": zoom.x, "y": zoom.y},
+	}
+
+
+func restore_saved_state(state: Dictionary) -> bool:
+	if state.is_empty():
+		return false
+
+	var pos_variant: Variant = state.get("global_position", null)
+
+	if pos_variant is Dictionary:
+		var pos_dict: Dictionary = pos_variant as Dictionary
+		snap_to_position(
+			Vector2(float(pos_dict.get("x", 0.0)), float(pos_dict.get("y", 0.0)))
+		)
+	elif pos_variant is Vector2:
+		snap_to_position(pos_variant as Vector2)
+
+	var zoom_variant: Variant = state.get("zoom", null)
+
+	if zoom_variant is Dictionary:
+		var zoom_dict: Dictionary = zoom_variant as Dictionary
+		var restored_zoom := Vector2(float(zoom_dict.get("x", 1.0)), float(zoom_dict.get("y", 1.0)))
+		zoom = restored_zoom
+		zoom_target = restored_zoom
+	elif zoom_variant is Vector2:
+		zoom = zoom_variant as Vector2
+		zoom_target = zoom_variant as Vector2
+
+	clear_focus_target()
+	return true
 
 
 # --------------------------------------------------

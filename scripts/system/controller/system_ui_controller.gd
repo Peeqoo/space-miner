@@ -384,7 +384,10 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 		info["scan_drone_supporting_count"] = _get_orbiting_drone_count(object_id)
 		info["mining_ship_mining_count"] = _get_mining_ship_mining_status_count(object_id)
 		info["mining_bonus"] = _get_mining_bonus_for_object(object_id)
-		info["can_recall_drone"] = _get_orbiting_drone_count(object_id) > 0
+		info["can_recall_drone"] = (
+			_get_active_scan_drone_count(object_id) > 0
+			or _get_orbiting_drone_count(object_id) > 0
+		)
 		info["can_recall_mining_ship"] = _get_active_mining_ship_count(object_id) > 0
 
 	# Lore text comes directly from the definition — not scan-gated.

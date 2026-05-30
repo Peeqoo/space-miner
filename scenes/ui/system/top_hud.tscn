@@ -5,7 +5,7 @@
 
 [node name="TopHUD" type="PanelContainer" unique_id=1772545870]
 custom_minimum_size = Vector2(624, 0)
-anchors_preset = -1
+anchors_preset = 10
 anchor_right = 1.0
 offset_left = 8.0
 offset_top = 6.0
@@ -23,7 +23,7 @@ theme_override_constants/margin_bottom = 2
 
 [node name="Root" type="HBoxContainer" parent="Margin" unique_id=102]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 2
 alignment = 1
 
 [node name="StorageWidget" type="PanelContainer" parent="Margin/Root" unique_id=103]

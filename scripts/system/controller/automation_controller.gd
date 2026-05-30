@@ -92,6 +92,90 @@ func _get_mining_unload_duration_seconds_base() -> float:
 	return DEFAULT_MINING_UNLOAD_DURATION_FALLBACK
 
 
+func _get_scan_work_duration_for_base(base_id: String) -> float:
+	var bid: String = base_id.strip_edges()
+
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	return maxf(
+		_get_scan_duration_seconds_base() * GameSession.get_scan_drone_scan_duration_multiplier(bid),
+		0.001,
+	)
+
+
+func _get_mining_cargo_capacity_for_base(base_id: String) -> int:
+	var bid: String = base_id.strip_edges()
+
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	return maxi(
+		1,
+		int(
+			round(
+				float(_get_mining_cargo_capacity_base())
+				* GameSession.get_mining_ship_cargo_capacity_multiplier(bid)
+			)
+		),
+	)
+
+
+func _apply_scan_drone_upgrade_stats_to_unit(unit: AutomationUnit, base_id: String = "") -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	if unit.unit_type != AutomationUnit.UnitType.DRONE:
+		return
+
+	unit.work_duration = _get_scan_work_duration_for_base(base_id)
+
+
+func _apply_mining_runtime_upgrade_stats(runtime: Dictionary, base_id: String = "") -> void:
+	if runtime.is_empty():
+		return
+
+	var bid: String = base_id.strip_edges()
+
+	if bid.is_empty():
+		bid = _runtime_base_id_with_session_fallback(runtime)
+
+	runtime["cargo_capacity"] = _get_mining_cargo_capacity_for_base(bid)
+	runtime["mining_rate_per_second"] = _get_mining_rate_per_second_base()
+	runtime["unload_duration"] = _get_mining_unload_duration_seconds_base()
+
+	var cargo_res: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
+	var cargo_total: int = _cargo_resources_total(cargo_res)
+	runtime["cargo_resources"] = cargo_res
+	runtime["current_cargo"] = float(cargo_total)
+
+
+## Re-apply ScanDrone / MiningShip upgrade-derived stats to all live units (after save/load restore).
+func reapply_session_base_unit_upgrade_effects() -> void:
+	var base_id: String = _get_session_base_id()
+
+	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
+		var unit := instance_from_id(int(unit_id_variant)) as AutomationUnit
+		_apply_scan_drone_upgrade_stats_to_unit(unit, base_id)
+
+	for unit_variant: Variant in active_units_by_mission_id.values():
+		_apply_scan_drone_upgrade_stats_to_unit(unit_variant as AutomationUnit, base_id)
+
+	for idle_drone: AutomationUnit in idle_drones:
+		_apply_scan_drone_upgrade_stats_to_unit(idle_drone, base_id)
+
+	for unit_id_variant: Variant in mining_ship_runtime_by_unit_id.keys():
+		var unit_id := int(unit_id_variant)
+		var runtime_variant: Variant = mining_ship_runtime_by_unit_id[unit_id_variant]
+
+		if not runtime_variant is Dictionary:
+			continue
+
+		var runtime: Dictionary = runtime_variant as Dictionary
+		_apply_mining_runtime_upgrade_stats(runtime, base_id)
+		mining_ship_runtime_by_unit_id[unit_id] = runtime
+
+
 func _get_session_base_id() -> String:
 	var sid: String = _session_primary_base_body_id.strip_edges()
 	if not sid.is_empty():
@@ -122,8 +206,6 @@ func setup(
 func ensure_starting_units(primary_base_id: String = "") -> void:
 	if starting_units_initialized:
 		return
-
-	starting_units_initialized = true
 
 	var base_id: String = primary_base_id.strip_edges()
 	_session_primary_base_body_id = base_id
@@ -199,12 +281,15 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 		if unit == null:
 			continue
 
-		unit.work_duration = _get_scan_duration_seconds_base()
+		unit.work_duration = _get_scan_work_duration_for_base(base_id)
 		unit.start_orbiting_base(base_node)
 		idle_drones.append(unit)
 
 	if ships_to_spawn > 0 or drones_to_spawn > 0:
 		_request_automation_state_changed()
+
+	reapply_session_base_unit_upgrade_effects()
+	starting_units_initialized = true
 
 
 ## Active ScanDrone + MiningShip automation missions tracked by this controller for TopHUD (`base_id` = primary body id).
@@ -250,7 +335,7 @@ func spawn_idle_drone_at_base(base_id: String = "") -> void:
 	if unit == null:
 		return
 
-	unit.work_duration = _get_scan_duration_seconds_base()
+	unit.work_duration = _get_scan_work_duration_for_base(bid)
 	unit.start_orbiting_base(base_node)
 	idle_drones.append(unit)
 
@@ -320,10 +405,7 @@ func launch_scan_drone(target_id: String) -> void:
 
 	_ensure_returned_to_base_connected(unit)
 
-	unit.work_duration = (
-		_get_scan_duration_seconds_base()
-		* GameSession.get_scan_drone_scan_duration_multiplier(session_bid_ls)
-	)
+	unit.work_duration = _get_scan_work_duration_for_base(session_bid_ls)
 
 	_stop_scan_orbit_audio(unit)
 	_play_automation_sfx(&"scan_drone_launch", unit)
@@ -376,15 +458,7 @@ func launch_mining_ship(target_id: String) -> bool:
 
 	var mining_base_id: String = _get_session_base_id()
 
-	var cargo_cap_mission: int = maxi(
-		1,
-		int(
-			round(
-				float(_get_mining_cargo_capacity_base())
-				* GameSession.get_mining_ship_cargo_capacity_multiplier(mining_base_id)
-			)
-		)
-	)
+	var cargo_cap_mission: int = _get_mining_cargo_capacity_for_base(mining_base_id)
 
 	mining_ship_runtime_by_unit_id[unit.get_instance_id()] = {
 		"system_id": system_id,
@@ -493,30 +567,84 @@ func get_active_mining_ship_count_for_target(target_id: String) -> int:
 
 
 func get_orbiting_drone_count(target_id: String) -> int:
-	if target_id.is_empty():
+	return get_active_scan_drone_support_count_for_target(target_id)
+
+
+func has_active_scan_drone_support_for_target(target_id: String) -> bool:
+	return get_active_scan_drone_support_count_for_target(target_id) > 0
+
+
+## At most one supporting ScanDrone grants mining yield bonus (per upgrade tier percent).
+func get_active_scan_drone_support_count_for_target(target_id: String) -> int:
+	var normalized_target_id: String = target_id.strip_edges()
+
+	if normalized_target_id.is_empty():
 		return 0
 
-	var orbit_drone_count: int = 0
+	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
+		var assigned_target: String = str(scan_drone_target_by_unit_id.get(unit_id_variant, "")).strip_edges()
 
-	for orbiting_drone: AutomationUnit in idle_drones:
-		if orbiting_drone == null or not is_instance_valid(orbiting_drone):
+		if assigned_target != normalized_target_id:
 			continue
 
-		if orbiting_drone.unit_type != AutomationUnit.UnitType.DRONE:
+		var unit := instance_from_id(int(unit_id_variant)) as AutomationUnit
+
+		if _is_scan_drone_providing_mining_support_at_target(unit, normalized_target_id):
+			return 1
+
+	for idle_drone: AutomationUnit in idle_drones:
+		if idle_drone == null or not is_instance_valid(idle_drone):
 			continue
 
-		if not orbiting_drone.is_available():
+		var idle_uid: int = idle_drone.get_instance_id()
+
+		if scan_drone_target_by_unit_id.has(idle_uid):
 			continue
 
-		if orbiting_drone.base_node == null or not is_instance_valid(orbiting_drone.base_node):
-			continue
+		if _is_scan_drone_providing_mining_support_at_target(idle_drone, normalized_target_id):
+			return 1
 
-		if _get_object_id_from_node(orbiting_drone.base_node) != target_id:
-			continue
+	return 0
 
-		orbit_drone_count += 1
 
-	return orbit_drone_count
+func _is_scan_drone_providing_mining_support_at_target(
+	unit: AutomationUnit,
+	normalized_target_id: String,
+) -> bool:
+	if unit == null or not is_instance_valid(unit):
+		return false
+
+	if unit.unit_type != AutomationUnit.UnitType.DRONE:
+		return false
+
+	if normalized_target_id.is_empty():
+		return false
+
+	var session_home_id: String = _get_session_base_id().strip_edges()
+	var state: AutomationUnit.State = unit.state
+
+	if (
+		state == AutomationUnit.State.IDLE
+		or state == AutomationUnit.State.RETURNING
+		or state == AutomationUnit.State.TRAVEL_TO_TARGET
+		or state == AutomationUnit.State.APPROACH_ORBIT
+	):
+		return false
+
+	if state == AutomationUnit.State.WORKING:
+		if unit.target_node == null or not is_instance_valid(unit.target_node):
+			return false
+		return _get_object_id_from_node(unit.target_node).strip_edges() == normalized_target_id
+
+	if state == AutomationUnit.State.ORBITING_BASE:
+		if unit.base_node == null or not is_instance_valid(unit.base_node):
+			return false
+		var anchor_id: String = _get_object_id_from_node(unit.base_node).strip_edges()
+		if anchor_id.is_empty() or anchor_id == session_home_id:
+			return false
+		return anchor_id == normalized_target_id
+
+	return false
 
 
 func get_orbiting_mining_ship_count(target_id: String) -> int:
@@ -542,7 +670,9 @@ func get_orbiting_mining_ship_count(target_id: String) -> int:
 
 
 func recall_one_drone_from_target(target_id: String) -> bool:
-	if target_id.is_empty():
+	var normalized_target_id: String = target_id.strip_edges()
+
+	if normalized_target_id.is_empty():
 		return false
 
 	var session_bid_rd: String = _get_session_base_id()
@@ -557,6 +687,26 @@ func recall_one_drone_from_target(target_id: String) -> bool:
 	if home_base_node == null:
 		return false
 
+	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
+		var unit_id := int(unit_id_variant)
+		var assigned_target: String = str(scan_drone_target_by_unit_id.get(unit_id, "")).strip_edges()
+
+		if assigned_target != normalized_target_id:
+			continue
+
+		var mission_drone := instance_from_id(unit_id) as AutomationUnit
+
+		if mission_drone == null or not is_instance_valid(mission_drone):
+			continue
+
+		_abort_scan_mission_for_unit(mission_drone)
+		_stop_scan_orbit_audio(mission_drone)
+		_disconnect_unit_signals(mission_drone)
+		_ensure_returned_to_base_connected(mission_drone)
+		mission_drone.recall_to_base(home_base_node)
+		_request_automation_state_changed()
+		return true
+
 	for drone in idle_drones:
 		if drone == null or not is_instance_valid(drone):
 			continue
@@ -567,8 +717,13 @@ func recall_one_drone_from_target(target_id: String) -> bool:
 		if drone.base_node == null or not is_instance_valid(drone.base_node):
 			continue
 
-		if _get_object_id_from_node(drone.base_node) != target_id:
+		if _get_object_id_from_node(drone.base_node).strip_edges() != normalized_target_id:
 			continue
+
+		var support_uid: int = drone.get_instance_id()
+
+		if scan_drone_target_by_unit_id.has(support_uid):
+			_abort_scan_mission_for_unit(drone)
 
 		_stop_scan_orbit_audio(drone)
 		_disconnect_unit_signals(drone)
@@ -578,6 +733,23 @@ func recall_one_drone_from_target(target_id: String) -> bool:
 		return true
 
 	return false
+
+
+func _abort_scan_mission_for_unit(unit: AutomationUnit) -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	for mission_id_variant: Variant in active_units_by_mission_id.keys():
+		if active_units_by_mission_id[mission_id_variant] != unit:
+			continue
+
+		var mission_id := int(mission_id_variant)
+		active_units_by_mission_id.erase(mission_id_variant)
+
+		if GameSession.automation.missions.has(mission_id):
+			GameSession.automation.missions.erase(mission_id)
+
+		break
 
 
 func recall_one_mining_ship_from_target(target_id: String) -> bool:
@@ -600,16 +772,19 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 	var selected_ship: AutomationUnit = null
 	var selected_status: int = -1
 
-	for ship in idle_mining_ships:
-		if ship == null or not is_instance_valid(ship):
-			continue
-
-		var runtime: Dictionary = mining_ship_runtime_by_unit_id.get(ship.get_instance_id(), {})
+	for unit_id_variant: Variant in mining_ship_runtime_by_unit_id.keys():
+		var unit_id := int(unit_id_variant)
+		var runtime: Dictionary = mining_ship_runtime_by_unit_id.get(unit_id, {})
 
 		if runtime.is_empty():
 			continue
 
 		if str(runtime.get("target_id", "")) != target_id:
+			continue
+
+		var ship := instance_from_id(unit_id) as AutomationUnit
+
+		if ship == null or not is_instance_valid(ship):
 			continue
 
 		var status := int(runtime.get("status", MiningShipStatus.TO_TARGET))
@@ -656,10 +831,14 @@ func get_mining_bonus_for_target(target_id: String) -> float:
 	var bonus_base_id: String = _get_session_base_id()
 	if not GameSession.has_established_base(bonus_base_id):
 		return 0.0
+
+	if not has_active_scan_drone_support_for_target(target_id):
+		return 0.0
+
 	var per_pct := float(
 		GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(bonus_base_id)
 	)
-	return float(get_orbiting_drone_count(target_id)) * per_pct / 100.0
+	return per_pct / 100.0
 
 
 func get_assigned_mining_ship_count(target_id: String) -> int:
@@ -1310,7 +1489,36 @@ func _release_mining_ship_runtime(unit_id: int) -> void:
 	if home_base_node != null:
 		unit.transfer_orbit_to_base(home_base_node)
 
+	_register_idle_mining_ship(unit)
 	_request_automation_state_changed()
+
+
+func _register_idle_drone(unit: AutomationUnit) -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	if unit.unit_type != AutomationUnit.UnitType.DRONE:
+		return
+
+	for existing: AutomationUnit in idle_drones:
+		if existing == unit:
+			return
+
+	idle_drones.append(unit)
+
+
+func _register_idle_mining_ship(unit: AutomationUnit) -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	if unit.unit_type != AutomationUnit.UnitType.MINING_SHIP:
+		return
+
+	for existing: AutomationUnit in idle_mining_ships:
+		if existing == unit:
+			return
+
+	idle_mining_ships.append(unit)
 
 
 func _get_idle_drone() -> AutomationUnit:
@@ -1383,6 +1591,15 @@ func _on_scan_drone_return_dock_clear_assignment(unit: AutomationUnit) -> void:
 		return
 
 	scan_drone_target_by_unit_id.erase(drone_uid_rb)
+
+	for mission_id_variant: Variant in active_units_by_mission_id.keys():
+		var assigned_unit: Variant = active_units_by_mission_id[mission_id_variant]
+
+		if assigned_unit == unit:
+			active_units_by_mission_id.erase(mission_id_variant)
+			break
+
+	_register_idle_drone(unit)
 	_request_automation_state_changed()
 
 
@@ -1737,7 +1954,7 @@ func apply_automation_save_if_pending() -> void:
 
 	# Always consume pending data so it is not reapplied in another system scene.
 	var runtime: Dictionary = GameSession.take_automation_runtime_pending()
-	apply_save_data(runtime)
+	await _restore_automation_runtime_when_ready(runtime)
 
 
 func apply_save_data(data: Dictionary) -> void:
@@ -1748,12 +1965,23 @@ func apply_save_data(data: Dictionary) -> void:
 	var current_sid: String = GameSession.current_system_id.strip_edges()
 
 	if not saved_system_id.is_empty() and not current_sid.is_empty() and saved_system_id != current_sid:
+		push_warning(
+			"AutomationController: automation restore skipped (system_id mismatch saved=%s current=%s)."
+			% [saved_system_id, current_sid]
+		)
 		return
 
 	var saved_base_id: String = str(data.get("primary_base_id", "")).strip_edges()
+	if _session_primary_base_body_id.is_empty() and not saved_base_id.is_empty():
+		_session_primary_base_body_id = saved_base_id
+
 	var session_base_id: String = _session_primary_base_body_id.strip_edges()
 
 	if not saved_base_id.is_empty() and not session_base_id.is_empty() and saved_base_id != session_base_id:
+		push_warning(
+			"AutomationController: automation restore skipped (base_id mismatch saved=%s session=%s)."
+			% [saved_base_id, session_base_id]
+		)
 		return
 
 	for scan_job_variant: Variant in data.get("scan_missions", []):
@@ -1764,13 +1992,76 @@ func apply_save_data(data: Dictionary) -> void:
 		if mining_job_variant is Dictionary:
 			_restore_mining_mission(mining_job_variant as Dictionary)
 
-	if not scan_drone_target_by_unit_id.is_empty() or not mining_ship_runtime_by_unit_id.is_empty():
-		_request_automation_state_changed()
+	_restart_automation_audio_after_restore()
+	reapply_session_base_unit_upgrade_effects()
+	_request_automation_state_changed()
+
+
+func _restore_automation_runtime_when_ready(runtime: Dictionary) -> void:
+	if runtime.is_empty():
+		return
+
+	_clear_automation_visuals_and_mission_state()
+	apply_save_data(runtime)
+
+	var expected_jobs: int = _expected_automation_job_count_in_runtime(runtime)
+
+	if expected_jobs > 0 and _count_restored_automation_jobs() == 0:
+		await get_tree().process_frame
+		_clear_automation_visuals_and_mission_state()
+		apply_save_data(runtime)
+
+	if expected_jobs > 0 and _count_restored_automation_jobs() == 0:
+		push_warning(
+			"AutomationController: mission restore failed after load; no active automation jobs restored."
+		)
+
+	reapply_session_base_unit_upgrade_effects()
+
+
+func _expected_automation_job_count_in_runtime(runtime: Dictionary) -> int:
+	var scan_jobs: Variant = runtime.get("scan_missions", [])
+	var mining_jobs: Variant = runtime.get("mining_missions", [])
+	var scan_count := 0
+	var mining_count := 0
+
+	if scan_jobs is Array:
+		scan_count = (scan_jobs as Array).size()
+
+	if mining_jobs is Array:
+		mining_count = (mining_jobs as Array).size()
+
+	return scan_count + mining_count
+
+
+func _count_restored_automation_jobs() -> int:
+	return scan_drone_target_by_unit_id.size() + mining_ship_runtime_by_unit_id.size()
+
+
+func _clear_automation_visuals_and_mission_state() -> void:
+	if automation_root != null:
+		for child: Node in automation_root.get_children():
+			if child is AutomationUnit:
+				_stop_scan_orbit_audio(child as AutomationUnit)
+
+	active_units_by_mission_id.clear()
+	scan_drone_target_by_unit_id.clear()
+	mining_ship_runtime_by_unit_id.clear()
+	idle_drones.clear()
+	idle_mining_ships.clear()
+
+	if automation_root == null:
+		return
+
+	for child: Node in automation_root.get_children():
+		if child is AutomationUnit:
+			child.queue_free()
 
 
 func _scan_missions_to_save_array() -> Array:
 	var jobs: Array = []
 	var mission_id_by_unit: Dictionary = {}
+	var saved_unit_ids: Dictionary = {}
 
 	for mission_id_variant: Variant in active_units_by_mission_id.keys():
 		var mission_id := int(mission_id_variant)
@@ -1799,6 +2090,35 @@ func _scan_missions_to_save_array() -> Array:
 
 		if not job.is_empty():
 			jobs.append(job)
+			saved_unit_ids[unit_id] = true
+
+	for mission_id_variant: Variant in active_units_by_mission_id.keys():
+		var unit := active_units_by_mission_id[mission_id_variant] as AutomationUnit
+
+		if unit == null or not is_instance_valid(unit):
+			continue
+
+		if unit.unit_type != AutomationUnit.UnitType.DRONE:
+			continue
+
+		var unit_id := unit.get_instance_id()
+
+		if saved_unit_ids.has(unit_id):
+			continue
+
+		var target_id_fallback: String = str(scan_drone_target_by_unit_id.get(unit_id, "")).strip_edges()
+
+		if target_id_fallback.is_empty():
+			continue
+
+		var job_fallback := _build_scan_job_save_dict(
+			unit,
+			target_id_fallback,
+			int(mission_id_variant),
+		)
+
+		if not job_fallback.is_empty():
+			jobs.append(job_fallback)
 
 	return jobs
 
@@ -1840,7 +2160,12 @@ func _build_scan_job_save_dict(
 		if not anchor_id.is_empty():
 			orbit_anchor_id = anchor_id
 
-	return {
+	var scan_reveal_done := mission_id <= 0
+
+	if not scan_reveal_done:
+		scan_reveal_done = not active_units_by_mission_id.has(mission_id)
+
+	var job := {
 		"target_id": target_id,
 		"base_id": home_base_id,
 		"mission_id": mission_id,
@@ -1849,7 +2174,18 @@ func _build_scan_job_save_dict(
 		"work_timer": float(unit.work_timer),
 		"work_duration": float(unit.work_duration),
 		"travel_progress": float(unit.travel_progress),
+		"scan_reveal_done": scan_reveal_done,
+		"global_position": _global_position_to_save_dict(unit.global_position),
+		"orbit_angle": float(unit.orbit_angle),
+		"orbit_direction": float(unit.orbit_direction),
+		"orbit_radius_x": float(unit.orbit_radius_x),
+		"orbit_radius_y": float(unit.orbit_radius_y),
+		"orbit_speed": float(unit.orbit_speed),
+		"orbit_rotation": float(unit.orbit_rotation),
+		"travel_curve_side_sign": float(unit.travel_curve_side_sign),
 	}
+
+	return job
 
 
 func _build_mining_job_save_dict(unit: AutomationUnit, runtime: Dictionary) -> Dictionary:
@@ -1868,7 +2204,25 @@ func _build_mining_job_save_dict(unit: AutomationUnit, runtime: Dictionary) -> D
 	job["work_timer"] = float(unit.work_timer)
 	job["work_duration"] = float(unit.work_duration)
 	job["travel_progress"] = float(unit.travel_progress)
+	job["global_position"] = _global_position_to_save_dict(unit.global_position)
 	return job
+
+
+func _global_position_to_save_dict(position: Vector2) -> Dictionary:
+	return {"x": position.x, "y": position.y}
+
+
+func _global_position_from_save_dict(job: Dictionary) -> Vector2:
+	var pos_variant: Variant = job.get("global_position", null)
+
+	if pos_variant is Vector2:
+		return pos_variant as Vector2
+
+	if pos_variant is Dictionary:
+		var pos_dict: Dictionary = pos_variant as Dictionary
+		return Vector2(float(pos_dict.get("x", 0.0)), float(pos_dict.get("y", 0.0)))
+
+	return Vector2.INF
 
 
 func _sanitize_dictionary_for_save(source: Dictionary) -> Dictionary:
@@ -1928,6 +2282,11 @@ func _restore_scan_mission(job: Dictionary) -> void:
 	var target_node: Node2D = _get_target_node(target_id)
 
 	if home_node == null or target_node == null:
+		push_warning(
+			"AutomationController: scan mission restore skipped (nodes missing base=%s target=%s)."
+			% [home_base_id, target_id]
+		)
+		_fallback_scan_job_to_idle(home_base_id, home_node)
 		return
 
 	var orbit_anchor_id: String = str(job.get("orbit_anchor_id", home_base_id)).strip_edges()
@@ -1939,13 +2298,23 @@ func _restore_scan_mission(job: Dictionary) -> void:
 	var unit := _spawn_unit(DRONE_SCENE)
 
 	if unit == null:
+		push_warning("AutomationController: scan mission restore failed (could not spawn drone).")
+		_fallback_scan_job_to_idle(home_base_id, home_node)
 		return
 
 	unit.work_duration = maxf(float(job.get("work_duration", _get_scan_duration_seconds_base())), 0.001)
 
 	var mission_id: int = int(job.get("mission_id", 0))
+	var scan_reveal_done: bool = bool(job.get("scan_reveal_done", mission_id <= 0))
+	var saved_position: Vector2 = _global_position_from_save_dict(job)
 
-	if mission_id > 0:
+	_disconnect_unit_signals(unit)
+	_ensure_returned_to_base_connected(unit)
+
+	var unit_id: int = unit.get_instance_id()
+	scan_drone_target_by_unit_id[unit_id] = target_id
+
+	if not scan_reveal_done and mission_id > 0:
 		var mission_rec: Dictionary = GameSession.get_automation_mission(mission_id)
 
 		if mission_rec.is_empty():
@@ -1959,14 +2328,9 @@ func _restore_scan_mission(job: Dictionary) -> void:
 			)
 
 		active_units_by_mission_id[mission_id] = unit
-		_disconnect_unit_signals(unit)
 
 		if not unit.arrived_at_target.is_connected(_on_scan_drone_arrived_at_target):
 			unit.arrived_at_target.connect(_on_scan_drone_arrived_at_target.bind(mission_id, target_id))
-
-	var unit_id: int = unit.get_instance_id()
-	scan_drone_target_by_unit_id[unit_id] = target_id
-	_ensure_returned_to_base_connected(unit)
 
 	unit.restore_mission_visual_state(
 		int(job.get("unit_state", AutomationUnit.State.TRAVEL_TO_TARGET)) as AutomationUnit.State,
@@ -1976,7 +2340,10 @@ func _restore_scan_mission(job: Dictionary) -> void:
 		float(job.get("work_timer", 0.0)),
 		float(job.get("work_duration", unit.work_duration)),
 		float(job.get("travel_progress", 0.0)),
+		saved_position,
 	)
+	unit.apply_saved_scan_motion_from_job(job)
+	_apply_scan_drone_upgrade_stats_to_unit(unit, home_base_id)
 
 
 func _restore_mining_mission(job: Dictionary) -> void:
@@ -1990,6 +2357,11 @@ func _restore_mining_mission(job: Dictionary) -> void:
 	var target_node: Node2D = _get_target_node(target_id)
 
 	if home_node == null or target_node == null:
+		push_warning(
+			"AutomationController: mining mission restore skipped (nodes missing base=%s target=%s)."
+			% [home_base_id, target_id]
+		)
+		_fallback_mining_job_to_idle(home_base_id, home_node)
 		return
 
 	var orbit_anchor_id: String = str(job.get("orbit_anchor_id", home_base_id)).strip_edges()
@@ -2001,6 +2373,8 @@ func _restore_mining_mission(job: Dictionary) -> void:
 	var unit := _spawn_unit(MINING_SHIP_SCENE)
 
 	if unit == null:
+		push_warning("AutomationController: mining mission restore failed (could not spawn mining ship).")
+		_fallback_mining_job_to_idle(home_base_id, home_node)
 		return
 
 	unit.work_duration = maxf(float(job.get("work_duration", DEFAULT_MINING_DURATION)), 0.001)
@@ -2017,6 +2391,8 @@ func _restore_mining_mission(job: Dictionary) -> void:
 	runtime.erase("work_duration")
 	runtime.erase("travel_progress")
 	runtime.erase("orbit_anchor_id")
+	runtime.erase("global_position")
+	runtime.erase("scan_reveal_done")
 
 	if not runtime.has("system_id") or str(runtime.get("system_id", "")).is_empty():
 		runtime["system_id"] = GameSession.current_system_id
@@ -2025,7 +2401,10 @@ func _restore_mining_mission(job: Dictionary) -> void:
 		runtime["status"] = MiningShipStatus.TO_TARGET
 
 	var unit_id: int = unit.get_instance_id()
+	_apply_mining_runtime_upgrade_stats(runtime, home_base_id)
 	mining_ship_runtime_by_unit_id[unit_id] = runtime
+
+	var saved_position: Vector2 = _global_position_from_save_dict(job)
 
 	unit.restore_mission_visual_state(
 		int(job.get("unit_state", AutomationUnit.State.TRAVEL_TO_TARGET)) as AutomationUnit.State,
@@ -2035,6 +2414,7 @@ func _restore_mining_mission(job: Dictionary) -> void:
 		float(job.get("work_timer", 0.0)),
 		float(job.get("work_duration", unit.work_duration)),
 		float(job.get("travel_progress", 0.0)),
+		saved_position,
 	)
 
 	var status_after: int = int(runtime.get("status", MiningShipStatus.TO_TARGET))
@@ -2043,9 +2423,96 @@ func _restore_mining_mission(job: Dictionary) -> void:
 		if unit.state != AutomationUnit.State.RETURNING:
 			unit.recall_to_base(home_node)
 	elif status_after == MiningShipStatus.MINING:
-		unit.transfer_orbit_to_base(target_node)
+		if unit.state != AutomationUnit.State.WORKING:
+			unit.transfer_orbit_to_base(target_node)
 	elif status_after == MiningShipStatus.UNLOADING or status_after == MiningShipStatus.WAITING_FOR_STORAGE:
-		unit.transfer_orbit_to_base(home_node)
+		if unit.state != AutomationUnit.State.WORKING:
+			unit.transfer_orbit_to_base(home_node)
+
+
+func _fallback_scan_job_to_idle(home_base_id: String, home_node: Node2D) -> void:
+	if home_node == null:
+		home_node = _get_target_node(home_base_id.strip_edges())
+
+	if home_node == null:
+		return
+
+	var unit := _spawn_unit(DRONE_SCENE)
+
+	if unit == null:
+		return
+
+	unit.work_duration = _get_scan_work_duration_for_base(home_base_id)
+	_disconnect_unit_signals(unit)
+	_ensure_returned_to_base_connected(unit)
+	unit.start_orbiting_base(home_node)
+	idle_drones.append(unit)
+
+
+func _fallback_mining_job_to_idle(home_base_id: String, home_node: Node2D) -> void:
+	if home_node == null:
+		home_node = _get_target_node(home_base_id.strip_edges())
+
+	if home_node == null:
+		return
+
+	var unit := _spawn_unit(MINING_SHIP_SCENE)
+
+	if unit == null:
+		return
+
+	unit.work_duration = DEFAULT_MINING_DURATION
+	_disconnect_unit_signals(unit)
+	_ensure_returned_to_base_connected(unit)
+	unit.start_orbiting_base(home_node)
+	idle_mining_ships.append(unit)
+
+
+func _restart_automation_audio_after_restore() -> void:
+	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
+		var unit_id := int(unit_id_variant)
+		var unit := instance_from_id(unit_id) as AutomationUnit
+
+		if unit == null or not is_instance_valid(unit):
+			continue
+
+		var assigned_target_id: String = str(scan_drone_target_by_unit_id.get(unit_id, "")).strip_edges()
+		var target_node: Node2D = _get_target_node(assigned_target_id)
+
+		if target_node == null:
+			continue
+
+		var is_scanning_at_target := false
+
+		if unit.state == AutomationUnit.State.WORKING:
+			is_scanning_at_target = true
+		elif unit.state == AutomationUnit.State.ORBITING_BASE:
+			if unit.base_node != null and is_instance_valid(unit.base_node):
+				is_scanning_at_target = (
+					_get_object_id_from_node(unit.base_node).strip_edges() == assigned_target_id
+				)
+
+		if not is_scanning_at_target:
+			continue
+
+		_start_scan_orbit_audio(unit, target_node)
+
+	for unit_id_variant: Variant in mining_ship_runtime_by_unit_id.keys():
+		var unit_id := int(unit_id_variant)
+		var runtime: Dictionary = mining_ship_runtime_by_unit_id.get(unit_id, {})
+
+		if runtime.is_empty():
+			continue
+
+		if int(runtime.get("status", MiningShipStatus.TO_TARGET)) != MiningShipStatus.MINING:
+			continue
+
+		var unit := instance_from_id(unit_id) as AutomationUnit
+
+		if unit == null or not is_instance_valid(unit):
+			continue
+
+		_play_mining_resource_tick_sfx(unit)
 
 
 func _request_automation_state_changed() -> void:

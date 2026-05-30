@@ -83,6 +83,7 @@ func build_save_data(slot_index: int = -1) -> Dictionary:
 	if not is_valid_slot(idx):
 		idx = 1
 	GameSession.refresh_automation_snapshot_from_scene()
+	GameSession.refresh_camera_snapshot_from_scene()
 	var session_data: Dictionary = GameSession.to_save_data()
 	return {
 		"save_version": SAVE_VERSION,

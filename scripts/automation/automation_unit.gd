@@ -182,6 +182,7 @@ func restore_mission_visual_state(
 	p_work_timer: float,
 	p_work_duration: float,
 	p_travel_progress: float,
+	p_saved_global_position: Vector2 = Vector2.INF,
 ) -> void:
 	if p_home_base_node == null or not is_instance_valid(p_home_base_node):
 		return
@@ -191,6 +192,8 @@ func restore_mission_visual_state(
 	work_duration = maxf(p_work_duration, 0.001)
 	visible = true
 	_move_to_free_flight_parent()
+
+	var has_saved_position := p_saved_global_position.is_finite()
 
 	match p_state:
 		State.ORBITING_BASE:
@@ -202,6 +205,10 @@ func restore_mission_visual_state(
 			base_node = orbit_node
 			base_position = orbit_node.global_position
 			target_node = null
+
+			if has_saved_position:
+				global_position = p_saved_global_position
+
 			_adopt_current_position_as_orbit()
 			state = State.ORBITING_BASE
 			work_timer = 0.0
@@ -214,6 +221,10 @@ func restore_mission_visual_state(
 			target_position = p_target_node.global_position
 			_generate_orbit_for_node(p_target_node)
 			_prepare_orbit_entry()
+
+			if has_saved_position:
+				global_position = p_saved_global_position
+
 			_setup_travel_curve(global_position, orbit_entry_position)
 			travel_progress = clampf(p_travel_progress, 0.0, 1.0)
 			state = State.TRAVEL_TO_TARGET
@@ -227,7 +238,12 @@ func restore_mission_visual_state(
 			target_position = p_target_node.global_position
 			_generate_orbit_for_node(p_target_node)
 			_prepare_orbit_entry()
-			global_position = orbit_entry_position
+
+			if has_saved_position:
+				global_position = p_saved_global_position
+			else:
+				global_position = orbit_entry_position
+
 			state = State.APPROACH_ORBIT
 			work_timer = 0.0
 		State.WORKING:
@@ -238,6 +254,10 @@ func restore_mission_visual_state(
 			target_node = p_target_node
 			target_position = p_target_node.global_position
 			_generate_orbit_for_node(p_target_node)
+
+			if has_saved_position:
+				global_position = p_saved_global_position
+
 			_adopt_current_position_as_orbit()
 			base_node = p_target_node
 			base_position = p_target_node.global_position
@@ -246,10 +266,31 @@ func restore_mission_visual_state(
 		State.RETURNING:
 			target_node = null
 			_prepare_orbit_entry_for_node(p_home_base_node)
+
+			if has_saved_position:
+				global_position = p_saved_global_position
+
 			state = State.RETURNING
 			work_timer = 0.0
 		_:
 			start_orbiting_base(p_home_base_node)
+
+
+## Re-applies saved orbit/travel parameters after save/load restore (scan drones only).
+func apply_saved_scan_motion_from_job(job: Dictionary) -> void:
+	if job.is_empty() or not job.has("orbit_angle"):
+		return
+
+	orbit_angle = float(job.get("orbit_angle", orbit_angle))
+	orbit_direction = float(job.get("orbit_direction", orbit_direction))
+	orbit_radius_x = float(job.get("orbit_radius_x", orbit_radius_x))
+	orbit_radius_y = float(job.get("orbit_radius_y", orbit_radius_y))
+	orbit_speed = float(job.get("orbit_speed", orbit_speed))
+	orbit_rotation = float(job.get("orbit_rotation", orbit_rotation))
+
+	if state == State.TRAVEL_TO_TARGET and job.has("travel_curve_side_sign"):
+		travel_curve_side_sign = float(job.get("travel_curve_side_sign", travel_curve_side_sign))
+		_recalculate_travel_control_point()
 
 
 func _process_base_orbit(delta: float) -> void:
