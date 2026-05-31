@@ -207,7 +207,11 @@ func _capture_editor_text_templates() -> void:
 	_no_description_lore = no_description_lore_template.text.strip_edges()
 	_mining_button_text_depleted = mining_button_depleted_template.text.strip_edges()
 	_colonization_button_text_running = colonization_running_template.text.strip_edges()
-	_colonization_no_ship_tooltip = colonization_no_ship_tooltip_template.text.strip_edges()
+	var colonization_no_ship_template := colonization_no_ship_tooltip_template.text.strip_edges()
+	_colonization_no_ship_tooltip = GameSession.get_gate_text(
+		GateUiTextDefinition.KEY_COLONY_NO_SHIP,
+		colonization_no_ship_template,
+	)
 	_automation_drone_supporting_format = automation_drone_supporting_template.text.strip_edges()
 	_automation_drone_on_mission_format = automation_drone_on_mission_template.text.strip_edges()
 	_unknown_display_name_fallback = _scan_state_labels.get(
