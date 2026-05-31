@@ -1323,32 +1323,6 @@ func get_scan_target_state_or_rescan_state(
 	return {"target_scan_state": SCAN_BASIC, "scan_is_progression": false}
 
 
-func get_scan_button_label_for_target_state(
-	target_scan_state: String,
-	scan_is_progression: bool = true,
-) -> String:
-	if not scan_is_progression:
-		return get_rescan_button_label_for_target_state(target_scan_state)
-
-	match target_scan_state:
-		SCAN_DEEP:
-			return "Deep Scan"
-		SCAN_SPECIAL:
-			return "Special Scan"
-		_:
-			return "Basic Scan"
-
-
-func get_rescan_button_label_for_target_state(target_scan_state: String) -> String:
-	match target_scan_state:
-		SCAN_DEEP:
-			return "Deep Rescan"
-		SCAN_SPECIAL:
-			return "Special Rescan"
-		_:
-			return "Basic Rescan"
-
-
 func can_scan_object(
 	system_id: String,
 	object_id: String,
