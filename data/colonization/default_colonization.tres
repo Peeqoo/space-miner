@@ -4,3 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+operation_duration_ms = 60000
+allow_auto_complete = true
+pending_status_format = "Läuft %ds"
+ready_status_label = "Bereit zur Ankunft"
+awaiting_confirmation_status_label = "Awaiting confirmation"

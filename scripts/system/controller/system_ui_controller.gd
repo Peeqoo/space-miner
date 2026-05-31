@@ -10,6 +10,7 @@ var spawner: SystemSpawner = null
 var object_info_panel: PanelContainer
 var base_management_panel: PanelContainer
 var automation_controller: AutomationController = null
+var survey_probe_mission_controller: SurveyProbeMissionController = null
 
 var production_panel: Control = null
 var upgrade_panel: Control = null
@@ -37,6 +38,7 @@ func setup(
 	p_base_management_panel: PanelContainer,
 	p_automation_controller: AutomationController = null,
 	p_spawner: SystemSpawner = null,
+	p_survey_probe_mission_controller: SurveyProbeMissionController = null,
 	p_production_panel: Control = null,
 	p_upgrade_panel: Control = null,
 	p_top_hud: Control = null,
@@ -51,6 +53,7 @@ func setup(
 	object_info_panel = p_object_info_panel
 	base_management_panel = p_base_management_panel
 	automation_controller = p_automation_controller
+	survey_probe_mission_controller = p_survey_probe_mission_controller
 
 	production_panel = p_production_panel
 	upgrade_panel = p_upgrade_panel
@@ -58,6 +61,7 @@ func setup(
 	top_hud_hover_panel = p_top_hud_hover_panel
 	storage_panel = p_storage_panel
 	_primary_base_body_id = p_primary_base_body_id.strip_edges()
+	add_to_group(&"system_ui_controller")
 
 	if top_hud != null and top_hud.has_method("set_primary_base_body_id"):
 		top_hud.call("set_primary_base_body_id", _primary_base_body_id)
@@ -131,6 +135,12 @@ func _sync_production_upgrade_economy_body_ids() -> void:
 
 
 func _process(_delta: float) -> void:
+	if not GameSession.get_pending_colonization_operations().is_empty():
+		var completed_colonization: Array[String] = GameSession.process_colonization_operations()
+		if not completed_colonization.is_empty():
+			update_object_info()
+			_update_top_hud()
+
 	if object_info_panel == null or not object_info_panel.visible:
 		return
 
@@ -172,7 +182,10 @@ func update_object_info() -> void:
 
 	var info: Dictionary = _build_selected_object_info(selected_node)
 
-	if selected_node is SystemBody:
+	if selected_node is SignalMarker:
+		if object_info_panel.has_method("show_body_info"):
+			object_info_panel.call("show_body_info", info)
+	elif selected_node is SystemBody:
 		if object_info_panel.has_method("show_body_info"):
 			object_info_panel.call("show_body_info", info)
 	elif selected_node is PointOfInterest:
@@ -279,6 +292,22 @@ func _connect_ui_signals() -> void:
 			if not object_info_panel.colonization_requested.is_connected(_on_colonization_requested):
 				object_info_panel.colonization_requested.connect(_on_colonization_requested)
 
+		_connect_object_info_investigate_signal()
+
+	if survey_probe_mission_controller != null:
+		if not survey_probe_mission_controller.investigate_mission_changed.is_connected(
+			_on_survey_probe_mission_changed
+		):
+			survey_probe_mission_controller.investigate_mission_changed.connect(
+				_on_survey_probe_mission_changed
+			)
+		if not survey_probe_mission_controller.investigation_progress_changed.is_connected(
+			_on_investigation_progress_changed
+		):
+			survey_probe_mission_controller.investigation_progress_changed.connect(
+				_on_investigation_progress_changed
+			)
+
 	if base_management_panel != null:
 		if base_management_panel.has_signal("open_production_requested"):
 			if not base_management_panel.open_production_requested.is_connected(_on_base_open_production):
@@ -304,6 +333,14 @@ func _connect_ui_signals() -> void:
 		if production_panel.has_signal("build_mining_ship_requested"):
 			if not production_panel.build_mining_ship_requested.is_connected(_on_build_mining_ship_requested):
 				production_panel.build_mining_ship_requested.connect(_on_build_mining_ship_requested)
+
+		if production_panel.has_signal("build_survey_probe_requested"):
+			if not production_panel.build_survey_probe_requested.is_connected(_on_build_survey_probe_requested):
+				production_panel.build_survey_probe_requested.connect(_on_build_survey_probe_requested)
+
+		if production_panel.has_signal("build_colony_ship_requested"):
+			if not production_panel.build_colony_ship_requested.is_connected(_on_build_colony_ship_requested):
+				production_panel.build_colony_ship_requested.connect(_on_build_colony_ship_requested)
 
 		if production_panel.has_signal("close_requested"):
 			if not production_panel.close_requested.is_connected(_on_production_close):
@@ -333,7 +370,56 @@ func _connect_ui_signals() -> void:
 				top_hud.hover_cleared.connect(_on_top_hud_hover_cleared)
 
 
+func _build_signal_marker_info(marker: SignalMarker) -> Dictionary:
+	var info: Dictionary = marker.build_signal_info()
+	var object_id: String = marker.object_id.strip_edges()
+	var base_id: String = _economy_body_id_for_ui()
+
+	var can_investigate: bool = false
+	var blocked_reason: String = ""
+	var in_progress: bool = false
+
+	if survey_probe_mission_controller != null:
+		in_progress = survey_probe_mission_controller.is_investigate_active(object_id)
+		var gate: Dictionary = survey_probe_mission_controller.can_investigate_signal(object_id, base_id)
+		can_investigate = gate.get("ok", false) == true
+		blocked_reason = str(gate.get("blocked_reason", "")).strip_edges()
+	else:
+		blocked_reason = DiscoverySignalUiTextDefinition.get_template(
+			SurveyProbeMissionController.REASON_BASE_MISSING
+		)
+
+	if in_progress and not can_investigate and blocked_reason.is_empty():
+		blocked_reason = DiscoverySignalUiTextDefinition.get_template(
+			SurveyProbeMissionController.REASON_IN_PROGRESS
+		)
+
+	info["can_investigate_signal"] = can_investigate
+	info["investigate_blocked_reason"] = blocked_reason
+	info["investigate_in_progress"] = in_progress
+
+	if in_progress:
+		info["lore_text"] = DiscoverySignalUiTextDefinition.get_template(
+			DiscoverySignalUiTextDefinition.KEY_INVESTIGATE_LORE_ACTIVE
+		)
+		info["scan_state"] = GameSession.SCAN_UNKNOWN
+
+	info["is_investigate_active"] = in_progress
+	var progress: float = 0.0
+	if in_progress and survey_probe_mission_controller != null:
+		progress = survey_probe_mission_controller.get_investigation_progress(object_id)
+	info["investigate_progress"] = progress
+	info["investigate_progress_text"] = DiscoverySignalUiTextDefinition.format_investigate_progress(
+		int(round(progress * 100.0))
+	)
+
+	return info
+
+
 func _build_selected_object_info(selected_node: Node) -> Dictionary:
+	if selected_node is SignalMarker:
+		return _build_signal_marker_info(selected_node as SignalMarker)
+
 	var object_id := _get_object_id(selected_node)
 	var scan_state := GameSession.get_object_scan_state(system_definition.id, object_id)
 	var unlocked_scan_layer := GameSession.get_unlocked_scan_layer_for_base(_economy_body_id_for_ui())
@@ -351,24 +437,14 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 
 	info["mining_yield_upgrade_base_id"] = _economy_body_id_for_ui().strip_edges()
 
-	info["can_scan_with_drone"] = _can_scan_selected_object(selected_node, scan_state)
-	info["can_mine_with_ship"] = _can_mine_selected_object(selected_node, scan_state)
+	_apply_scan_drone_info_to_dict(info, selected_node, object_id)
+	_apply_mining_ship_info_to_dict(info, selected_node, object_id, scan_state)
 	info["is_home_base"] = (
 		selected_node is SystemBody
 		and _selected_body_has_established_base(selected_node as SystemBody)
 	)
 
-	var mining_exhausted: bool = false
-
-	if (
-		automation_controller != null
-		and scan_state != GameSession.SCAN_UNKNOWN
-		and not object_id.is_empty()
-		and GameSession.has_object_resources(system_definition.id, object_id)
-	):
-		mining_exhausted = not automation_controller.has_mining_candidates_for_target(object_id)
-
-	info["mining_exhausted"] = mining_exhausted
+	info["mining_exhausted"] = bool(info.get("mining_exhausted", false))
 
 	if bool(info["is_home_base"]):
 		info["active_scan_drone_count"] = 0
@@ -408,8 +484,13 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	var sys_gate_id := _current_system_definition_id()
 	if sys_gate_id.is_empty() or GameSession.get_established_base_id_for_system(sys_gate_id).is_empty():
 		info["system_economy_blocked_reason"] = ""
+		info["show_scan_with_drone"] = false
 		info["can_scan_with_drone"] = false
+		info["scan_blocked_reason"] = ""
+		info["show_mine_with_ship"] = false
 		info["can_mine_with_ship"] = false
+		info["mine_blocked_reason"] = ""
+		info["mining_exhausted"] = false
 		info["can_recall_drone"] = false
 		info["can_recall_mining_ship"] = false
 		if not bool(info.get("is_home_base", false)):
@@ -466,39 +547,90 @@ func _body_definition_allows_base(body_id: String) -> bool:
 	return false
 
 
-func _can_scan_selected_object(selected_node: Node, _scan_state: String) -> bool:
+func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, object_id: String) -> void:
+	info["show_scan_with_drone"] = false
+	info["can_scan_with_drone"] = false
+	info["scan_blocked_reason"] = ""
+	info["scan_button_text"] = "Scan"
+
 	if selected_node == null:
-		return false
+		return
+
+	if selected_node is SignalMarker:
+		return
 
 	if not selected_node is SystemBody and not selected_node is PointOfInterest:
-		return false
+		return
 
 	if selected_node is SystemBody and _selected_body_has_established_base(selected_node as SystemBody):
-		return false
+		return
 
-	return _has_available_drone()
+	var sys_id: String = system_definition.id.strip_edges()
+	if sys_id.is_empty() or object_id.is_empty():
+		return
+
+	var base_id: String = _economy_body_id_for_ui()
+	var scan_active: bool = _get_active_scan_drone_count(object_id) > 0
+	var scan_gate: Dictionary = GameSession.can_scan_object(
+		sys_id,
+		object_id,
+		base_id,
+		_has_available_drone(),
+		scan_active,
+	)
+	var target_state: String = str(scan_gate.get("target_scan_state", "")).strip_edges()
+
+	info["show_scan_with_drone"] = not target_state.is_empty()
+	info["can_scan_with_drone"] = bool(scan_gate.get("ok", false))
+	info["scan_blocked_reason"] = str(scan_gate.get("blocked_reason", "")).strip_edges()
+	if not target_state.is_empty():
+		info["scan_button_text"] = "Scan"
 
 
-func _can_mine_selected_object(selected_node: Node, scan_state: String) -> bool:
+func _apply_mining_ship_info_to_dict(
+	info: Dictionary,
+	selected_node: Node,
+	object_id: String,
+	scan_state: String,
+) -> void:
+	info["show_mine_with_ship"] = false
+	info["can_mine_with_ship"] = false
+	info["mine_blocked_reason"] = ""
+	info["mining_exhausted"] = false
+
 	if selected_node == null:
-		return false
+		return
+
+	if selected_node is SignalMarker:
+		return
 
 	if not selected_node is SystemBody and not selected_node is PointOfInterest:
-		return false
+		return
 
 	if selected_node is SystemBody and _selected_body_has_established_base(selected_node as SystemBody):
-		return false
+		return
 
-	if scan_state == GameSession.SCAN_UNKNOWN:
-		return false
+	var sys_id: String = system_definition.id.strip_edges()
+	if sys_id.is_empty() or object_id.is_empty():
+		return
 
-	var object_mid: String = _get_object_id(selected_node)
+	var mine_gate: Dictionary = GameSession.can_mine_object(
+		sys_id,
+		object_id,
+		_economy_body_id_for_ui(),
+		_has_available_mining_ship(),
+	)
 
-	if automation_controller != null:
-		if not automation_controller.has_mining_candidates_for_target(object_mid):
-			return false
+	info["show_mine_with_ship"] = bool(mine_gate.get("show_mine_button", false))
+	info["can_mine_with_ship"] = bool(mine_gate.get("ok", false))
+	info["mine_blocked_reason"] = str(mine_gate.get("blocked_reason", "")).strip_edges()
 
-	return _has_available_mining_ship()
+	var block_reason: String = info["mine_blocked_reason"]
+	info["mining_exhausted"] = (
+		bool(info["show_mine_with_ship"])
+		and not bool(info["can_mine_with_ship"])
+		and block_reason == GameSession.MINE_BLOCK_DEPLETED
+	)
 
 
 func _get_preview_texture(node: Node) -> Texture2D:
@@ -518,6 +650,9 @@ func _get_preview_texture(node: Node) -> Texture2D:
 
 
 func _get_object_id(node: Node) -> String:
+	if node is SignalMarker:
+		return (node as SignalMarker).object_id
+
 	if node is SystemBody:
 		return (node as SystemBody).body_id
 
@@ -641,6 +776,95 @@ func _on_build_mining_ship_requested() -> void:
 	update_all()
 
 
+func _on_build_survey_probe_requested() -> void:
+	if automation_controller == null:
+		return
+
+	if not _session_primary_base_established():
+		return
+
+	var bid_sp: String = _economy_body_id_for_ui().strip_edges()
+	if bid_sp.is_empty():
+		return
+
+	automation_controller.spawn_idle_survey_probe_at_base(bid_sp)
+	update_all()
+
+
+func _on_build_colony_ship_requested() -> void:
+	if not _session_primary_base_established():
+		return
+	update_all()
+
+
+func _connect_object_info_investigate_signal() -> void:
+	if object_info_panel == null:
+		return
+	var panel := object_info_panel as ObjectInfoPanel
+	if panel == null:
+		push_warning("SystemUIController: ObjectInfoPanel script mismatch; investigate signal not connected.")
+		return
+	var handler := _on_investigate_requested
+	if not panel.investigate_requested.is_connected(handler):
+		panel.investigate_requested.connect(handler)
+
+
+## Public entry for ObjectInfoPanel fallback when signal had zero listeners at click time.
+func handle_investigate_requested(object_id: String) -> void:
+	_on_investigate_requested(object_id)
+
+
+func _on_investigate_requested(object_id: String) -> void:
+	if object_id.is_empty():
+		return
+
+	if survey_probe_mission_controller == null:
+		return
+
+	if not _session_primary_base_established():
+		return
+
+	var base_id: String = _economy_body_id_for_ui()
+	if survey_probe_mission_controller.try_start_investigate_signal(object_id, base_id):
+		AudioManager.play_sfx_optional(&"build_success")
+	else:
+		AudioManager.play_sfx_optional(&"not_enough_resources")
+		var blocked := survey_probe_mission_controller.get_investigate_blocked_reason(
+			object_id,
+			base_id,
+		)
+		if not blocked.is_empty():
+			push_warning("Investigate failed for '%s': %s" % [object_id, blocked])
+
+	update_object_info()
+	update_base_panel()
+
+
+func _on_survey_probe_mission_changed() -> void:
+	update_object_info()
+	update_base_panel()
+	_update_top_hud()
+
+
+func _on_investigation_progress_changed(object_id: String, progress: float) -> void:
+	if object_info_panel == null or not object_info_panel.visible:
+		return
+
+	var oid := object_id.strip_edges()
+	if oid.is_empty():
+		return
+
+	var selected := selection.get_selected_node()
+	if selected is not SignalMarker:
+		return
+
+	if (selected as SignalMarker).object_id.strip_edges() != oid:
+		return
+
+	if object_info_panel.has_method("apply_investigate_progress"):
+		object_info_panel.call("apply_investigate_progress", progress)
+
+
 func _on_object_scan_requested(object_id: String) -> void:
 	if object_id.is_empty():
 		return
@@ -651,7 +875,16 @@ func _on_object_scan_requested(object_id: String) -> void:
 	if automation_controller == null:
 		return
 
-	if not _has_available_drone():
+	var sys_id: String = system_definition.id.strip_edges()
+	var scan_gate: Dictionary = GameSession.can_scan_object(
+		sys_id,
+		object_id,
+		_economy_body_id_for_ui(),
+		_has_available_drone(),
+		_get_active_scan_drone_count(object_id) > 0,
+	)
+	if not bool(scan_gate.get("ok", false)):
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 		update_object_info()
 		return
 
@@ -669,7 +902,14 @@ func _on_object_mining_requested(object_id: String) -> void:
 	if automation_controller == null:
 		return
 
-	if not _has_available_mining_ship():
+	var mine_gate: Dictionary = GameSession.can_mine_object(
+		system_definition.id,
+		object_id,
+		_economy_body_id_for_ui(),
+		_has_available_mining_ship(),
+	)
+	if not bool(mine_gate.get("ok", false)):
+		AudioManager.play_sfx_optional(&"not_enough_resources")
 		update_object_info()
 		return
 
@@ -835,6 +1075,16 @@ func _update_top_hud() -> void:
 
 	if top_hud != null and top_hud.has_method("refresh_from_game_session"):
 		top_hud.call("refresh_from_game_session")
+
+	if top_hud != null and top_hud.has_method("set_survey_probe_counts"):
+		var bid_sp: String = _economy_body_id_for_ui().strip_edges()
+		var available_sp: int = 0
+		if not bid_sp.is_empty():
+			available_sp = GameSession.get_available_survey_probe_count(bid_sp)
+		var active_sp: int = 0
+		if survey_probe_mission_controller != null:
+			active_sp = survey_probe_mission_controller.get_active_investigate_count()
+		top_hud.call("set_survey_probe_counts", available_sp, active_sp)
 
 	if top_hud != null and top_hud.has_method("set_jobs_count"):
 		var job_n: int = 0
@@ -1020,7 +1270,10 @@ func _top_hud_effects_section_caption() -> String:
 func _build_hover_details(kind: String) -> Dictionary:
 	var base_id: String = _economy_body_id_for_ui().strip_edges()
 	if base_id.is_empty() and (
-		kind == "storage" or kind == "scan_drones" or kind == "mining_ships"
+		kind == "storage"
+		or kind == "scan_drones"
+		or kind == "mining_ships"
+		or kind == "survey_probes"
 	):
 		return {
 			"title": "—",
@@ -1110,6 +1363,19 @@ func _build_hover_details(kind: String) -> Dictionary:
 				"Status: stored",
 			]
 			hint = "Used later to establish colonies in other systems."
+
+		"survey_probes":
+			var available_sp := GameSession.get_available_survey_probe_count(base_id)
+			var active_sp := 0
+			if survey_probe_mission_controller != null:
+				active_sp = survey_probe_mission_controller.get_active_investigate_count()
+			title = "Survey Probes"
+			details = [
+				"Available: %s" % NumberFormat.format_compact(available_sp),
+				"Investigating: %s" % NumberFormat.format_compact(active_sp),
+				"Total: %s" % NumberFormat.format_compact(available_sp + active_sp),
+			]
+			hint = "Stored probes available for new investigate missions."
 
 		"jobs":
 			var scan_jobs := 0

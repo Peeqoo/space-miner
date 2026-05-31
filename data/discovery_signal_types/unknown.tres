@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SignalTypeDefinition" format=3 uid="uid://jvkivsr4ca1d"]
+
+[ext_resource type="Script" uid="uid://dfnnwse200t4m" path="res://resources/definitions/signal_type_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Unknown Signature"
+description = "An unidentified signal detected by the base sensors."

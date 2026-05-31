@@ -12,18 +12,23 @@ var _warned_empty_primary_base: bool = false
 @onready var scan_drone_label: Label = $Margin/Root/ScanDroneWidget/ScanDroneMargin/ScanDroneRow/ScanDroneLabel
 @onready var mining_ship_label: Label = $Margin/Root/MiningShipWidget/MiningShipMargin/MiningShipRow/MiningShipLabel
 @onready var colony_ship_label: Label = $Margin/Root/ColonyShipWidget/ColonyShipMargin/ColonyShipRow/ColonyShipLabel
+@onready var survey_probe_label: Label = (
+	$Margin/Root/SurveyProbeWidget/SurveyProbeMargin/SurveyProbeRow/SurveyProbeLabel
+)
 @onready var jobs_label: Label = $Margin/Root/JobsWidget/JobsMargin/JobsRow/JobsLabel
 
 @onready var storage_widget: PanelContainer = $Margin/Root/StorageWidget
 @onready var scan_drone_widget: PanelContainer = $Margin/Root/ScanDroneWidget
 @onready var mining_ship_widget: PanelContainer = $Margin/Root/MiningShipWidget
 @onready var colony_ship_widget: PanelContainer = $Margin/Root/ColonyShipWidget
+@onready var survey_probe_widget: PanelContainer = $Margin/Root/SurveyProbeWidget
 @onready var jobs_widget: PanelContainer = $Margin/Root/JobsWidget
 
 var _storage_prefix: String = ""
 var _scan_drone_prefix: String = ""
 var _mining_ship_prefix: String = ""
 var _colony_ship_prefix: String = ""
+var _survey_probe_prefix: String = ""
 var _jobs_prefix: String = ""
 
 
@@ -34,6 +39,7 @@ func _ready() -> void:
 	_connect_widget_hover(scan_drone_widget, "scan_drones")
 	_connect_widget_hover(mining_ship_widget, "mining_ships")
 	_connect_widget_hover(colony_ship_widget, "colony_ships")
+	_connect_widget_hover(survey_probe_widget, "survey_probes")
 	_connect_widget_hover(jobs_widget, "jobs")
 
 	if not GameSession.base_resources_changed.is_connected(_on_resources_changed):
@@ -45,6 +51,7 @@ func _capture_widget_prefixes() -> void:
 	_scan_drone_prefix = _numeric_prefix(scan_drone_label.text)
 	_mining_ship_prefix = _numeric_prefix(mining_ship_label.text)
 	_colony_ship_prefix = _numeric_prefix(colony_ship_label.text)
+	_survey_probe_prefix = _numeric_prefix(survey_probe_label.text)
 	_jobs_prefix = _numeric_prefix(jobs_label.text)
 
 
@@ -74,6 +81,13 @@ func set_jobs_count(count: int) -> void:
 	jobs_label.text = "%s%s" % [_jobs_prefix, NumberFormat.format_compact(maxi(0, count))]
 
 
+func set_survey_probe_counts(available: int, _active: int = 0) -> void:
+	survey_probe_label.text = "%s%s" % [
+		_survey_probe_prefix,
+		NumberFormat.format_compact(maxi(0, available)),
+	]
+
+
 func _effective_display_base_id() -> String:
 	return _primary_base_body_id.strip_edges()
 
@@ -88,6 +102,7 @@ func refresh_from_game_session() -> void:
 		scan_drone_label.text = "%s0" % _scan_drone_prefix
 		mining_ship_label.text = "%s0" % _mining_ship_prefix
 		colony_ship_label.text = "%s0" % _colony_ship_prefix
+		set_survey_probe_counts(0, 0)
 		set_jobs_count(0)
 		return
 

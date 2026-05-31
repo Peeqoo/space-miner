@@ -104,6 +104,25 @@ func set_selected(value: bool) -> void:
 	selectable.set_selected(selection_ring, value)
 
 
+func set_discovery_surface_visible(is_visible: bool) -> void:
+	if body_visual != null:
+		body_visual.visible = is_visible
+
+	if back_orbit_units != null:
+		back_orbit_units.visible = is_visible
+
+	if front_orbit_units != null:
+		front_orbit_units.visible = is_visible
+
+	if selection_ring != null and not is_visible and not is_selected:
+		selection_ring.visible = false
+
+
+func set_discovery_interactable(is_interactable: bool) -> void:
+	if click_area != null:
+		click_area.input_pickable = is_interactable
+
+
 func get_info() -> Dictionary:
 	return {
 		"id": body_id,

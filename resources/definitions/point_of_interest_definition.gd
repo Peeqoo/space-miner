@@ -17,6 +17,48 @@ extends Resource
 @export var scan_resources: Array[ScannedResourceEntry] = []
 @export var scan_hidden_slots_after_special: int = 0
 
+@export_group("Discovery")
+## `hidden` / `signal` / `known`. Empty = legacy (runtime KNOWN until explicitly set).
+@export var default_discovery_state: String = ""
+@export var signal_type: SignalTypeDefinition
+## Optional pre-reveal lore for SIGNAL state; does not use the real `description`.
+@export_multiline var signal_lore: String = ""
+
+
+func get_normalized_default_discovery_state() -> String:
+	var context := "PointOfInterestDefinition '%s'" % id.strip_edges()
+	return DiscoveryDefinitionDefaults.normalize_default_discovery_state(default_discovery_state, context)
+
+
+func get_resolved_signal_type_id() -> String:
+	if signal_type != null:
+		return signal_type.get_id()
+	return DiscoveryDefinitionDefaults.DEFAULT_SIGNAL_TYPE_ID
+
+
+func get_resolved_signal_type_display_name() -> String:
+	if signal_type != null:
+		return signal_type.get_display_name()
+	return DiscoveryDefinitionDefaults.DEFAULT_SIGNAL_DISPLAY_NAME
+
+
+func get_resolved_signal_type_short_label() -> String:
+	if signal_type != null:
+		return signal_type.get_short_label()
+	return DiscoveryDefinitionDefaults.DEFAULT_SIGNAL_SHORT_LABEL
+
+
+func get_resolved_signal_description() -> String:
+	if signal_type != null:
+		return signal_type.get_description()
+	return ""
+
+
+func get_resolved_signal_marker_texture() -> Texture2D:
+	if signal_type != null:
+		return signal_type.get_marker_texture()
+	return null
+
 
 func get_scan_resources_by_layer(layer: ScannedResourceEntry.Layer) -> Array[ScannedResourceEntry]:
 	var result: Array[ScannedResourceEntry] = []

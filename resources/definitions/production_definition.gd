@@ -5,6 +5,8 @@ extends Resource
 @export var id: String = ""
 @export var unit_key: String = ""
 @export var cost: Dictionary = {}
+## Optional build duration (seconds). 0 = instant build (ColonyShip timer: see GameSession TODO).
+@export var build_time_seconds: float = 0.0
 @export var sort_order: int = 0
 
 ## Production-specific hover copy (not global UI section labels).

@@ -8,5 +8,5 @@ id = &"storage_0_base"
 category = &"storage"
 title = "Base Storage"
 purchasable = false
-storage_capacity_units = 100
+storage_capacity_units = 1000
 short_description = "Basislager für gesammelte Ressourcen."

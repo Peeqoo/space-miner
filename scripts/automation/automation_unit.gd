@@ -9,6 +9,7 @@ signal returned_to_base(unit: AutomationUnit)
 enum UnitType {
 	DRONE,
 	MINING_SHIP,
+	SURVEY_PROBE,
 }
 
 enum State {
@@ -22,6 +23,7 @@ enum State {
 
 @export var unit_type: UnitType = UnitType.DRONE
 
+## TODO(v0.1 Thrusters I): global +20% travel needs a safe multiplier hook here and on mission spawn.
 @export var travel_speed: float = 220.0
 @export var travel_curve_strength: float = 80.0
 @export var travel_accel_curve_power: float = 1.8

@@ -7,12 +7,12 @@ script = ExtResource("1")
 id = "colony_ship"
 unit_key = "colony_ships"
 cost = {
-"Aluminium": 40,
-"Carbon": 20,
-"Hydrogen": 20,
-"Iron": 80,
-"Water": 30
+"Ice": 350,
+"Iron": 1500,
+"Silicon": 300,
+"SurveyData": 150
 }
-sort_order = 2
-short_description = "Errichtet neue Basen in Systemen."
-effect_lines = ["Wird bei Kolonisierung verbraucht"]
+build_time_seconds = 120.0
+sort_order = 3
+short_description = "Errichtet neue Basen in anderen Systemen."
+effect_lines = ["Wird bei Kolonisierung verbraucht", "Build-Zeit: 120 s (UI; Timer TODO)"]

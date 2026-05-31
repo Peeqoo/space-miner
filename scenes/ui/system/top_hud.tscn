@@ -4,7 +4,7 @@
 [ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="2_t8ag8"]
 
 [node name="TopHUD" type="PanelContainer" unique_id=1772545870]
-custom_minimum_size = Vector2(624, 0)
+custom_minimum_size = Vector2(724, 0)
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 8.0
@@ -57,6 +57,37 @@ label_settings = ExtResource("2_t8ag8")
 [node name="SeparatorA" type="VSeparator" parent="Margin/Root" unique_id=108]
 layout_mode = 2
 
+[node name="SurveyProbeWidget" type="PanelContainer" parent="Margin/Root" unique_id=132]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+
+[node name="SurveyProbeMargin" type="MarginContainer" parent="Margin/Root/SurveyProbeWidget" unique_id=133]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 2
+
+[node name="SurveyProbeRow" type="HBoxContainer" parent="Margin/Root/SurveyProbeWidget/SurveyProbeMargin" unique_id=134]
+layout_mode = 2
+alignment = 1
+
+[node name="SurveyProbeIcon" type="TextureRect" parent="Margin/Root/SurveyProbeWidget/SurveyProbeMargin/SurveyProbeRow" unique_id=135]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SurveyProbeLabel" type="Label" parent="Margin/Root/SurveyProbeWidget/SurveyProbeMargin/SurveyProbeRow" unique_id=136]
+layout_mode = 2
+text = "SP: 0"
+label_settings = ExtResource("2_t8ag8")
+
+[node name="SeparatorB" type="VSeparator" parent="Margin/Root" unique_id=114]
+layout_mode = 2
+
 [node name="ScanDroneWidget" type="PanelContainer" parent="Margin/Root" unique_id=109]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
@@ -85,7 +116,7 @@ layout_mode = 2
 text = "SD: 1"
 label_settings = ExtResource("2_t8ag8")
 
-[node name="SeparatorB" type="VSeparator" parent="Margin/Root" unique_id=114]
+[node name="SeparatorC" type="VSeparator" parent="Margin/Root" unique_id=120]
 layout_mode = 2
 
 [node name="MiningShipWidget" type="PanelContainer" parent="Margin/Root" unique_id=115]
@@ -116,7 +147,7 @@ layout_mode = 2
 text = "MS: 1"
 label_settings = ExtResource("2_t8ag8")
 
-[node name="SeparatorC" type="VSeparator" parent="Margin/Root" unique_id=120]
+[node name="SeparatorD" type="VSeparator" parent="Margin/Root" unique_id=126]
 layout_mode = 2
 
 [node name="ColonyShipWidget" type="PanelContainer" parent="Margin/Root" unique_id=121]
@@ -147,7 +178,7 @@ layout_mode = 2
 text = "CS: 0"
 label_settings = ExtResource("2_t8ag8")
 
-[node name="SeparatorD" type="VSeparator" parent="Margin/Root" unique_id=126]
+[node name="SeparatorE" type="VSeparator" parent="Margin/Root" unique_id=137]
 layout_mode = 2
 
 [node name="JobsWidget" type="PanelContainer" parent="Margin/Root" unique_id=127]

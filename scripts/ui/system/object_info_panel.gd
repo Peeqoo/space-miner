@@ -1,5 +1,6 @@
 ## Shows selected planet / object information.
 ## Emits action signals when the player wants to scan or mine the selected object.
+class_name ObjectInfoPanel
 extends PanelContainer
 
 signal scan_requested(object_id: String)
@@ -7,20 +8,28 @@ signal mining_requested(object_id: String)
 signal recall_drone_requested(object_id: String)
 signal recall_mining_ship_requested(object_id: String)
 signal colonization_requested(object_id: String)
+signal investigate_requested(object_id: String)
 signal close_requested()
 
 const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/resource_info_row.tscn")
 
+@onready var root_vbox: VBoxContainer = $Margin/Root
 @onready var header_label: Label = $Margin/Root/HBoxContainer/HeaderLabel
 @onready var preview_texture: TextureRect = $Margin/Root/MainRow/PreviewPanel/PreviewCenter/PreviewTexture
 @onready var name_label: Label = $Margin/Root/MainRow/MetaColumn/NameLabel
 @onready var type_label: Label = $Margin/Root/MainRow/MetaColumn/TypeLabel
 @onready var scan_status_label: Label = $Margin/Root/MainRow/MetaColumn/ScanStatusLabel
 @onready var distance_label: Label = $Margin/Root/MainRow/MetaColumn/DistanceLabel
+@onready var divider_b: HSeparator = $Margin/Root/DividerB
 @onready var resource_title_label: Label = $Margin/Root/ResourceTitleLabel
+@onready var resource_panel: PanelContainer = $Margin/Root/ResourcePanel
 @onready var resource_list: VBoxContainer = $Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList
 @onready var lore_title_label: Label = $Margin/Root/LoreTitleLabel
+@onready var lore_panel: PanelContainer = $Margin/Root/LorePanel
+@onready var lore_scroll: ScrollContainer = $Margin/Root/LorePanel/LoreMargin/LoreScroll
 @onready var lore_text_label: Label = $Margin/Root/LorePanel/LoreMargin/LoreScroll/LoreTextLabel
+@onready var divider_d: HSeparator = $Margin/Root/DividerD
+@onready var orbit_status_section: VBoxContainer = $Margin/Root/OrbitStatusSection
 
 @onready var drone_orbit_label: Label = $Margin/Root/OrbitStatusSection/DroneOrbitLabel
 @onready var mine_orbit_label: Label = $Margin/Root/OrbitStatusSection/MineOrbitLabel
@@ -32,7 +41,12 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var recall_drone_button: Button = $Margin/Root/GridContainer/RecallDroneButton
 @onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
 @onready var colonization_button: Button = $Margin/Root/GridContainer/ColonizationButton
+@onready var investigate_button: Button = $Margin/Root/GridContainer/InvestigateButton
 @onready var economy_block_label: Label = $Margin/Root/EconomyBlockLabel
+@onready var investigate_progress_label: Label = $Margin/Root/InvestigateProgressLabel
+@onready var investigate_progress_format_template: Label = (
+	$Margin/Root/InvestigateProgressFormatTemplate
+)
 
 @onready var empty_value_template: Label = $Margin/Root/EmptyValueTemplate
 @onready var scan_state_unknown_template: Label = $Margin/Root/ScanStateUnknownTemplate
@@ -63,6 +77,14 @@ var _live_action_cache: Dictionary = {
 	"colonization_button_visible": false,
 	"colonization_pending": false,
 	"colonization_can_start": false,
+	"is_discovery_signal": false,
+	"can_investigate_signal": false,
+	"investigate_blocked_reason": "",
+	"investigate_in_progress": false,
+	"is_investigate_active": false,
+	"investigate_progress": 0.0,
+	"investigate_progress_text": "",
+	"discovery_complete_message": "",
 }
 
 ## Editor-owned prefixes captured from visible meta/orbit labels in _ready().
@@ -79,6 +101,7 @@ var _scan_state_labels: Dictionary = {}
 var _empty_selection_lore: String = ""
 var _no_description_lore: String = ""
 var _mining_button_text_default: String = ""
+var _scan_button_text_default: String = ""
 var _mining_button_text_depleted: String = ""
 var _colonization_button_text_default: String = ""
 var _colonization_button_text_running: String = ""
@@ -86,10 +109,22 @@ var _colonization_no_ship_tooltip: String = ""
 var _automation_drone_supporting_format: String = ""
 var _automation_drone_on_mission_format: String = ""
 var _unknown_display_name_fallback: String = ""
+var _investigate_progress_format: String = ""
+
+var _known_panel_custom_minimum_size: Vector2 = Vector2.ZERO
+var _known_offset_bottom: float = 0.0
+var _lore_panel_known_minimum_size: Vector2 = Vector2.ZERO
+var _resource_panel_known_minimum_size: Vector2 = Vector2.ZERO
+var _lore_text_label_known_minimum_size: Vector2 = Vector2.ZERO
+var _lore_scroll_known_minimum_size: Vector2 = Vector2.ZERO
+var _lore_scroll_known_vertical_scroll_mode: ScrollContainer.ScrollMode = (
+	ScrollContainer.SCROLL_MODE_AUTO
+)
 
 
 func _ready() -> void:
 	_capture_editor_text_templates()
+	_capture_known_layout_sizes()
 
 	if not close_base_panel_button.pressed.is_connected(_on_close_base_panel_pressed):
 		close_base_panel_button.pressed.connect(_on_close_base_panel_pressed)
@@ -111,7 +146,12 @@ func _ready() -> void:
 			colonization_button.pressed.connect(_on_colonization_pressed)
 		_colonization_button_text_default = colonization_button.text
 
+	if investigate_button != null:
+		if not investigate_button.pressed.is_connected(_on_investigate_pressed):
+			investigate_button.pressed.connect(_on_investigate_pressed)
+
 	_mining_button_text_default = send_mining_ship_button.text
+	_scan_button_text_default = scan_with_drone_button.text
 
 	for ui_button: Button in [
 		close_base_panel_button,
@@ -120,6 +160,7 @@ func _ready() -> void:
 		recall_drone_button,
 		recall_mining_ship_button,
 		colonization_button,
+		investigate_button,
 	]:
 		AudioManager.bind_ui_button_optional(ui_button)
 
@@ -160,6 +201,122 @@ func _capture_editor_text_templates() -> void:
 		GameSession.SCAN_UNKNOWN,
 		_empty_value_text
 	)
+	if investigate_progress_format_template != null:
+		_investigate_progress_format = investigate_progress_format_template.text.strip_edges()
+
+
+func _capture_known_layout_sizes() -> void:
+	_known_panel_custom_minimum_size = custom_minimum_size
+	_known_offset_bottom = offset_bottom
+	if lore_panel != null:
+		_lore_panel_known_minimum_size = lore_panel.custom_minimum_size
+	if resource_panel != null:
+		_resource_panel_known_minimum_size = resource_panel.custom_minimum_size
+	if lore_text_label != null:
+		_lore_text_label_known_minimum_size = lore_text_label.custom_minimum_size
+	if lore_scroll != null:
+		_lore_scroll_known_minimum_size = lore_scroll.custom_minimum_size
+		_lore_scroll_known_vertical_scroll_mode = lore_scroll.vertical_scroll_mode
+
+
+func _get_lore_text_wrap_width() -> float:
+	var wrap_width := 0.0
+	if lore_scroll != null and lore_scroll.size.x > 1.0:
+		wrap_width = lore_scroll.size.x
+	elif size.x > 1.0:
+		wrap_width = size.x
+	elif custom_minimum_size.x > 1.0:
+		wrap_width = custom_minimum_size.x
+	else:
+		wrap_width = 200.0
+	# MarginContainer (4*2) + LoreMargin (4*2)
+	return maxf(wrap_width - 16.0, 80.0)
+
+
+func _fit_signal_lore_text_height() -> void:
+	if lore_text_label == null:
+		return
+
+	var wrap_width := _get_lore_text_wrap_width()
+	lore_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lore_text_label.custom_minimum_size = Vector2(wrap_width, 0)
+	lore_text_label.update_minimum_size()
+	var content_height: float = lore_text_label.get_combined_minimum_size().y
+	if content_height < 1.0:
+		content_height = lore_text_label.get_minimum_size().y
+
+	lore_text_label.custom_minimum_size = Vector2(wrap_width, content_height)
+	lore_text_label.update_minimum_size()
+
+	if lore_scroll != null:
+		lore_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		lore_scroll.custom_minimum_size = Vector2(0, float(content_height))
+		lore_scroll.update_minimum_size()
+
+	if lore_panel != null:
+		var lore_margin_height := 8.0
+		if lore_scroll != null:
+			var lore_margin := lore_scroll.get_parent() as MarginContainer
+			if lore_margin != null:
+				lore_margin_height = float(
+					lore_margin.get_theme_constant("margin_top")
+					+ lore_margin.get_theme_constant("margin_bottom")
+				)
+		lore_panel.custom_minimum_size = Vector2(0, float(content_height) + lore_margin_height)
+		lore_panel.update_minimum_size()
+
+
+func _restore_known_lore_layout() -> void:
+	if lore_scroll != null:
+		lore_scroll.vertical_scroll_mode = _lore_scroll_known_vertical_scroll_mode
+		lore_scroll.custom_minimum_size = _lore_scroll_known_minimum_size
+		lore_scroll.update_minimum_size()
+	if lore_panel != null:
+		lore_panel.custom_minimum_size = _lore_panel_known_minimum_size
+		lore_panel.update_minimum_size()
+	if lore_text_label != null:
+		lore_text_label.custom_minimum_size = _lore_text_label_known_minimum_size
+		lore_text_label.update_minimum_size()
+
+
+func _apply_signal_panel_layout(is_signal: bool) -> void:
+	if is_signal:
+		custom_minimum_size = Vector2(_known_panel_custom_minimum_size.x, 0)
+		if lore_text_label != null:
+			lore_text_label.custom_minimum_size = Vector2(_lore_text_label_known_minimum_size.x, 0)
+		if resource_panel != null:
+			resource_panel.custom_minimum_size = Vector2.ZERO
+		if divider_d != null:
+			divider_d.visible = false
+		if orbit_status_section != null:
+			orbit_status_section.visible = false
+		_fit_signal_lore_text_height()
+	else:
+		custom_minimum_size = _known_panel_custom_minimum_size
+		_restore_known_lore_layout()
+		if resource_panel != null:
+			resource_panel.custom_minimum_size = _resource_panel_known_minimum_size
+		if divider_d != null:
+			divider_d.visible = true
+		if orbit_status_section != null:
+			orbit_status_section.visible = true
+		offset_bottom = _known_offset_bottom
+
+	_queue_panel_layout_refresh(is_signal)
+
+
+func _queue_panel_layout_refresh(is_signal: bool) -> void:
+	if root_vbox != null:
+		root_vbox.queue_sort()
+	reset_size()
+	if is_signal:
+		var content_height: float = maxf(
+			float(get_minimum_size().y),
+			float(get_combined_minimum_size().y)
+		)
+		if content_height > 0.0:
+			offset_bottom = offset_top + content_height
+	update_minimum_size()
 
 
 func _label_prefix(label: Label) -> String:
@@ -196,13 +353,18 @@ func show_empty() -> void:
 	lore_text_label.text = _empty_selection_lore
 
 	send_mining_ship_button.text = _mining_button_text_default
-	_set_action_buttons(false, false, false)
+	_set_action_buttons(false, false, false, false, _scan_button_text_default, "", false, "")
 	_set_recall_buttons(false, false)
 	_apply_colonization_controls()
 
 	_cached_visible_resources.clear()
 	_live_action_cache = {
-		"can_scan": false,
+	"can_scan": false,
+	"show_scan": false,
+	"show_mine": false,
+	"mine_blocked_reason": "",
+		"scan_blocked_reason": "",
+		"scan_button_text": _scan_button_text_default,
 		"can_mine": false,
 		"can_recall_drone": false,
 		"can_recall_mining_ship": false,
@@ -214,8 +376,18 @@ func show_empty() -> void:
 		"colonization_button_visible": false,
 		"colonization_pending": false,
 		"colonization_can_start": false,
+		"is_discovery_signal": false,
+		"can_investigate_signal": false,
+		"investigate_blocked_reason": "",
+		"investigate_in_progress": false,
+		"is_investigate_active": false,
+		"investigate_progress": 0.0,
+		"investigate_progress_text": "",
+		"discovery_complete_message": "",
 	}
 
+	_apply_signal_discovery_controls()
+	_hide_investigate_progress_ui()
 	if is_instance_valid(economy_block_label):
 		economy_block_label.visible = false
 
@@ -269,6 +441,11 @@ func _apply_info(info: Dictionary) -> void:
 
 	_live_action_cache = {
 		"can_scan": bool(info.get("can_scan_with_drone", false)),
+		"show_scan": bool(info.get("show_scan_with_drone", false)),
+		"show_mine": bool(info.get("show_mine_with_ship", false)),
+		"mine_blocked_reason": str(info.get("mine_blocked_reason", "")).strip_edges(),
+		"scan_blocked_reason": str(info.get("scan_blocked_reason", "")).strip_edges(),
+		"scan_button_text": str(info.get("scan_button_text", _scan_button_text_default)).strip_edges(),
 		"can_mine": bool(info.get("can_mine_with_ship", false)),
 		"can_recall_drone": bool(info.get("can_recall_drone", false)),
 		"can_recall_mining_ship": bool(info.get("can_recall_mining_ship", false)),
@@ -280,23 +457,142 @@ func _apply_info(info: Dictionary) -> void:
 		"colonization_button_visible": bool(info.get("colonization_button_visible", false)),
 		"colonization_pending": bool(info.get("colonization_pending", false)),
 		"colonization_can_start": bool(info.get("colonization_can_start", false)),
+		"is_discovery_signal": info.get("is_discovery_signal", false) == true,
+		"can_investigate_signal": info.get("can_investigate_signal", false) == true,
+		"investigate_blocked_reason": str(info.get("investigate_blocked_reason", "")).strip_edges(),
+		"investigate_in_progress": info.get("investigate_in_progress", false) == true,
+		"is_investigate_active": info.get("is_investigate_active", false) == true,
+		"investigate_progress": float(info.get("investigate_progress", 0.0)),
+		"investigate_progress_text": str(info.get("investigate_progress_text", "")).strip_edges(),
+		"discovery_complete_message": str(info.get("discovery_complete_message", "")).strip_edges(),
 	}
 
+	_apply_signal_discovery_controls()
 	_apply_live_action_controls()
 
 
+func apply_investigate_progress(progress: float) -> void:
+	if _live_action_cache.get("investigate_in_progress", false) != true:
+		return
+
+	var clamped: float = clampf(progress, 0.0, 1.0)
+	var percent: int = int(round(clamped * 100.0))
+	var progress_text := _format_investigate_progress(percent)
+
+	_live_action_cache["investigate_progress"] = clamped
+	_live_action_cache["investigate_progress_text"] = progress_text
+	_live_action_cache["is_investigate_active"] = true
+
+	_show_investigate_progress_ui(progress_text, percent)
+
+
+func _show_investigate_progress_ui(progress_text: String, _percent: int) -> void:
+	if investigate_progress_label != null:
+		investigate_progress_label.text = progress_text
+		investigate_progress_label.visible = true
+
+
+func _hide_investigate_progress_ui() -> void:
+	if investigate_progress_label != null:
+		investigate_progress_label.visible = false
+
+
+func _set_resource_section_visible(visible: bool) -> void:
+	if divider_b != null:
+		divider_b.visible = visible
+	if resource_title_label != null:
+		resource_title_label.visible = visible
+	if resource_panel != null:
+		resource_panel.visible = visible
+
+
+func _apply_signal_discovery_controls() -> void:
+	var is_signal: bool = _live_action_cache.get("is_discovery_signal", false) == true
+
+	_set_resource_section_visible(not is_signal)
+	_apply_signal_panel_layout(is_signal)
+
+	if is_signal:
+		drone_orbit_label.visible = false
+		mine_orbit_label.visible = false
+		mining_bonus_label.visible = false
+
+	if not is_signal:
+		if investigate_button != null:
+			investigate_button.visible = false
+		return
+
+	if investigate_button == null:
+		return
+
+	var can_investigate: bool = _live_action_cache.get("can_investigate_signal", false) == true
+	var in_progress: bool = _live_action_cache.get("investigate_in_progress", false) == true
+	var blocked: String = str(_live_action_cache.get("investigate_blocked_reason", "")).strip_edges()
+	var complete_msg: String = str(_live_action_cache.get("discovery_complete_message", "")).strip_edges()
+
+	if in_progress:
+		investigate_button.visible = false
+	else:
+		investigate_button.visible = true
+		investigate_button.disabled = not can_investigate
+		if can_investigate:
+			investigate_button.tooltip_text = ""
+		else:
+			investigate_button.tooltip_text = blocked
+
+	if in_progress:
+		var progress_text: String = str(
+			_live_action_cache.get("investigate_progress_text", "")
+		).strip_edges()
+		if progress_text.is_empty():
+			progress_text = _format_investigate_progress(0)
+		var percent: int = int(
+			round(float(_live_action_cache.get("investigate_progress", 0.0)) * 100.0)
+		)
+		_show_investigate_progress_ui(progress_text, percent)
+	elif _live_action_cache.get("is_investigate_active", false) != true:
+		_hide_investigate_progress_ui()
+
+	if is_instance_valid(economy_block_label):
+		if not complete_msg.is_empty():
+			economy_block_label.text = complete_msg
+			economy_block_label.visible = true
+		elif in_progress:
+			economy_block_label.visible = false
+		elif not can_investigate and not blocked.is_empty():
+			economy_block_label.text = blocked
+			economy_block_label.visible = true
+		elif str(_live_action_cache.get("system_economy_blocked_reason", "")).strip_edges().is_empty():
+			economy_block_label.visible = false
+
+
 func _apply_live_action_controls() -> void:
+	var is_signal: bool = bool(_live_action_cache.get("is_discovery_signal", false))
+	if is_signal:
+		_set_action_buttons(false, false, false, false, _scan_button_text_default, "", false, "")
+		_set_recall_buttons(false, false)
+		_apply_colonization_controls()
+		_apply_signal_discovery_controls()
+		return
+
 	var block_rs: String = str(_live_action_cache.get("system_economy_blocked_reason", "")).strip_edges()
 
 	var can_scan: bool = bool(_live_action_cache.get("can_scan", false))
+	var show_scan: bool = bool(_live_action_cache.get("show_scan", false))
+	var scan_blocked: String = str(_live_action_cache.get("scan_blocked_reason", "")).strip_edges()
+	var scan_button_text: String = str(_live_action_cache.get("scan_button_text", _scan_button_text_default)).strip_edges()
 	var can_mine: bool = bool(_live_action_cache.get("can_mine", false))
+	var show_mine: bool = bool(_live_action_cache.get("show_mine", false))
+	var mine_blocked: String = str(_live_action_cache.get("mine_blocked_reason", "")).strip_edges()
 	var can_recall_drone: bool = bool(_live_action_cache.get("can_recall_drone", false))
 	var can_recall_mining_ship: bool = bool(_live_action_cache.get("can_recall_mining_ship", false))
 	var is_home_base: bool = bool(_live_action_cache.get("is_home_base", false))
 
 	if not block_rs.is_empty():
 		can_scan = false
+		show_scan = false
 		can_mine = false
+		show_mine = false
 		can_recall_drone = false
 		can_recall_mining_ship = false
 		if is_instance_valid(economy_block_label):
@@ -317,21 +613,28 @@ func _apply_live_action_controls() -> void:
 	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false)) or _is_current_object_mining_exhausted()
 	_live_action_cache["mining_exhausted"] = mining_exhausted
 
-	var mining_block_depleted: bool = mining_exhausted
+	var mining_block_depleted: bool = (
+		mining_exhausted or mine_blocked == GameSession.MINE_BLOCK_DEPLETED
+	)
 	var can_mine_effective: bool = can_mine and not mining_block_depleted
+	var mine_visible: bool = show_mine or can_mine
 
 	if is_home_base:
 		send_mining_ship_button.text = _mining_button_text_default
-		_set_action_buttons(false, false, false)
+		_set_action_buttons(false, false, false, false, _scan_button_text_default, "")
 		_set_recall_buttons(false, false)
 	else:
-		_set_action_buttons(can_scan, can_mine, can_mine_effective)
+		_set_action_buttons(
+			can_scan,
+			show_scan,
+			can_mine_effective,
+			mine_visible,
+			scan_button_text,
+			scan_blocked,
+			mining_block_depleted,
+			mine_blocked,
+		)
 		_set_recall_buttons(can_recall_drone, can_recall_mining_ship)
-
-		if can_mine and mining_block_depleted:
-			send_mining_ship_button.text = _mining_button_text_depleted
-		else:
-			send_mining_ship_button.text = _mining_button_text_default
 
 	_apply_colonization_controls()
 
@@ -580,12 +883,43 @@ func _apply_lore(info: Dictionary) -> void:
 	lore_text_label.text = lore_text
 
 
-func _set_action_buttons(can_scan: bool, mine_visible: bool, mine_enabled: bool) -> void:
-	scan_with_drone_button.visible = can_scan
+func _set_action_buttons(
+	can_scan: bool,
+	show_scan: bool,
+	mine_enabled: bool,
+	mine_visible: bool,
+	scan_button_text: String = "",
+	scan_blocked_reason: String = "",
+	mining_depleted: bool = false,
+	mine_blocked_reason: String = "",
+) -> void:
+	scan_with_drone_button.visible = show_scan
 	scan_with_drone_button.disabled = not can_scan
+
+	var scan_label := scan_button_text.strip_edges()
+	if scan_label.is_empty():
+		scan_label = _scan_button_text_default
+	scan_with_drone_button.text = scan_label
+
+	var scan_block := scan_blocked_reason.strip_edges()
+	if show_scan and not can_scan and not scan_block.is_empty():
+		scan_with_drone_button.tooltip_text = scan_block
+	elif scan_block.is_empty():
+		scan_with_drone_button.tooltip_text = ""
 
 	send_mining_ship_button.visible = mine_visible
 	send_mining_ship_button.disabled = not mine_enabled
+
+	if mining_depleted:
+		send_mining_ship_button.text = _mining_button_text_depleted
+	else:
+		send_mining_ship_button.text = _mining_button_text_default
+
+	var mine_block := mine_blocked_reason.strip_edges()
+	if mine_visible and not mine_enabled and not mine_block.is_empty():
+		send_mining_ship_button.tooltip_text = mine_block
+	elif mine_block.is_empty():
+		send_mining_ship_button.tooltip_text = ""
 
 
 func _set_recall_buttons(can_recall_drone: bool, can_recall_mining_ship: bool) -> void:
@@ -612,6 +946,13 @@ func _build_amount_text_without_store(resource_entry: Dictionary) -> String:
 		return "%s / %s" % [compact_total, compact_total]
 
 	return "--"
+
+
+func _format_investigate_progress(percent: int) -> String:
+	var format_str := _investigate_progress_format.strip_edges()
+	if format_str.is_empty():
+		return DiscoverySignalUiTextDefinition.format_investigate_progress(percent)
+	return format_str % maxi(0, percent)
 
 
 func _format_count_template(format_str: String, count: int) -> String:
@@ -706,3 +1047,28 @@ func _on_colonization_pressed() -> void:
 		return
 
 	colonization_requested.emit(current_object_id)
+
+
+func _forward_investigate_if_unconnected(object_id: String) -> void:
+	var oid := object_id.strip_edges()
+	if oid.is_empty():
+		return
+	for node: Node in get_tree().get_nodes_in_group(&"system_ui_controller"):
+		if node is SystemUIController:
+			(node as SystemUIController).handle_investigate_requested(oid)
+			return
+	push_warning(
+		"ObjectInfoPanel: investigate_requested has no listeners (object_id=%s)." % oid
+	)
+
+
+func _on_investigate_pressed() -> void:
+	if current_object_id.is_empty():
+		return
+	if investigate_button == null or investigate_button.disabled:
+		return
+
+	var listener_count: int = investigate_requested.get_connections().size()
+	investigate_requested.emit(current_object_id)
+	if listener_count == 0:
+		_forward_investigate_if_unconnected(current_object_id)

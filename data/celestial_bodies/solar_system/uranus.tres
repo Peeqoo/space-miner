@@ -20,4 +20,5 @@ reference_radius_earth = 4.01
 reference_orbit_au = 19.2
 reference_period_days = 30728.0
 size_authoring_mode = 1
+default_discovery_state = "hidden"
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

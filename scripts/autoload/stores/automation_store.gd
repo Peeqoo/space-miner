@@ -10,8 +10,19 @@ var next_mission_id: int = 1
 var missions: Dictionary = {}
 
 
-func create_scan_mission(base_id: String, target_id: String) -> int:
-	return _create_mission(MissionType.SCAN, base_id, target_id)
+func create_scan_mission(
+	base_id: String,
+	target_id: String,
+	target_scan_state: String = "",
+	scan_is_progression: bool = true,
+) -> int:
+	var mission_id := _create_mission(MissionType.SCAN, base_id, target_id)
+	var mission: Dictionary = missions.get(mission_id, {})
+	if not mission.is_empty():
+		mission["target_scan_state"] = target_scan_state.strip_edges()
+		mission["scan_is_progression"] = scan_is_progression
+		missions[mission_id] = mission
+	return mission_id
 
 
 func create_mining_mission(base_id: String, target_id: String) -> int:

@@ -13,7 +13,7 @@ cost = {
 "Iron": 20
 }
 scan_speed_percent = 125
-scan_duration_multiplier = 0.75
+scan_duration_multiplier = 0.8
 mining_yield_bonus_per_support_drone_percent = 2
 unlock_scan_layer = 1
 applies_to_new_jobs_only = true

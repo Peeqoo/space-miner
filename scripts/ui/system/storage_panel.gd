@@ -10,6 +10,7 @@ const _TEXT_SMALL_LS: LabelSettings = preload("res://scenes/ui/font_labels/text_
 const _ROW_SEP := 6
 
 @onready var close_button: Button = $Margin/Root/HeaderRow/CloseButton
+@onready var storage_info_label: Label = $Margin/Root/StorageInfoLabel
 @onready var resource_list: VBoxContainer = (
 	$Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList
 )
@@ -61,6 +62,8 @@ func _run_deferred_refresh() -> void:
 
 
 func _apply_refresh() -> void:
+	_update_storage_capacity_line()
+
 	for c: Node in resource_list.get_children():
 		c.free()
 
@@ -107,6 +110,24 @@ func _apply_refresh() -> void:
 
 	empty_label.visible = not any_row
 	resource_list.visible = any_row
+
+
+func _update_storage_capacity_line() -> void:
+	if storage_info_label == null:
+		return
+
+	var used: int = GameSession.get_base_storage_used(_base_id)
+	var cap: int = GameSession.get_base_storage_capacity(_base_id)
+	var line := "%s / %s" % [
+		NumberFormat.format_compact(used),
+		NumberFormat.format_compact(cap),
+	]
+
+	if GameSession.is_base_storage_full(_base_id):
+		line += " — %s" % GameSession.get_base_storage_blocked_reason_full()
+
+	storage_info_label.text = line
+	storage_info_label.visible = true
 
 
 func _on_close_pressed() -> void:

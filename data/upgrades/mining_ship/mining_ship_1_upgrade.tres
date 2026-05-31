@@ -13,8 +13,9 @@ cost = {
 "Iron": 40,
 "Silicon": 20
 }
-cargo_capacity_percent = 125
+cargo_capacity_percent = 150
+mining_rate_multiplier = 1.25
 unlock_mining_layer = 1
 applies_to_new_jobs_only = true
-short_description = "Schaltet Deep-Mining frei."
-effect_lines = ["Deep-Ressourcen minebar"]
+short_description = "Deep-Mining, Laser I (+25% Rate), Cargo I (75)."
+effect_lines = ["Deep-Ressourcen minebar", "Mining Rate +25%", "Cargo 50 → 75"]

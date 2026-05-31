@@ -82,6 +82,12 @@ func build_save_data(slot_index: int = -1) -> Dictionary:
 	var idx := active_save_slot if slot_index < 1 else slot_index
 	if not is_valid_slot(idx):
 		idx = 1
+	var refunded_probe_missions: int = GameSession.cancel_active_survey_probe_missions_before_save()
+	if refunded_probe_missions > 0:
+		push_warning(
+			"Cancelled active survey probe investigations before save; probes refunded: %d"
+			% refunded_probe_missions
+		)
 	GameSession.refresh_automation_snapshot_from_scene()
 	GameSession.refresh_camera_snapshot_from_scene()
 	var session_data: Dictionary = GameSession.to_save_data()

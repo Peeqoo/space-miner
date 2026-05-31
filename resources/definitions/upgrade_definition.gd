@@ -23,6 +23,8 @@ extends Resource
 
 ## MiningShip — cargo as percent of base mission capacity (-1 = unused).
 @export var cargo_capacity_percent: int = -1
+## MiningShip — mining rate multiplier at this tier (-1 = unused, 1.0 = base rate).
+@export var mining_rate_multiplier: float = -1.0
 
 ## Resource layer gates — matches `ScannedResourceEntry.Layer` (0=BASIC, 1=DEEP, 2=SPECIAL).
 @export var unlock_scan_layer: int = 0
@@ -296,10 +298,21 @@ static func _append_mining_ship_delta_lines(
 		if cargo_delta > 0:
 			_append_formatted_effect_line(lines, "cargo_delta", cargo_delta)
 
+	if current.mining_rate_multiplier > 0.0 and next.mining_rate_multiplier > 0.0:
+		var rate_delta_percent := int(
+			round((next.mining_rate_multiplier / current.mining_rate_multiplier - 1.0) * 100.0)
+		)
+		if rate_delta_percent > 0:
+			_append_formatted_effect_line(lines, "mining_rate_delta", rate_delta_percent)
+
 
 static func _append_mining_ship_final_lines(def: UpgradeDefinition, lines: PackedStringArray) -> void:
 	if def.cargo_capacity_percent >= 0:
 		_append_formatted_effect_line(lines, "cargo_final", def.cargo_capacity_percent)
+	if def.mining_rate_multiplier > 0.0:
+		var rate_bonus_percent := int(round((def.mining_rate_multiplier - 1.0) * 100.0))
+		if rate_bonus_percent > 0:
+			_append_formatted_effect_line(lines, "mining_rate_final", rate_bonus_percent)
 
 
 static func _append_resource_special_effect_lines(

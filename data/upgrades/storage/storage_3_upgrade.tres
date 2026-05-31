@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3 uid="uid://d358srsj0it66"]
+
+[ext_resource type="Script" uid="uid://d3dqik14jylww" path="res://resources/definitions/upgrade_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"storage_3_upgrade"
+category = &"storage"
+level = 3
+title = "Storage Upgrade III"
+cost = {
+"Copper": 50,
+"Iron": 100
+}
+storage_capacity_units = 4200
+short_description = "Maximales Lager für Endgame-Produktion."

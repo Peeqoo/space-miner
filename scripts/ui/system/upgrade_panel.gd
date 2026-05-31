@@ -92,10 +92,14 @@ func refresh_from_game_session() -> void:
 func _refresh_upgrade_button(button: Button, category: StringName) -> void:
 	if button == null:
 		return
-	var is_max := not GameSession.has_next_base_upgrade(_economy_body_id_for_ops(), category)
-	var can_buy := GameSession.can_buy_next_base_upgrade(_economy_body_id_for_ops(), category)
+	var base_id := _economy_body_id_for_ops()
+	var is_max := not GameSession.has_next_base_upgrade(base_id, category)
+	var gate: Dictionary = GameSession.get_buy_next_base_upgrade_gate(base_id, category)
+	var can_buy := bool(gate.get("ok", false))
 	button.disabled = is_max or not can_buy
 	button.text = _upgrade_button_caption(category, is_max)
+	var reason := str(gate.get("blocked_reason", "")).strip_edges()
+	button.tooltip_text = reason if not is_max else ""
 
 
 func _upgrade_button_caption(category: StringName, is_max: bool) -> String:
@@ -173,7 +177,7 @@ func _on_button_hover_entered(button: Button) -> void:
 	if cat.is_empty():
 		return
 	hover_title_label.text = _hover_title_for_category(cat)
-	hover_desc_label.text = _build_upgrade_hover_description(cat)
+	hover_desc_label.text = _build_upgrade_hover_description(cat, button)
 	hover_cost_label.text = ""
 	hover_info_section.visible = true
 
@@ -209,12 +213,15 @@ func _hover_section_labels() -> Dictionary:
 	return _hover_section_label_texts
 
 
-func _build_upgrade_hover_description(category: StringName) -> String:
+func _build_upgrade_hover_description(category: StringName, button: Button) -> String:
 	var base_id := _economy_body_id_for_ops()
 	var cur: UpgradeDefinition = GameSession.get_current_upgrade_definition(base_id, category)
 	var nxt: UpgradeDefinition = GameSession.get_next_upgrade_definition(base_id, category)
 	var has_next := GameSession.has_next_base_upgrade(base_id, category)
 	var lines := UpgradeDefinition.build_panel_hover_lines(cur, nxt, has_next, _hover_section_labels())
+	var reason := button.tooltip_text.strip_edges()
+	if not reason.is_empty():
+		lines.append(reason)
 	return "\n".join(lines)
 
 

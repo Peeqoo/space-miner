@@ -113,21 +113,21 @@ const EVENT_COOLDOWN_SEC: Dictionary = {
 }
 
 const EVENT_VOLUME_DB: Dictionary[StringName, float] = {
-	&"ui_click": 0.0,
-	&"ui_hover": 0.0,
-	&"ui_blocked": 0.0,
-	&"not_enough_resources": 0.0,
-	&"object_selected": 0.0,
+	&"ui_click": -10.0,
+	&"ui_hover": -10.0,
+	&"ui_blocked": -10.0,
+	&"not_enough_resources": -10.0,
+	&"object_selected": -10.0,
 	&"build_success": -20.0,
 	
-	&"scan_drone_launch": 10.0,
-	&"scan_drone_arrive": -10.0,
-	&"scan_loop": 10.0,
+	&"scan_drone_launch": 5.0,
+	&"scan_drone_arrive": 5.0,
+	&"scan_loop": 5.0,
 	&"scan_complete": -10.0,
 	&"resource_revealed": 0.0,
 	
-	&"mining_ship_launch": 10.0,
-	&"mining_ship_arrive": 10.0,
+	&"mining_ship_launch": 5.0,
+	&"mining_ship_arrive": 5.0,
 	&"mining_resource_tick": -10.0,
 	&"mining_complete": -10.0,
 	&"cargo_unload": -30.0,

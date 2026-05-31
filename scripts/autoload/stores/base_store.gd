@@ -6,9 +6,27 @@ const BASE_EARTH := "earth"
 const PRODUCTION_SCAN_DRONE := "scan_drone"
 const PRODUCTION_MINING_SHIP := "mining_ship"
 const PRODUCTION_COLONY_SHIP := "colony_ship"
+const PRODUCTION_SURVEY_PROBE := "survey_probe"
 
 ## Safety fallback only when `storage_0_base.tres` / UpgradeCatalog is unavailable.
-const STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK: int = 100
+const STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK: int = 1000
+
+## Shown when unload/mining is blocked because base storage has no free capacity.
+const STORAGE_BLOCKED_REASON_FULL: String = "Storage full"
+
+const BUILD_BLOCK_NOT_ENOUGH_RESOURCES: String = "Not enough resources"
+const BUILD_BLOCK_SCAN_DRONE_LIMIT: String = "Scan drone limit reached"
+const BUILD_BLOCK_MINING_SHIP_LIMIT: String = "Mining ship limit reached"
+
+const COLONY_BLOCK_NOT_ENOUGH_RESOURCES: String = "Not enough resources"
+const COLONY_BLOCK_SHIPYARD_I: String = "Shipyard I required"
+const COLONY_BLOCK_COLONY_PROTOCOL: String = "Colony Protocol required"
+const COLONY_BLOCK_DEEP_SCAN_MODULE: String = "Deep Scan Module required"
+const COLONY_BLOCK_ICE_SOURCE: String = "Ice source not discovered"
+const COLONY_BLOCK_FULLY_SCAN_THREE: String = "Fully scan 3 objects"
+
+const FALLBACK_MAX_SCAN_DRONES: int = 2
+const FALLBACK_MAX_MINING_SHIPS: int = 2
 
 var bases: Dictionary = {
 	BASE_EARTH: {
@@ -17,6 +35,7 @@ var bases: Dictionary = {
 		"drones": 1,
 		"mining_ships": 1,
 		"colony_ships": 0,
+		"survey_probes": 0,
 		## Bootstrap until `get_base()` syncs from `data/upgrades/storage/storage_0_base.tres`.
 		"storage_capacity": STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK,
 		"storage_upgrade_level": 0,
@@ -28,6 +47,7 @@ var bases: Dictionary = {
 ## Phase 5.5: balancing data — catalog is bound externally (see project autoload).
 var _upgrade_catalog: UpgradeCatalog = null
 var _production_catalog: ProductionCatalog = null
+var _game_balance: GameBalanceDefinition = null
 
 
 func set_upgrade_catalog(catalog: UpgradeCatalog) -> void:
@@ -44,6 +64,22 @@ func set_production_catalog(catalog: ProductionCatalog) -> void:
 
 func get_production_catalog() -> ProductionCatalog:
 	return _production_catalog
+
+
+func set_game_balance(balance: GameBalanceDefinition) -> void:
+	_game_balance = balance
+
+
+func get_max_scan_drone_count() -> int:
+	if _game_balance != null:
+		return maxi(1, _game_balance.max_scan_drones_start)
+	return FALLBACK_MAX_SCAN_DRONES
+
+
+func get_max_mining_ship_count() -> int:
+	if _game_balance != null:
+		return maxi(1, _game_balance.max_mining_ships_start)
+	return FALLBACK_MAX_MINING_SHIPS
 
 
 ## Primary source: `data/upgrades/storage/storage_0_base.tres` (`storage_capacity_units`).
@@ -84,6 +120,7 @@ func get_base(base_id: String) -> Dictionary:
 	_normalize_scan_drone_upgrade_fields(base_entry)
 	_normalize_mining_ship_upgrade_fields(base_entry)
 	_normalize_colony_ship_fields(base_entry)
+	_normalize_survey_probe_fields(base_entry)
 
 	_sync_storage_capacity_from_definition(base_id, base_entry)
 
@@ -100,6 +137,17 @@ func _normalize_colony_ship_fields(base: Dictionary) -> void:
 		base["colony_ships"] = 0
 	elif int(base["colony_ships"]) < 0:
 		base["colony_ships"] = 0
+
+
+func _normalize_survey_probe_fields(base: Dictionary) -> void:
+	if not base.has("survey_probes"):
+		base["survey_probes"] = 0
+	elif int(base["survey_probes"]) < 0:
+		base["survey_probes"] = 0
+	if not base.has("survey_probes_reserved"):
+		base["survey_probes_reserved"] = 0
+	elif int(base["survey_probes_reserved"]) < 0:
+		base["survey_probes_reserved"] = 0
 
 
 func _normalize_scan_drone_upgrade_fields(base: Dictionary) -> void:
@@ -167,6 +215,20 @@ func can_afford_upgrade(base_id: String, upgrade_definition: UpgradeDefinition) 
 	return can_afford(base_id, upgrade_definition.cost)
 
 
+func get_buy_next_upgrade_blocked_reason(base_id: String, category: StringName) -> String:
+	if _upgrade_catalog == null:
+		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+	var cur := get_upgrade_level(base_id, category)
+	var nxt := _upgrade_catalog.get_next_definition(category, cur)
+	if nxt == null:
+		return ""
+	if not nxt.purchasable:
+		return ""
+	if not can_afford_upgrade(base_id, nxt):
+		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+	return ""
+
+
 func buy_next_upgrade(base_id: String, upgrade_definition: UpgradeDefinition) -> bool:
 	if upgrade_definition == null or not upgrade_definition.purchasable:
 		return false
@@ -206,11 +268,21 @@ func get_storage_capacity(base_id: String) -> int:
 
 
 func get_storage_free(base_id: String) -> int:
+	return get_remaining_storage_capacity(base_id)
+
+
+func get_remaining_storage_capacity(base_id: String) -> int:
 	return maxi(0, get_storage_capacity(base_id) - get_storage_used(base_id))
 
 
-func can_accept_resource(base_id: String, amount: int) -> bool:
-	return amount <= 0 or get_storage_free(base_id) >= amount
+func is_storage_full(base_id: String) -> bool:
+	return get_remaining_storage_capacity(base_id) <= 0
+
+
+func can_accept_resource(base_id: String, _resource_id: String, amount: int) -> bool:
+	if amount <= 0:
+		return true
+	return get_remaining_storage_capacity(base_id) >= amount
 
 
 func get_accepted_resource_amount(base_id: String, requested_amount: int) -> int:
@@ -246,6 +318,10 @@ func add_resource(base_id: String, resource_id: String, amount: int) -> int:
 	return accept_amount
 
 
+func add_resource_with_capacity_check(base_id: String, resource_id: String, amount: int) -> int:
+	return add_resource(base_id, resource_id, amount)
+
+
 func get_scan_drone_scan_duration_multiplier(base_id: String) -> float:
 	if _upgrade_catalog != null:
 		var def := _upgrade_catalog.get_current_definition(
@@ -265,6 +341,17 @@ func get_mining_ship_cargo_capacity_multiplier(base_id: String) -> float:
 		)
 		if def != null and def.cargo_capacity_percent >= 0:
 			return float(def.cargo_capacity_percent) / 100.0
+	return 1.0
+
+
+func get_mining_ship_mining_rate_multiplier(base_id: String) -> float:
+	if _upgrade_catalog != null:
+		var def := _upgrade_catalog.get_current_definition(
+			&"mining_ship",
+			get_upgrade_level(base_id, &"mining_ship")
+		)
+		if def != null and def.mining_rate_multiplier >= 0.0:
+			return def.mining_rate_multiplier
 	return 1.0
 
 
@@ -385,11 +472,88 @@ func get_colony_ship_count(base_id: String) -> int:
 	return int(base.get("colony_ships", 0))
 
 
+func get_survey_probe_count(base_id: String) -> int:
+	var base := get_base(base_id)
+	return int(base.get("survey_probes", 0))
+
+
+func get_survey_probes_reserved(base_id: String) -> int:
+	var base := get_base(base_id)
+	return int(base.get("survey_probes_reserved", 0))
+
+
+func get_available_survey_probe_count(base_id: String) -> int:
+	return maxi(0, get_survey_probe_count(base_id) - get_survey_probes_reserved(base_id))
+
+
+func can_consume_survey_probe(base_id: String) -> bool:
+	return get_available_survey_probe_count(base_id) > 0
+
+
+func reserve_or_consume_survey_probe(base_id: String) -> bool:
+	return consume_survey_probe(base_id, 1)
+
+
+func consume_survey_probe(base_id: String, amount: int = 1) -> bool:
+	if amount <= 0:
+		return true
+	if get_available_survey_probe_count(base_id) < amount:
+		return false
+	var base := get_base(base_id)
+	base["survey_probes"] = int(base.get("survey_probes", 0)) - amount
+	bases[base_id] = base
+	return true
+
+
+func add_survey_probe(base_id: String, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	var base := get_base(base_id)
+	base["survey_probes"] = int(base.get("survey_probes", 0)) + amount
+	bases[base_id] = base
+
+
+func get_build_survey_probe_blocked_reason(base_id: String) -> String:
+	var cost := get_production_cost(PRODUCTION_SURVEY_PROBE)
+	if cost.is_empty():
+		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+	if not can_afford(base_id, cost):
+		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+	return ""
+
+
+func can_build_survey_probe(base_id: String) -> bool:
+	return get_build_survey_probe_blocked_reason(base_id).is_empty()
+
+
+func build_survey_probe(base_id: String) -> bool:
+	if not can_build_survey_probe(base_id):
+		return false
+	var cost := get_production_cost(PRODUCTION_SURVEY_PROBE)
+	if cost.is_empty():
+		return false
+	if not spend_cost(base_id, cost):
+		return false
+	add_survey_probe(base_id, 1)
+	return true
+
+
+func get_build_scan_drone_blocked_reason(base_id: String) -> String:
+	if get_drone_count(base_id) >= get_max_scan_drone_count():
+		return BUILD_BLOCK_SCAN_DRONE_LIMIT
+	var cost := get_production_cost(PRODUCTION_SCAN_DRONE)
+	if cost.is_empty() or not can_afford(base_id, cost):
+		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+	return ""
+
+
 func can_build_drone(base_id: String) -> bool:
-	return can_afford(base_id, get_production_cost(PRODUCTION_SCAN_DRONE))
+	return get_build_scan_drone_blocked_reason(base_id).is_empty()
 
 
 func build_drone(base_id: String) -> bool:
+	if not can_build_drone(base_id):
+		return false
 	var cost := get_production_cost(PRODUCTION_SCAN_DRONE)
 	if cost.is_empty():
 		return false
@@ -403,11 +567,22 @@ func build_drone(base_id: String) -> bool:
 	return true
 
 
+func get_build_mining_ship_blocked_reason(base_id: String) -> String:
+	if get_mining_ship_count(base_id) >= get_max_mining_ship_count():
+		return BUILD_BLOCK_MINING_SHIP_LIMIT
+	var cost := get_production_cost(PRODUCTION_MINING_SHIP)
+	if cost.is_empty() or not can_afford(base_id, cost):
+		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+	return ""
+
+
 func can_build_mining_ship(base_id: String) -> bool:
-	return can_afford(base_id, get_production_cost(PRODUCTION_MINING_SHIP))
+	return get_build_mining_ship_blocked_reason(base_id).is_empty()
 
 
 func build_mining_ship(base_id: String) -> bool:
+	if not can_build_mining_ship(base_id):
+		return false
 	var cost := get_production_cost(PRODUCTION_MINING_SHIP)
 	if cost.is_empty():
 		return false
@@ -421,12 +596,21 @@ func build_mining_ship(base_id: String) -> bool:
 	return true
 
 
-func can_build_colony_ship(base_id: String) -> bool:
-	return can_afford(base_id, get_production_cost(PRODUCTION_COLONY_SHIP))
+func get_build_colony_ship_blocked_reason(base_id: String, prerequisite_reason: String = "") -> String:
+	if not prerequisite_reason.is_empty():
+		return prerequisite_reason
+	var cost := get_production_cost(PRODUCTION_COLONY_SHIP)
+	if cost.is_empty() or not can_afford(base_id, cost):
+		return COLONY_BLOCK_NOT_ENOUGH_RESOURCES
+	return ""
 
 
-func build_colony_ship(base_id: String) -> bool:
-	if not can_build_colony_ship(base_id):
+func can_build_colony_ship(base_id: String, prerequisite_reason: String = "") -> bool:
+	return get_build_colony_ship_blocked_reason(base_id, prerequisite_reason).is_empty()
+
+
+func build_colony_ship(base_id: String, prerequisite_reason: String = "") -> bool:
+	if not can_build_colony_ship(base_id, prerequisite_reason):
 		return false
 	var cost := get_production_cost(PRODUCTION_COLONY_SHIP)
 	if cost.is_empty():
@@ -494,6 +678,8 @@ func _create_empty_base() -> Dictionary:
 		"drones": 0,
 		"mining_ships": 0,
 		"colony_ships": 0,
+		"survey_probes": 0,
+		"survey_probes_reserved": 0,
 		"storage_capacity": _resolve_storage_capacity_level_zero_units(),
 		"storage_upgrade_level": 0,
 		"scan_drone_upgrade_level": 0,
@@ -508,12 +694,14 @@ func create_new_game_base_entry(
 	colony_ships: int,
 	resources: Dictionary = {},
 	storage_capacity: int = -1,
+	survey_probes: int = 0,
 ) -> Dictionary:
 	var base_entry: Dictionary = _create_empty_base()
 	base_entry["population"] = population
 	base_entry["drones"] = drones
 	base_entry["mining_ships"] = mining_ships
 	base_entry["colony_ships"] = colony_ships
+	base_entry["survey_probes"] = maxi(0, survey_probes)
 	base_entry["storage_capacity"] = (
 		storage_capacity if storage_capacity >= 0 else _resolve_storage_capacity_level_zero_units()
 	)

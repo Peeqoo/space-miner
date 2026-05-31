@@ -14,6 +14,8 @@
 [ext_resource type="PackedScene" uid="uid://co4q0a2fhkcpy" path="res://scenes/ui/system/object_info_panel.tscn" id="10_e0kxw"]
 [ext_resource type="PackedScene" uid="uid://cw0s5utrneclh" path="res://scenes/ui/system/base_management_panel.tscn" id="11_8gesb"]
 [ext_resource type="Script" uid="uid://crdimga0gurol" path="res://scripts/system/controller/system_selection_controller.gd" id="11_owt6d"]
+[ext_resource type="Script" path="res://scripts/system/controller/system_discovery_controller.gd" id="11_discovery"]
+[ext_resource type="Script" path="res://scripts/system/controller/survey_probe_mission_controller.gd" id="11_survey_probe"]
 [ext_resource type="Script" uid="uid://bu4dla0dwkm34" path="res://scripts/system/controller/system_ui_controller.gd" id="12_dc3br"]
 [ext_resource type="PackedScene" uid="uid://c1nagkqv1c68n" path="res://scenes/ui/system/top_hud.tscn" id="14_hrum5"]
 [ext_resource type="PackedScene" uid="uid://u2v1nk1sj5ys" path="res://scenes/ui/system/production_panel.tscn" id="15_dc3br"]
@@ -118,6 +120,12 @@ script = ExtResource("9_06sa2")
 
 [node name="SystemSelectionController" type="Node2D" parent="." unique_id=485237485]
 script = ExtResource("11_owt6d")
+
+[node name="SystemDiscoveryController" type="Node" parent="."]
+script = ExtResource("11_discovery")
+
+[node name="SurveyProbeMissionController" type="Node" parent="."]
+script = ExtResource("11_survey_probe")
 
 [node name="SystemUIController" type="Node2D" parent="." unique_id=1658508164]
 script = ExtResource("12_dc3br")

@@ -7,12 +7,19 @@ const SCAN_BASIC := "basic"
 const SCAN_DEEP := "deep"
 const SCAN_SPECIAL := "special"
 
+const DISCOVERY_HIDDEN := "hidden"
+const DISCOVERY_SIGNAL := "signal"
+const DISCOVERY_KNOWN := "known"
+
 ## Legacy fallback for dict/null scan entries without `deposit_amount`.
 ## `ScannedResourceEntry` resources use export default `deposit_amount` (10000) from `.tres`/class.
 const DEPOSIT_AMOUNT_LEGACY_FALLBACK: int = 100
 
 
 var object_scan_states: Dictionary = {}
+
+## Per-object discovery (`hidden` / `signal` / `known`). Independent of `object_scan_states`.
+var object_discovery_states: Dictionary = {}
 
 # {
 #   system_id: {
@@ -47,6 +54,76 @@ func get_object_scan_state(system_id: String, object_id: String) -> String:
 	return SCAN_UNKNOWN
 
 
+func normalize_discovery_state(discovery_state: String) -> String:
+	var normalized := discovery_state.strip_edges().to_lower()
+
+	match normalized:
+		DISCOVERY_HIDDEN, DISCOVERY_SIGNAL, DISCOVERY_KNOWN:
+			return normalized
+		_:
+			if not discovery_state.is_empty():
+				push_warning(
+					"ObjectScanStore: unknown discovery_state '%s', using '%s'."
+					% [discovery_state, DISCOVERY_KNOWN]
+				)
+			return DISCOVERY_KNOWN
+
+
+func set_object_discovery_state(system_id: String, object_id: String, discovery_state: String) -> void:
+	if system_id.is_empty() or object_id.is_empty():
+		return
+
+	var normalized := normalize_discovery_state(discovery_state)
+
+	if not object_discovery_states.has(system_id):
+		object_discovery_states[system_id] = {}
+
+	var system_discovery: Dictionary = object_discovery_states[system_id]
+	system_discovery[object_id] = normalized
+	object_discovery_states[system_id] = system_discovery
+
+
+func get_object_discovery_state(system_id: String, object_id: String) -> String:
+	if system_id.is_empty() or object_id.is_empty():
+		return DISCOVERY_KNOWN
+
+	var system_discovery: Variant = object_discovery_states.get(system_id, {})
+
+	if system_discovery is Dictionary:
+		var entry: Variant = (system_discovery as Dictionary).get(object_id, null)
+
+		if entry == null:
+			return DISCOVERY_KNOWN
+
+		return normalize_discovery_state(str(entry))
+
+	return DISCOVERY_KNOWN
+
+
+func is_object_hidden(system_id: String, object_id: String) -> bool:
+	return get_object_discovery_state(system_id, object_id) == DISCOVERY_HIDDEN
+
+
+func is_object_signal(system_id: String, object_id: String) -> bool:
+	return get_object_discovery_state(system_id, object_id) == DISCOVERY_SIGNAL
+
+
+func is_object_known(system_id: String, object_id: String) -> bool:
+	return get_object_discovery_state(system_id, object_id) == DISCOVERY_KNOWN
+
+
+func has_explicit_object_discovery_state(system_id: String, object_id: String) -> bool:
+	if system_id.is_empty() or object_id.is_empty():
+		return false
+
+	var system_discovery: Variant = object_discovery_states.get(system_id, {})
+
+	if system_discovery is Dictionary:
+		return (system_discovery as Dictionary).has(object_id)
+
+	return false
+
+
 func ensure_object_resources_initialized(
 	system_id: String,
 	object_id: String,
@@ -78,7 +155,7 @@ func ensure_object_resources_initialized(
 		if object_resources.has(resource_id):
 			continue
 
-		var amount_init: int = _get_deposit_amount_from_entry(entry)
+		var amount_init: int = _get_deposit_amount_from_entry(entry, system_id, object_id, resource_id)
 		object_resources[resource_id] = amount_init
 
 	system_resources[object_id] = object_resources
@@ -214,9 +291,14 @@ func _get_resource_id_from_entry(entry: Variant) -> String:
 	return str(entry)
 
 
-func _get_deposit_amount_from_entry(entry: Variant) -> int:
+func _get_deposit_amount_from_entry(
+	entry: Variant,
+	system_id: String = "",
+	object_id: String = "",
+	resource_id: String = "",
+) -> int:
 	if entry == null:
-		return DEPOSIT_AMOUNT_LEGACY_FALLBACK
+		return _legacy_deposit_fallback(system_id, object_id, resource_id)
 
 	if entry is Dictionary:
 		var dict: Dictionary = entry as Dictionary
@@ -227,7 +309,7 @@ func _get_deposit_amount_from_entry(entry: Variant) -> int:
 		if dict.has("amount"):
 			return max(0, int(dict.get("amount", DEPOSIT_AMOUNT_LEGACY_FALLBACK)))
 
-		return DEPOSIT_AMOUNT_LEGACY_FALLBACK
+		return _legacy_deposit_fallback(system_id, object_id, resource_id)
 
 	if entry is Resource:
 		var deposit_amount: Variant = (entry as Resource).get("deposit_amount")
@@ -238,24 +320,47 @@ func _get_deposit_amount_from_entry(entry: Variant) -> int:
 		if amount != null:
 			return max(0, int(amount))
 
+		return _legacy_deposit_fallback(system_id, object_id, resource_id)
+
+	return _legacy_deposit_fallback(system_id, object_id, resource_id)
+
+
+func _legacy_deposit_fallback(system_id: String, object_id: String, resource_id: String) -> int:
+	var oid := object_id.strip_edges()
+	var rid := resource_id.strip_edges()
+	if oid.is_empty() and rid.is_empty():
+		push_warning(
+			"Resource amount missing for unknown object/resource, using legacy fallback %d"
+			% DEPOSIT_AMOUNT_LEGACY_FALLBACK
+		)
+	else:
+		push_warning(
+			"Resource amount missing for %s/%s, using legacy fallback %d"
+			% [oid, rid, DEPOSIT_AMOUNT_LEGACY_FALLBACK]
+		)
 	return DEPOSIT_AMOUNT_LEGACY_FALLBACK
 
 
 func to_save_data() -> Dictionary:
 	return {
 		"object_scan_states": object_scan_states.duplicate(true),
+		"object_discovery_states": object_discovery_states.duplicate(true),
 		"remaining_resources_by_object": remaining_resources_by_object.duplicate(true),
 	}
 
 
 func apply_save_data(data: Dictionary) -> void:
 	object_scan_states = {}
+	object_discovery_states = {}
 	remaining_resources_by_object = {}
 	if data.is_empty():
 		return
 	var scans_variant: Variant = data.get("object_scan_states", {})
 	if scans_variant is Dictionary:
 		object_scan_states = (scans_variant as Dictionary).duplicate(true)
+	var discovery_variant: Variant = data.get("object_discovery_states", {})
+	if discovery_variant is Dictionary:
+		object_discovery_states = (discovery_variant as Dictionary).duplicate(true)
 	var remaining_variant: Variant = data.get("remaining_resources_by_object", {})
 	if remaining_variant is Dictionary:
 		remaining_resources_by_object = (remaining_variant as Dictionary).duplicate(true)

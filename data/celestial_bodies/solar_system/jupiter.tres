@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_fqwt2"]
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_pmgmc"]
 [ext_resource type="Texture2D" uid="uid://kxdhm6m76m1k" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Jupiter/1.png" id="2_8mx0p"]
+[ext_resource type="Resource" uid="uid://bylmo8ikf0ob0" path="res://data/discovery_signal_types/gravity.tres" id="3_signal_gravity"]
 
 [sub_resource type="Resource" id="jupiter_res_hydrogen"]
 script = ExtResource("1_fqwt2")
@@ -20,6 +21,7 @@ deposit_amount = 7000
 script = ExtResource("1_fqwt2")
 resource_id = &"Helium"
 richness_percent = 45
+deposit_amount = 8000
 layer = 1
 
 [sub_resource type="Resource" id="jupiter_res_methane"]
@@ -52,4 +54,6 @@ reference_orbit_au = 5.2
 reference_period_days = 4331.0
 size_authoring_mode = 1
 scan_resources = Array[ExtResource("1_fqwt2")]([SubResource("jupiter_res_hydrogen"), SubResource("jupiter_res_carbon"), SubResource("jupiter_res_helium"), SubResource("jupiter_res_methane"), SubResource("jupiter_res_oxygen")])
+default_discovery_state = "hidden"
+signal_type = ExtResource("3_signal_gravity")
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

@@ -42,9 +42,8 @@ text = "x"
 layout_mode = 2
 
 [node name="StorageInfoLabel" type="Label" parent="Margin/Root" unique_id=932885229]
-visible = false
 layout_mode = 2
-text = "StorageInfo"
+text = "0 / 0"
 label_settings = ExtResource("4_text_small")
 
 [node name="ResourcePanel" type="PanelContainer" parent="Margin/Root" unique_id=920000130]

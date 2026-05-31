@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ProductionDefinition" format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/production_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "survey_probe"
+unit_key = "survey_probes"
+cost = {
+"Iron": 40
+}
+sort_order = 2
+short_description = "Verbrauchbare Sonde zur Untersuchung unbekannter Signale."
+effect_lines = ["Einmalig — kein ScanDrone", "Wird bei Investigate verbraucht"]

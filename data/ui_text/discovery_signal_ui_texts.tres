@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="DiscoverySignalUiTextDefinition" format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/discovery_signal_ui_text_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+templates = {
+"blocked_active_probe_limit": "Active probe limit reached",
+"blocked_already_known": "Object already discovered",
+"blocked_base_missing": "Base missing",
+"blocked_in_progress": "Investigation already in progress",
+"blocked_no_probe": "No survey probe available",
+"blocked_not_signal": "Target is not a signal",
+"blocked_target_missing": "Signal target missing",
+"investigate_lore_active": "Survey probe investigating this signal...",
+"investigate_progress": "Investigating: %d%%",
+"marker_label_fallback": "Signal",
+"signal_object_type_label": "Signal",
+"signal_lore_fallback": "Unidentified signal. Survey required before this object can be analyzed.",
+"unknown_signal_lore": "Unknown signal detected by the base sensors.",
+"unknown_signal_name": "Unknown",
+"unknown_signal_type": "Unknown"
+}

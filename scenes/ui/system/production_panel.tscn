@@ -56,6 +56,12 @@ theme_override_fonts/font = ExtResource("4_36tqa")
 theme_override_font_sizes/font_size = 10
 text = "MiningShip"
 
+[node name="BuildSurveyProbeButton" type="Button" parent="Margin/Root/ProductionList" unique_id=1083284396]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_36tqa")
+theme_override_font_sizes/font_size = 10
+text = "Survey Probe"
+
 [node name="BuildColonyShipButton" type="Button" parent="Margin/Root/ProductionList" unique_id=1320494600]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("4_36tqa")

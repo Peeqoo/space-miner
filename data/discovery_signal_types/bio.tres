@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SignalTypeDefinition" format=3 uid="uid://dfsvv6d4t1tod"]
+
+[ext_resource type="Script" uid="uid://dfnnwse200t4m" path="res://resources/definitions/signal_type_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bio"
+display_name = "Bio Signature"
+short_label = "Signature"
+description = "A biological trace detected in the signal noise."

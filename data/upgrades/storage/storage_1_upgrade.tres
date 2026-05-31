@@ -12,5 +12,5 @@ cost = {
 "Copper": 10,
 "Iron": 30
 }
-storage_capacity_units = 200
+storage_capacity_units = 1600
 short_description = "Erhöht die Lagerkapazität der Basis."

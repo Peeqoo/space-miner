@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_fodo3"]
 [ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_qsy51"]
 [ext_resource type="Texture2D" uid="uid://ckmthn4f332ki" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mars/1.png" id="2_puof5"]
+[ext_resource type="Resource" path="res://data/discovery_signal_types/gravity.tres" id="3_signal_gravity"]
 
 [sub_resource type="Resource" id="mars_res_iron"]
 script = ExtResource("1_qsy51")
@@ -14,6 +15,7 @@ deposit_amount = 12000
 script = ExtResource("1_qsy51")
 resource_id = &"Silicon"
 richness_percent = 50
+deposit_amount = 1200
 
 [sub_resource type="Resource" id="mars_res_carbon"]
 script = ExtResource("1_qsy51")
@@ -71,4 +73,6 @@ reference_period_days = 687.0
 size_authoring_mode = 1
 gameplay_orbit_bias = 1.42
 scan_resources = Array[ExtResource("1_qsy51")]([SubResource("mars_res_iron"), SubResource("mars_res_silicon"), SubResource("mars_res_carbon"), SubResource("mars_res_water"), SubResource("mars_res_copper"), SubResource("mars_res_magnesium"), SubResource("mars_res_aluminium"), SubResource("mars_res_nickel")])
+default_discovery_state = "signal"
+signal_type = ExtResource("3_signal_gravity")
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

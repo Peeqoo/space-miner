@@ -7,6 +7,8 @@ script = ExtResource("1")
 templates = {
 "cargo_delta": "Fracht: +{value}%",
 "cargo_final": "Fracht: {value}%",
+"mining_rate_delta": "Mining-Rate: +{value}%",
+"mining_rate_final": "Mining-Rate: +{value}%",
 "scan_duration_delta": "Scan-Dauer: -{value}%",
 "scan_duration_final": "Scan-Dauer: -{value}%",
 "scan_speed_delta": "Scangeschwindigkeit: +{value}%",

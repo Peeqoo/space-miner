@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "default"
+balance_profile_path = "res://data/balance/v0_1_balance.tres"
 start_system_id = "solar-system"
 primary_base_body_id = "earth"
 discovered_system_ids = PackedStringArray("solar-system", "proxima")
@@ -14,4 +15,6 @@ start_population = 1
 start_drones = 1
 start_mining_ships = 1
 start_colony_ships = 0
+start_survey_probes = 2
+start_storage_capacity = 1000
 preferred_colonization_source_base_id = "earth"

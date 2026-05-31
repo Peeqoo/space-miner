@@ -7,6 +7,7 @@ signal automation_state_changed
 
 const DRONE_SCENE: PackedScene = preload("res://scenes/automation/drone.tscn")
 const MINING_SHIP_SCENE: PackedScene = preload("res://scenes/automation/mining_ship.tscn")
+const SURVEY_PROBE_SCENE: PackedScene = preload("res://scenes/automation/survey_probe_unit.tscn")
 
 const UNIT_ID_SCAN_DRONE := "scan_drone"
 const UNIT_ID_MINING_SHIP := "mining_ship"
@@ -27,6 +28,10 @@ var spawner: SystemSpawner
 var active_units_by_mission_id: Dictionary = {}
 var idle_drones: Array[AutomationUnit] = []
 var idle_mining_ships: Array[AutomationUnit] = []
+var idle_survey_probes: Array[SurveyProbeUnit] = []
+
+## instance_id -> true — probe on investigate mission (not idle; may be consumed in BaseStore).
+var survey_probe_busy_unit_ids: Dictionary = {}
 
 var starting_units_initialized: bool = false
 
@@ -104,6 +109,16 @@ func _get_scan_work_duration_for_base(base_id: String) -> float:
 	)
 
 
+func _get_mining_rate_for_base(base_id: String) -> float:
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		bid = GameSession.get_primary_base_id()
+	return (
+		_get_mining_rate_per_second_base()
+		* GameSession.get_mining_ship_mining_rate_multiplier(bid)
+	)
+
+
 func _get_mining_cargo_capacity_for_base(base_id: String) -> int:
 	var bid: String = base_id.strip_edges()
 
@@ -141,7 +156,7 @@ func _apply_mining_runtime_upgrade_stats(runtime: Dictionary, base_id: String = 
 		bid = _runtime_base_id_with_session_fallback(runtime)
 
 	runtime["cargo_capacity"] = _get_mining_cargo_capacity_for_base(bid)
-	runtime["mining_rate_per_second"] = _get_mining_rate_per_second_base()
+	runtime["mining_rate_per_second"] = _get_mining_rate_for_base(bid)
 	runtime["unload_duration"] = _get_mining_unload_duration_seconds_base()
 
 	var cargo_res: Dictionary = _merge_legacy_cargo_into_dictionary(runtime)
@@ -200,6 +215,8 @@ func setup(
 	automation_root = p_automation_root
 	spawner = p_spawner
 	_session_primary_base_body_id = p_session_primary_base_body_id.strip_edges()
+	if not GameSession.base_resources_changed.is_connected(_on_base_resources_changed_survey_probes):
+		GameSession.base_resources_changed.connect(_on_base_resources_changed_survey_probes)
 	set_process(true)
 
 
@@ -285,7 +302,22 @@ func ensure_starting_units(primary_base_id: String = "") -> void:
 		unit.start_orbiting_base(base_node)
 		idle_drones.append(unit)
 
-	if ships_to_spawn > 0 or drones_to_spawn > 0:
+	var idle_probes_at_home := _count_idle_survey_probes_at_home(base_id)
+	var busy_probes := survey_probe_busy_unit_ids.size()
+	var probes_to_spawn := maxi(
+		0,
+		GameSession.get_available_survey_probe_count(base_id) - idle_probes_at_home - busy_probes
+	)
+
+	for _probe_i in probes_to_spawn:
+		var probe_unit := _spawn_survey_probe_unit()
+		if probe_unit == null:
+			continue
+		probe_unit.one_way_investigate = false
+		probe_unit.start_orbiting_base(base_node)
+		idle_survey_probes.append(probe_unit)
+
+	if ships_to_spawn > 0 or drones_to_spawn > 0 or probes_to_spawn > 0:
 		_request_automation_state_changed()
 
 	reapply_session_base_unit_upgrade_effects()
@@ -370,6 +402,138 @@ func spawn_idle_mining_ship_at_base(base_id: String = "") -> void:
 	_request_automation_state_changed()
 
 
+func spawn_idle_survey_probe_at_base(base_id: String = "") -> void:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	if not GameSession.has_established_base(bid):
+		push_warning(
+			"AutomationController: spawn_idle_survey_probe_at_base aborted — no established base for base_id=%s"
+			% bid
+		)
+		return
+
+	var base_node := _get_target_node(bid)
+	if base_node == null:
+		return
+
+	var unit := _spawn_survey_probe_unit()
+	if unit == null:
+		return
+
+	unit.one_way_investigate = false
+	unit.start_orbiting_base(base_node)
+	idle_survey_probes.append(unit)
+	_request_automation_state_changed()
+
+
+## Sync visible idle survey probes with BaseStore inventory (session primary base only).
+func ensure_survey_probe_units_for_base(base_id: String = "") -> void:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	var session_home: String = _session_primary_base_body_id.strip_edges()
+	if not session_home.is_empty() and bid != session_home:
+		return
+
+	if not GameSession.has_established_base(bid):
+		return
+
+	var base_node := _get_target_node(bid)
+	if base_node == null:
+		return
+
+	_prune_idle_survey_probes()
+
+	var wanted_idle: int = GameSession.get_available_survey_probe_count(bid)
+	var have_idle: int = _count_idle_survey_probes_at_home(bid)
+	if have_idle > wanted_idle:
+		_trim_excess_idle_survey_probes(wanted_idle, bid)
+		have_idle = _count_idle_survey_probes_at_home(bid)
+
+	var to_spawn: int = maxi(0, wanted_idle - have_idle)
+	for _i in to_spawn:
+		var unit := _spawn_survey_probe_unit()
+		if unit == null:
+			push_warning(
+				"AutomationController: failed to spawn idle survey probe (base_id=%s)." % bid
+			)
+			continue
+		unit.one_way_investigate = false
+		unit.start_orbiting_base(base_node)
+		idle_survey_probes.append(unit)
+
+	_trim_excess_idle_survey_probes(wanted_idle, bid)
+
+	if to_spawn > 0:
+		_request_automation_state_changed()
+
+
+func get_idle_survey_probe_count() -> int:
+	_prune_idle_survey_probes()
+	return idle_survey_probes.size()
+
+
+func take_idle_survey_probe_for_base(base_id: String = "") -> SurveyProbeUnit:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	ensure_survey_probe_units_for_base(bid)
+	_prune_idle_survey_probes()
+
+	var unit := _take_idle_survey_probe_from_list(bid)
+	if unit != null:
+		survey_probe_busy_unit_ids[unit.get_instance_id()] = true
+		return unit
+
+	if GameSession.get_available_survey_probe_count(bid) <= 0:
+		return null
+
+	var base_node := _get_target_node(bid)
+	if base_node == null:
+		return null
+
+	unit = _spawn_survey_probe_unit()
+	if unit == null:
+		return null
+
+	unit.one_way_investigate = false
+	unit.start_orbiting_base(base_node)
+	survey_probe_busy_unit_ids[unit.get_instance_id()] = true
+	return unit
+
+
+func return_survey_probe_to_idle_orbit(unit: SurveyProbeUnit, base_id: String = "") -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	survey_probe_busy_unit_ids.erase(unit.get_instance_id())
+	unit.one_way_investigate = false
+
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	var base_node := _get_target_node(bid)
+	if base_node != null and is_instance_valid(base_node):
+		unit.start_orbiting_base(base_node)
+
+	_register_idle_survey_probe(unit)
+
+
+func release_survey_probe_unit(unit: SurveyProbeUnit) -> void:
+	if unit == null:
+		return
+
+	survey_probe_busy_unit_ids.erase(unit.get_instance_id())
+	var idx: int = idle_survey_probes.find(unit)
+	if idx >= 0:
+		idle_survey_probes.remove_at(idx)
+
+
 func launch_scan_drone(target_id: String) -> void:
 	if target_id.is_empty():
 		return
@@ -379,6 +543,10 @@ func launch_scan_drone(target_id: String) -> void:
 		push_warning(
 			"AutomationController: cannot start scan, no established base for base_id=%s" % session_bid_ls
 		)
+		return
+
+	var system_id: String = GameSession.current_system_id
+	if system_id.is_empty():
 		return
 
 	var target_node := _get_target_node(target_id)
@@ -391,7 +559,31 @@ func launch_scan_drone(target_id: String) -> void:
 	if unit == null:
 		return
 
-	var mission_id := GameSession.create_scan_mission(session_bid_ls, target_id)
+	var scan_active: bool = get_active_scan_drone_count_for_target(target_id) > 0
+	var scan_gate: Dictionary = GameSession.can_scan_object(
+		system_id,
+		target_id,
+		session_bid_ls,
+		true,
+		scan_active,
+	)
+	if not bool(scan_gate.get("ok", false)):
+		var reason: String = str(scan_gate.get("blocked_reason", "")).strip_edges()
+		if not reason.is_empty():
+			push_warning("AutomationController: cannot start scan — %s" % reason)
+		return
+
+	var target_scan_state: String = str(scan_gate.get("target_scan_state", GameSession.SCAN_BASIC)).strip_edges()
+	if target_scan_state.is_empty():
+		target_scan_state = GameSession.SCAN_BASIC
+	var scan_is_progression: bool = bool(scan_gate.get("scan_is_progression", true))
+
+	var mission_id := GameSession.create_scan_mission(
+		session_bid_ls,
+		target_id,
+		target_scan_state,
+		scan_is_progression,
+	)
 
 	_disconnect_unit_signals(unit)
 
@@ -405,7 +597,10 @@ func launch_scan_drone(target_id: String) -> void:
 
 	_ensure_returned_to_base_connected(unit)
 
-	unit.work_duration = _get_scan_work_duration_for_base(session_bid_ls)
+	unit.work_duration = GameSession.get_scan_duration_seconds_for_target_state(
+		target_scan_state,
+		session_bid_ls,
+	)
 
 	_scan_drone_start_outbound(unit, target_node)
 
@@ -438,9 +633,15 @@ func launch_mining_ship(target_id: String) -> bool:
 		push_error("AutomationController: Mining abgebrochen — current_system_id ist leer.")
 		return false
 
+	if not GameSession.is_object_known(system_id, target_id):
+		push_warning("Cannot start mining: object not discovered.")
+		return false
+
 	if GameSession.get_object_scan_state(system_id, target_id) == GameSession.SCAN_UNKNOWN:
 		push_warning("Cannot start mining: object not scanned.")
 		return false
+
+	GameSession.ensure_mining_resources_for_object(system_id, target_id)
 
 	if not has_mining_candidates_for_target(target_id):
 		push_warning("Cannot start mining: no mineable resources for current scan state.")
@@ -467,7 +668,7 @@ func launch_mining_ship(target_id: String) -> bool:
 		"cargo_resource_id": "",
 		"current_cargo": 0.0,
 		"cargo_capacity": cargo_cap_mission,
-		"mining_rate_per_second": _get_mining_rate_per_second_base(),
+		"mining_rate_per_second": _get_mining_rate_for_base(mining_base_id),
 		"unload_duration": _get_mining_unload_duration_seconds_base(),
 		"unload_timer": 0.0,
 		"unload_xfer_buffers": {} as Dictionary,
@@ -522,6 +723,8 @@ func has_mining_candidates_for_target(object_id: String) -> bool:
 
 	if probe_ids.is_empty():
 		return false
+
+	GameSession.ensure_mining_resources_for_object(sid, object_id)
 
 	return GameSession.has_remaining_resources_among(sid, object_id, probe_ids)
 
@@ -884,7 +1087,9 @@ func _on_scan_drone_arrived_at_target(
 
 	var target_node := _get_target_node(target_id)
 
-	_complete_scan_mission(target_id, target_node)
+	var target_scan_state: String = str(mission.get("target_scan_state", "")).strip_edges()
+	var scan_is_progression: bool = bool(mission.get("scan_is_progression", true))
+	_complete_scan_mission(target_id, target_node, target_scan_state, scan_is_progression)
 	active_units_by_mission_id.erase(mission_id)
 
 	if target_node == null:
@@ -930,18 +1135,33 @@ func _on_mining_ship_arrived_at_target(unit: AutomationUnit) -> void:
 	_request_automation_state_changed()
 
 
-func _complete_scan_mission(target_id: String, target_node: Node2D) -> void:
+func _complete_scan_mission(
+	target_id: String,
+	target_node: Node2D,
+	target_scan_state: String = "",
+	scan_is_progression: bool = true,
+) -> void:
 	if target_id.is_empty():
 		return
 
 	if GameSession.current_system_id.is_empty():
 		return
 
+	if target_node == null:
+		target_node = _get_target_node(target_id)
+
+	if not scan_is_progression:
+		if target_node != null:
+			_play_automation_sfx(&"scan_complete", target_node)
+		return
+
 	var session_base_id: String = _get_session_base_id()
 	var unlocked_scan_layer: int = GameSession.get_unlocked_scan_layer_for_base(session_base_id)
-	var completion_state: String = GameSession.scan_completion_state_for_unlocked_scan_layer(
-		unlocked_scan_layer
-	)
+	var completion_state: String = target_scan_state.strip_edges()
+	if completion_state.is_empty():
+		completion_state = GameSession.scan_completion_state_for_unlocked_scan_layer(
+			unlocked_scan_layer
+		)
 
 	GameSession.set_object_scan_state(
 		GameSession.current_system_id,
@@ -949,8 +1169,7 @@ func _complete_scan_mission(target_id: String, target_node: Node2D) -> void:
 		completion_state
 	)
 
-	if target_node == null:
-		target_node = _get_target_node(target_id)
+	GameSession.grant_scan_survey_data_reward(session_base_id, completion_state)
 
 	if target_node == null:
 		return
@@ -971,6 +1190,7 @@ func _complete_scan_mission(target_id: String, target_node: Node2D) -> void:
 		target_id,
 		visible_resources
 	)
+	GameSession.ensure_mining_resources_for_object(GameSession.current_system_id, target_id)
 
 	_play_automation_sfx(&"scan_complete", target_node)
 	if not visible_resources.is_empty():
@@ -1036,6 +1256,16 @@ func _process(delta: float) -> void:
 					mining_ship_runtime_by_unit_id[unit_id] = runtime
 					continue
 
+				var base_id_min: String = _runtime_base_id_with_session_fallback(runtime)
+				if cargo_total_min > 0 and GameSession.get_base_storage_free(base_id_min) <= 0:
+					runtime["blocked_reason"] = GameSession.get_base_storage_blocked_reason_full()
+					var home_storage_full: Node2D = _get_target_node(base_id_min)
+					if home_storage_full != null:
+						runtime["status"] = MiningShipStatus.TO_BASE
+						_mining_ship_recall_to_base(unit, home_storage_full)
+					mining_ship_runtime_by_unit_id[unit_id] = runtime
+					continue
+
 				var target_node_min: Node2D = _get_target_node(target_id_min)
 				var definition_min: Resource = _get_definition_from_target_node(target_node_min)
 				var scan_state_min: String = GameSession.get_object_scan_state(sid_min, target_id_min)
@@ -1094,7 +1324,10 @@ func _process(delta: float) -> void:
 					continue
 
 				var mining_rate_min: float = float(
-					runtime.get("mining_rate_per_second", _get_mining_rate_per_second_base())
+					runtime.get(
+						"mining_rate_per_second",
+						_get_mining_rate_for_base(_runtime_base_id_with_session_fallback(runtime)),
+					)
 				)
 				var bonus_min: float = get_mining_bonus_for_target(target_id_min)
 				var effective_rate_min: float = mining_rate_min * (1.0 + bonus_min)
@@ -1122,7 +1355,15 @@ func _process(delta: float) -> void:
 						rem_dict_min[rid] = acc
 						continue
 
-					requested = mini(requested, space_left_min)
+					var remaining_amt: int = 0
+					if not sid_min.is_empty() and not target_id_min.is_empty():
+						remaining_amt = GameSession.get_remaining_resource_amount(
+							sid_min,
+							target_id_min,
+							rid,
+						)
+
+					requested = mini(mini(requested, space_left_min), remaining_amt)
 
 					if requested <= 0:
 						rem_dict_min[rid] = acc
@@ -1135,14 +1376,10 @@ func _process(delta: float) -> void:
 							sid_min,
 							target_id_min,
 							rid,
-							requested
+							requested,
 						)
 
-					if extracted > 0:
-						acc = acc - float(extracted)
-					elif requested > 0:
-						acc = acc - float(requested)
-
+					acc -= float(extracted)
 					if acc < 0.0:
 						acc = 0.0
 
@@ -1292,6 +1529,7 @@ func _process(delta: float) -> void:
 						runtime["mining_extract_remainders"] = {} as Dictionary
 						runtime["current_cargo"] = 0.0
 						runtime["cargo_resource_id"] = ""
+						runtime["blocked_reason"] = ""
 
 						var loop_active_ul: bool = bool(runtime.get("loop_active", true))
 						var target_id_ul: String = str(runtime.get("target_id", ""))
@@ -1322,6 +1560,7 @@ func _process(delta: float) -> void:
 						runtime["unload_cargo_snapshot"] = {} as Dictionary
 						runtime["unload_timer"] = 0.0
 						runtime["current_cargo"] = float(cargo_total_ul)
+						runtime["blocked_reason"] = GameSession.get_base_storage_blocked_reason_full()
 						runtime["status"] = MiningShipStatus.WAITING_FOR_STORAGE
 						mining_ship_runtime_by_unit_id[unit_id] = runtime
 				else:
@@ -1354,6 +1593,7 @@ func _process(delta: float) -> void:
 					runtime["mining_extract_remainders"] = {} as Dictionary
 					runtime["current_cargo"] = 0.0
 					runtime["cargo_resource_id"] = ""
+					runtime["blocked_reason"] = ""
 
 					var loop_active_ws: bool = bool(runtime.get("loop_active", true))
 					var target_id_ws: String = str(runtime.get("target_id", ""))
@@ -1427,12 +1667,21 @@ func _on_mining_ship_returned_to_base(unit: AutomationUnit) -> void:
 	runtime["current_cargo"] = float(total_rb)
 	runtime["cargo_resource_id"] = ""
 
+	var base_id_rb: String = _runtime_base_id_with_session_fallback(runtime)
+
 	if total_rb <= 0:
 		runtime["unload_timer"] = 0.0
+	elif GameSession.get_base_storage_free(base_id_rb) <= 0:
+		runtime["blocked_reason"] = GameSession.get_base_storage_blocked_reason_full()
+		_mining_ship_enter_waiting_for_storage(unit, runtime)
+		mining_ship_runtime_by_unit_id[unit_id] = runtime
+		_request_automation_state_changed()
+		return
 	else:
 		runtime["unload_timer"] = float(runtime.get("unload_duration", _get_mining_unload_duration_seconds_base()))
 
 	runtime["status"] = MiningShipStatus.UNLOADING
+	runtime["blocked_reason"] = ""
 	runtime["cargo_unload_sfx_played"] = false
 	mining_ship_runtime_by_unit_id[unit_id] = runtime
 
@@ -1461,6 +1710,7 @@ func _mining_ship_enter_waiting_for_storage(unit: AutomationUnit, runtime: Dicti
 	runtime["mining_extract_remainders"] = {} as Dictionary
 	runtime["extract_remainder"] = 0.0
 	runtime["status"] = MiningShipStatus.WAITING_FOR_STORAGE
+	runtime["blocked_reason"] = GameSession.get_base_storage_blocked_reason_full()
 
 	if unit != null and is_instance_valid(unit) and home_wait != null:
 		unit.transfer_orbit_to_base(home_wait)
@@ -1514,6 +1764,119 @@ func _register_idle_mining_ship(unit: AutomationUnit) -> void:
 			return
 
 	idle_mining_ships.append(unit)
+
+
+func _on_base_resources_changed_survey_probes(base_id: String) -> void:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		return
+	var session_home: String = _session_primary_base_body_id.strip_edges()
+	if session_home.is_empty() or bid != session_home:
+		return
+	ensure_survey_probe_units_for_base(bid)
+
+
+func _spawn_survey_probe_unit() -> SurveyProbeUnit:
+	if automation_root == null or SURVEY_PROBE_SCENE == null:
+		return null
+	var unit := SURVEY_PROBE_SCENE.instantiate() as SurveyProbeUnit
+	if unit == null:
+		return null
+	automation_root.add_child(unit)
+	return unit
+
+
+func _prune_idle_survey_probes() -> void:
+	var kept: Array[SurveyProbeUnit] = []
+	for unit: SurveyProbeUnit in idle_survey_probes:
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if survey_probe_busy_unit_ids.has(unit.get_instance_id()):
+			continue
+		if unit.is_available():
+			kept.append(unit)
+	idle_survey_probes = kept
+
+
+func _count_idle_survey_probes_at_home(base_id: String) -> int:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	var count := 0
+	for unit: SurveyProbeUnit in idle_survey_probes:
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if survey_probe_busy_unit_ids.has(unit.get_instance_id()):
+			continue
+		if not unit.is_available():
+			continue
+		if unit.base_node == null or not is_instance_valid(unit.base_node):
+			continue
+		if _get_object_id_from_node(unit.base_node) != bid:
+			continue
+		count += 1
+	return count
+
+
+func _trim_excess_idle_survey_probes(wanted_idle: int, base_id: String) -> void:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	while _count_idle_survey_probes_at_home(bid) > wanted_idle:
+		var removed := false
+		for i in range(idle_survey_probes.size() - 1, -1, -1):
+			var unit: SurveyProbeUnit = idle_survey_probes[i]
+			if unit == null or not is_instance_valid(unit):
+				idle_survey_probes.remove_at(i)
+				removed = true
+				break
+			if survey_probe_busy_unit_ids.has(unit.get_instance_id()):
+				continue
+			if not unit.is_available():
+				continue
+			if unit.base_node == null or _get_object_id_from_node(unit.base_node) != bid:
+				continue
+			idle_survey_probes.remove_at(i)
+			unit.queue_free()
+			removed = true
+			break
+		if not removed:
+			break
+
+
+func _take_idle_survey_probe_from_list(base_id: String) -> SurveyProbeUnit:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	for i in idle_survey_probes.size():
+		var unit: SurveyProbeUnit = idle_survey_probes[i]
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if survey_probe_busy_unit_ids.has(unit.get_instance_id()):
+			continue
+		if not unit.is_available():
+			continue
+		if unit.base_node == null or not is_instance_valid(unit.base_node):
+			continue
+		if _get_object_id_from_node(unit.base_node) != bid:
+			continue
+		idle_survey_probes.remove_at(i)
+		return unit
+	return null
+
+
+func _register_idle_survey_probe(unit: SurveyProbeUnit) -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+	if survey_probe_busy_unit_ids.has(unit.get_instance_id()):
+		return
+	for existing: SurveyProbeUnit in idle_survey_probes:
+		if existing == unit:
+			return
+	idle_survey_probes.append(unit)
 
 
 func _get_idle_drone() -> AutomationUnit:

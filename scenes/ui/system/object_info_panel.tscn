@@ -179,6 +179,19 @@ size_flags_horizontal = 3
 label_settings = ExtResource("6_oi0nm")
 autowrap_mode = 3
 
+[node name="InvestigateProgressFormatTemplate" type="Label" parent="Margin/Root" unique_id=934019531]
+visible = false
+layout_mode = 2
+text = "Investigating: %d%%"
+label_settings = ExtResource("6_oi0nm")
+
+[node name="InvestigateProgressLabel" type="Label" parent="Margin/Root" unique_id=920000101]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Investigating: 0%"
+label_settings = ExtResource("6_oi0nm")
+
 [node name="GridContainer" type="GridContainer" parent="Margin/Root" unique_id=1253186436]
 layout_mode = 2
 theme_override_constants/h_separation = 2
@@ -223,6 +236,14 @@ theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 10
 disabled = true
 text = "Kolonisierung starten"
+
+[node name="InvestigateButton" type="Button" parent="Margin/Root/GridContainer" unique_id=1605375559]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("5_ckpwi")
+theme_override_font_sizes/font_size = 10
+text = "Investigate"
 
 [node name="DividerE" type="HSeparator" parent="Margin/Root" unique_id=1043062862]
 visible = false

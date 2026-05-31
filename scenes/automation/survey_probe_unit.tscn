@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://cx2pc2v4uck7e"]
+
+[ext_resource type="Script" path="res://scripts/automation/survey_probe_unit.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://ddn0ttrdxyyv5" path="res://assets/sprites/ship/tiny-spaceships/tinyShip13.png" id="2_r7m0o"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lvade"]
+atlas = ExtResource("2_r7m0o")
+region = Rect2(0, 0, 36, 36)
+
+[node name="SurveyProbeUnit" type="Node2D"]
+script = ExtResource("1")
+unit_type = 2
+orbit_padding_min = 6.0
+orbit_padding_max = 20.0
+min_orbit_speed = 0.85
+max_orbit_speed = 1.2
+approach_distance = 10.0
+
+[node name="VisualRoot" type="Node2D" parent="."]
+
+[node name="ProbeSprite" type="Sprite2D" parent="VisualRoot"]
+scale = Vector2(0.1, 0.1)
+texture = SubResource("AtlasTexture_lvade")

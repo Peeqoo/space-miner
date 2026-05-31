@@ -39,6 +39,9 @@ func update_orbit_guides() -> void:
 		if body == null or body.orbit_center == null:
 			continue
 
+		if not _should_draw_orbit_guide_for_object(body.body_id):
+			continue
+
 		orbit_entries.append({
 			"center": body.orbit_center.global_position,
 			"radius": body.orbit_radius,
@@ -50,6 +53,9 @@ func update_orbit_guides() -> void:
 		if poi == null or poi.orbit_center == null:
 			continue
 
+		if not _should_draw_orbit_guide_for_object(poi.poi_id):
+			continue
+
 		orbit_entries.append({
 			"center": poi.orbit_center.global_position,
 			"radius": poi.orbit_radius,
@@ -57,3 +63,13 @@ func update_orbit_guides() -> void:
 
 	if orbit_guides_layer.has_method("set_orbits"):
 		orbit_guides_layer.set_orbits(orbit_entries)
+
+
+func _should_draw_orbit_guide_for_object(object_id: String) -> bool:
+	var system_id := GameSession.current_system_id.strip_edges()
+	var oid := object_id.strip_edges()
+
+	if system_id.is_empty() or oid.is_empty():
+		return true
+
+	return GameSession.is_object_known(system_id, oid)

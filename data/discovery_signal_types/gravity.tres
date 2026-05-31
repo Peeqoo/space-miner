@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SignalTypeDefinition" format=3 uid="uid://bylmo8ikf0ob0"]
+
+[ext_resource type="Script" uid="uid://dfnnwse200t4m" path="res://resources/definitions/signal_type_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "gravity"
+display_name = "Gravity Signature"
+short_label = "Signature"
+description = "A gravitational anomaly detected by the base sensors."

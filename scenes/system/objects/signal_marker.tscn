@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://bov4nt3gjfq0g"]
+
+[ext_resource type="Script" uid="uid://co3vkhn05v8s8" path="res://scripts/system/signal_marker.gd" id="1_marker"]
+[ext_resource type="Script" uid="uid://b4fmjn20rrpa3" path="res://scripts/system/selection_ring.gd" id="2_ring"]
+
+[node name="SignalMarker" type="Node2D" unique_id=2017785372]
+script = ExtResource("1_marker")
+
+[node name="MarkerPivot" type="Node2D" parent="." unique_id=751237186]
+
+[node name="MarkerVisual" type="Sprite2D" parent="MarkerPivot" unique_id=405751241]
+
+[node name="TypeLabel" type="Label" parent="MarkerPivot" unique_id=113472022]
+offset_left = -48.0
+offset_top = 14.0
+offset_right = 48.0
+offset_bottom = 30.0
+theme_override_colors/font_color = Color(1, 0.9, 0.55, 1)
+theme_override_font_sizes/font_size = 10
+text = "Signal"
+horizontal_alignment = 1
+
+[node name="SelectionRing" type="Node2D" parent="MarkerPivot" unique_id=1723867096]
+script = ExtResource("2_ring")
+
+[node name="ClickArea" type="Area2D" parent="MarkerPivot" unique_id=277238345]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MarkerPivot/ClickArea" unique_id=1121127944]

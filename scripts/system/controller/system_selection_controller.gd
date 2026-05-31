@@ -38,6 +38,17 @@ func register_poi(poi: PointOfInterest) -> void:
 		poi.selected.connect(_on_poi_selected)
 
 
+func register_signal_marker(marker: SignalMarker) -> void:
+	if marker == null:
+		return
+
+	if not marker.selected.is_connected(_on_signal_marker_selected):
+		marker.selected.connect(_on_signal_marker_selected)
+
+	if not marker.refocus_camera_requested.is_connected(_on_signal_marker_refocus_requested):
+		marker.refocus_camera_requested.connect(_on_signal_marker_refocus_requested)
+
+
 func get_selected_node() -> Node:
 	return selected_node
 
@@ -52,9 +63,23 @@ func notify_focus_selected_requested(target: Node2D) -> void:
 	focus_selected_requested.emit(target)
 
 
+func select_world_node(node: Node) -> void:
+	if node == null:
+		return
+	if node is SystemBody:
+		_on_body_selected(node as SystemBody)
+	elif node is PointOfInterest:
+		_on_poi_selected(node as PointOfInterest)
+	elif node is SignalMarker:
+		_on_signal_marker_selected(node as SignalMarker)
+
+
 func clear_selection(should_emit: bool = true) -> void:
-	if selected_node != null and selected_node.has_method("set_selected"):
-		selected_node.set_selected(false)
+	if selected_node != null:
+		if selected_node is SignalMarker:
+			(selected_node as SignalMarker).set_selected(false)
+		elif selected_node.has_method("set_selected"):
+			selected_node.set_selected(false)
 
 	selected_node = null
 
@@ -92,6 +117,23 @@ func _on_poi_selected(poi: PointOfInterest) -> void:
 
 	_play_object_selected_sfx()
 	selection_changed.emit(poi)
+
+
+func _on_signal_marker_selected(marker: SignalMarker) -> void:
+	if marker != null and selected_node == marker:
+		return
+
+	clear_selection(false)
+
+	selected_node = marker
+	marker.set_selected(true)
+
+	_play_object_selected_sfx()
+	selection_changed.emit(marker)
+
+
+func _on_signal_marker_refocus_requested(node: Node2D) -> void:
+	notify_focus_selected_requested(node)
 
 
 func _play_object_selected_sfx() -> void:

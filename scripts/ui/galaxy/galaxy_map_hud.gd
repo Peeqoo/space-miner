@@ -86,6 +86,7 @@ signal close_requested
 @onready var no_selection_info_template: Label = $GalaxyInfoPanel/Margin/Root/NoSelectionInfoTemplate
 
 var _colonization_preview_system_def: SystemDefinition = null
+var _colonization_preview_access_state: String = ""
 
 var _no_selection_system_name: String = ""
 var _access_status_prefix: String = ""
@@ -171,11 +172,18 @@ func _meta_label(prefix: String, value: String) -> String:
 
 
 func _process(_delta: float) -> void:
+	var completed_ids: Array[String] = GameSession.process_colonization_operations()
+	if not completed_ids.is_empty() and _colonization_preview_system_def != null:
+		update_colonization_preview(_colonization_preview_system_def, _colonization_preview_access_state)
+		set_process(false)
+		return
+
 	if _colonization_preview_system_def == null:
 		set_process(false)
 		return
 	var sid := _colonization_preview_system_def.id.strip_edges()
 	if sid.is_empty():
+		set_process(false)
 		return
 	var pending_rec := GameSession.get_pending_colonization_operation_for_system(sid)
 	if pending_rec.is_empty():
@@ -303,12 +311,16 @@ func _format_colonization_operation_status(operation_id: String) -> String:
 
 ## Phase 6.4d / 6.5 Colonization preview (nur Value-Labels; Start über ObjectInfoPanel).
 func update_colonization_preview(system_def: SystemDefinition, access_state: String) -> void:
+	GameSession.process_colonization_operations()
+
 	if system_def == null:
 		_colonization_preview_system_def = null
+		_colonization_preview_access_state = ""
 		set_process(false)
 		return
 
 	_colonization_preview_system_def = system_def
+	_colonization_preview_access_state = access_state
 	_show_colonization_section()
 
 	var sid: String = system_def.id.strip_edges()

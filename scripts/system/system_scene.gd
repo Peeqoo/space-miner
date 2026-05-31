@@ -13,6 +13,8 @@ extends Node2D
 @onready var selection: SystemSelectionController = $SystemSelectionController
 @onready var system_ui: SystemUIController = $SystemUIController
 @onready var automation_controller: AutomationController = $AutomationController
+@onready var discovery_controller: SystemDiscoveryController = $SystemDiscoveryController
+@onready var survey_probe_mission_controller: SurveyProbeMissionController = $SurveyProbeMissionController
 @onready var pause_menu_overlay: Control = $UI/PauseMenuOverlay
 # VISUAL_LIGHTING_EXPERIMENT_START
 @onready var system_light_controller: SystemLightController = $SystemLightController
@@ -33,6 +35,9 @@ func _ready() -> void:
 	_connect_system_scene_signals()
 
 	spawner.spawn_from_definition(system_definition)
+	GameSession.ensure_default_discovery_for_system(system_definition)
+	if discovery_controller != null:
+		discovery_controller.apply_for_system(system_definition)
 	orbit_guides.update_orbit_guides()
 
 	# VISUAL_LIGHTING_EXPERIMENT_START
@@ -121,7 +126,20 @@ func _setup_controllers() -> void:
 		spawner
 	)
 
+	if discovery_controller != null:
+		discovery_controller.setup(spawner, selection)
+
 	automation_controller.setup($WorldRoot/AutomationRoot, spawner, _resolved_start_body_id)
+
+	if survey_probe_mission_controller != null:
+		survey_probe_mission_controller.setup(
+			automation_controller,
+			spawner,
+			discovery_controller,
+			selection,
+			system_definition.id if system_definition != null else "",
+			_resolved_start_body_id,
+		)
 
 	system_ui.setup(
 		system_definition,
@@ -130,6 +148,7 @@ func _setup_controllers() -> void:
 		$UI/BaseManagementPanel,
 		automation_controller,
 		spawner,
+		survey_probe_mission_controller,
 		$UI/ProductionPanel,
 		$UI/UpgradePanel,
 		$UI/TopHUD,

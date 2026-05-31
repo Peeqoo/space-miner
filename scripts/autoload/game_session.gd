@@ -12,9 +12,19 @@ const SCAN_BASIC := ObjectScanStore.SCAN_BASIC
 const SCAN_DEEP := ObjectScanStore.SCAN_DEEP
 const SCAN_SPECIAL := ObjectScanStore.SCAN_SPECIAL
 
+const DISCOVERY_HIDDEN := ObjectScanStore.DISCOVERY_HIDDEN
+const DISCOVERY_SIGNAL := ObjectScanStore.DISCOVERY_SIGNAL
+const DISCOVERY_KNOWN := ObjectScanStore.DISCOVERY_KNOWN
+
+const SYSTEM_STAR_OBJECT_ID := "star"
+
 const DEFAULT_GAME_START_DEFINITION_PATH := "res://data/game_start/default_start.tres"
+const DEFAULT_GAME_BALANCE_PATH := "res://data/balance/v0_1_balance.tres"
 const DEFAULT_COLONIZATION_DEFINITION_PATH := "res://data/colonization/default_colonization.tres"
 const DEFAULT_UPGRADE_EFFECT_TEXTS_PATH := "res://data/ui_text/upgrade_effect_texts.tres"
+const DEFAULT_DISCOVERY_SIGNAL_UI_TEXTS_PATH := (
+	"res://data/ui_text/discovery_signal_ui_texts.tres"
+)
 ## Safety fallback only when `ColonizationDefinition` fails to load — not the primary data source.
 const COLONIZATION_OPERATION_DURATION_MS_FALLBACK := 60000
 
@@ -46,6 +56,8 @@ var production_catalog: ProductionCatalog = null
 var colonization_definition: ColonizationDefinition = null
 ## Data-driven new-game start (`data/game_start/*.tres`). Not applied on Continue/Load.
 var game_start_definition: GameStartDefinition = null
+## Space Miner v0.1 balance profile (`data/balance/v0_1_balance.tres`). Read via `get_game_balance()`.
+var game_balance: GameBalanceDefinition = null
 
 ## Phase 6.1b: session-only galaxy progression (no savegame).
 var discovered_system_ids: Array[String] = []
@@ -87,10 +99,23 @@ func _ready() -> void:
 
 	_load_colonization_definition()
 	_load_game_start_definition()
+	_load_game_balance_definition()
+	bases.set_game_balance(get_game_balance())
 	_load_upgrade_effect_texts()
+	_load_discovery_signal_ui_texts()
 
 	mark_base_established(BaseStore.BASE_EARTH)
 	ensure_default_system_loaded()
+
+	set_process(true)
+
+
+func _process(_delta: float) -> void:
+	if not is_colonization_auto_complete_enabled():
+		return
+	if not has_pending_colonization_operations():
+		return
+	process_colonization_operations()
 
 
 # --------------------------------------------------
@@ -131,6 +156,7 @@ func set_current_system(system_definition: SystemDefinition) -> void:
 
 	current_system_definition = system_definition
 	current_system_id = system_definition.id
+	ensure_default_discovery_for_system(system_definition)
 
 
 # --------------------------------------------------
@@ -160,6 +186,24 @@ func _get_game_start_definition() -> GameStartDefinition:
 	if game_start_definition == null:
 		_load_game_start_definition()
 	return game_start_definition
+
+
+func _load_game_balance_definition() -> void:
+	var res: Resource = load(DEFAULT_GAME_BALANCE_PATH)
+	if res is GameBalanceDefinition:
+		game_balance = res as GameBalanceDefinition
+		return
+	push_warning(
+		"GameSession: failed to load GameBalanceDefinition from %s"
+		% DEFAULT_GAME_BALANCE_PATH
+	)
+	game_balance = null
+
+
+func get_game_balance() -> GameBalanceDefinition:
+	if game_balance == null:
+		_load_game_balance_definition()
+	return game_balance
 
 
 func _get_preferred_colonization_source_base_id() -> String:
@@ -388,6 +432,18 @@ func _load_upgrade_effect_texts() -> void:
 	UpgradeDefinition.set_effect_texts(null)
 
 
+func _load_discovery_signal_ui_texts() -> void:
+	var res: Resource = load(DEFAULT_DISCOVERY_SIGNAL_UI_TEXTS_PATH)
+	if res is DiscoverySignalUiTextDefinition:
+		DiscoverySignalUiTextDefinition.set_global(res as DiscoverySignalUiTextDefinition)
+		return
+	push_warning(
+		"GameSession: failed to load DiscoverySignalUiTextDefinition from %s"
+		% DEFAULT_DISCOVERY_SIGNAL_UI_TEXTS_PATH
+	)
+	DiscoverySignalUiTextDefinition.set_global(null)
+
+
 func get_colonization_operation_duration_ms() -> int:
 	if colonization_definition != null and colonization_definition.operation_duration_ms > 0:
 		return colonization_definition.operation_duration_ms
@@ -535,6 +591,15 @@ func get_pending_colonization_operations() -> Array:
 	return out
 
 
+func has_pending_colonization_operations() -> bool:
+	for rec_variant: Variant in _colonization_operations.values():
+		if rec_variant == null or not rec_variant is Dictionary:
+			continue
+		if str((rec_variant as Dictionary).get("status", "")).strip_edges() == "pending":
+			return true
+	return false
+
+
 func has_pending_colonization_to_system(system_id: String) -> bool:
 	var sid := system_id.strip_edges()
 	if sid.is_empty():
@@ -594,6 +659,39 @@ func get_colonization_operation_status_view(operation_id: String) -> Dictionary:
 
 	var sec: int = int(ceil(float(remaining_ms) / 1000.0))
 	return {"status_key": "pending", "remaining_sec": sec}
+
+
+func is_colonization_auto_complete_enabled() -> bool:
+	return colonization_definition != null and colonization_definition.allow_auto_complete
+
+
+## Completes expired pending operations when auto-complete is enabled. Returns completed operation ids.
+func process_colonization_operations() -> Array[String]:
+	if not is_colonization_auto_complete_enabled():
+		return []
+
+	var to_complete: Array[String] = []
+	var op_ids: Array = _colonization_operations.keys()
+	op_ids.sort()
+
+	for op_id_var: Variant in op_ids:
+		var op_id := str(op_id_var).strip_edges()
+		if op_id.is_empty():
+			continue
+		if get_colonization_operation_remaining_ms(op_id) > 0:
+			continue
+		var rec := get_colonization_operation(op_id)
+		if rec.is_empty():
+			continue
+		if str(rec.get("status", "")).strip_edges() != "pending":
+			continue
+		to_complete.append(op_id)
+
+	var completed_ids: Array[String] = []
+	for op_id_complete: String in to_complete:
+		if complete_colonization_operation(op_id_complete):
+			completed_ids.append(op_id_complete)
+	return completed_ids
 
 
 func get_colonization_source_base_id() -> String:
@@ -678,6 +776,7 @@ func _apply_established_base_record(base_id: String, system_id: String, body_id:
 		"established": true,
 	}
 	_established_base_records[base_id] = rec
+	set_object_discovery_state(sid, bod, DISCOVERY_KNOWN)
 	ensure_basic_intel_for_established_base(sid, bod)
 
 
@@ -779,7 +878,7 @@ func _ensure_object_resources_for_scan_state(system_id: String, body_id: String)
 	if body_def == null:
 		return
 
-	var entries: Array = _collect_body_scan_entries_for_scan_state(
+	var entries: Array = _collect_scan_entries_for_definition(
 		body_def,
 		get_object_scan_state(sid, bod)
 	)
@@ -862,10 +961,250 @@ func is_resource_depleted(system_id: String, object_id: String, resource_id: Str
 
 func is_object_depleted(system_id: String, object_id: String) -> bool:
 	return object_scans.is_object_depleted(system_id, object_id)
-	
+
+
+const MINE_BLOCK_NOT_DISCOVERED := "Object not discovered"
+const MINE_BLOCK_NOT_SCANNED := "Object not scanned"
+const MINE_BLOCK_NO_RESOURCES := "No resources available"
+const MINE_BLOCK_DEPLETED := "Resource depleted"
+const MINE_BLOCK_NO_SHIP := "No mining ship available"
+
+
+func ensure_mining_resources_for_object(system_id: String, object_id: String) -> void:
+	var sid := system_id.strip_edges()
+	var oid := object_id.strip_edges()
+	if sid.is_empty() or oid.is_empty():
+		return
+
+	var scan_state: String = get_object_scan_state(sid, oid)
+	if scan_state == SCAN_UNKNOWN:
+		return
+
+	var definition: Resource = _load_object_definition_for_system(sid, oid)
+	if definition == null:
+		return
+
+	var entries: Array = _collect_scan_entries_for_definition(definition, scan_state)
+	ensure_object_resources_initialized(sid, oid, entries)
+
+
+func can_mine_object(
+	system_id: String,
+	object_id: String,
+	base_id: String = BaseStore.BASE_EARTH,
+	has_idle_mining_ship: bool = false,
+) -> Dictionary:
+	var sid := system_id.strip_edges()
+	var oid := object_id.strip_edges()
+	var bid := _economy_base_id(base_id)
+
+	if oid.is_empty() or sid.is_empty():
+		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, false)
+
+	if not is_object_known(sid, oid):
+		return _mine_blocked(MINE_BLOCK_NOT_DISCOVERED, false)
+
+	var scan_state: String = get_object_scan_state(sid, oid)
+	if scan_state == SCAN_UNKNOWN:
+		return _mine_blocked(MINE_BLOCK_NOT_SCANNED, false)
+
+	var definition: Resource = _load_object_definition_for_system(sid, oid)
+	if definition == null:
+		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, false)
+
+	var entries: Array = _collect_scan_entries_for_definition(definition, scan_state)
+	if entries.is_empty():
+		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, false)
+
+	ensure_mining_resources_for_object(sid, oid)
+
+	var probe_ids: Array = _resource_ids_from_scan_entries(entries)
+	if probe_ids.is_empty():
+		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, true)
+
+	if not has_object_resources(sid, oid):
+		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, true)
+
+	if is_object_depleted(sid, oid) or not has_remaining_resources_among(sid, oid, probe_ids):
+		return _mine_blocked(MINE_BLOCK_DEPLETED, true)
+
+	if not has_idle_mining_ship:
+		return _mine_blocked(MINE_BLOCK_NO_SHIP, true)
+
+	return {"ok": true, "blocked_reason": "", "show_mine_button": true}
+
+
+func _mine_blocked(reason: String, show_mine_button: bool) -> Dictionary:
+	return {"ok": false, "blocked_reason": reason, "show_mine_button": show_mine_button}
+
+
+func _resource_ids_from_scan_entries(entries: Array) -> Array:
+	var ids: Array = []
+	for entry_variant: Variant in entries:
+		var entry: ScannedResourceEntry = entry_variant as ScannedResourceEntry
+		if entry == null:
+			continue
+		var rid := String(entry.resource_id).strip_edges()
+		if rid.is_empty() or ids.has(rid):
+			continue
+		ids.append(rid)
+	return ids
+
+
+func _load_object_definition_for_system(system_id: String, object_id: String) -> Resource:
+	var body_def := _load_body_definition_for_system(system_id, object_id)
+	if body_def != null:
+		return body_def
+
+	var sid := system_id.strip_edges()
+	var oid := object_id.strip_edges()
+	if sid.is_empty() or oid.is_empty():
+		return null
+
+	var system_def := get_system_definition_by_id(sid)
+	if system_def == null:
+		return null
+
+	for poi_variant: Variant in system_def.pois:
+		var poi_def := poi_variant as PointOfInterestDefinition
+		if poi_def != null and poi_def.id == oid:
+			return poi_def
+
+	return null
+
+
+func _collect_scan_entries_for_definition(definition: Resource, scan_state: String) -> Array:
+	var result: Array = []
+	if definition == null:
+		return result
+
+	var rank: int = scan_state_rank(scan_state)
+	if rank < scan_state_rank(SCAN_BASIC):
+		return result
+
+	if definition.has_method(&"get_basic_scan_resources"):
+		for entry: Variant in definition.call(&"get_basic_scan_resources"):
+			if entry != null:
+				result.append(entry)
+
+	if rank >= scan_state_rank(SCAN_DEEP) and definition.has_method(&"get_deep_scan_resources"):
+		for entry_deep: Variant in definition.call(&"get_deep_scan_resources"):
+			if entry_deep != null:
+				result.append(entry_deep)
+
+	if rank >= scan_state_rank(SCAN_SPECIAL) and definition.has_method(&"get_special_scan_resources"):
+		for entry_special: Variant in definition.call(&"get_special_scan_resources"):
+			if entry_special != null:
+				result.append(entry_special)
+
+	return result
+
 
 func get_object_scan_state(system_id: String, object_id: String) -> String:
 	return object_scans.get_object_scan_state(system_id, object_id)
+
+
+func set_object_discovery_state(system_id: String, object_id: String, discovery_state: String) -> void:
+	object_scans.set_object_discovery_state(system_id, object_id, discovery_state)
+
+
+func get_object_discovery_state(system_id: String, object_id: String) -> String:
+	return object_scans.get_object_discovery_state(system_id, object_id)
+
+
+func is_object_hidden(system_id: String, object_id: String) -> bool:
+	return object_scans.is_object_hidden(system_id, object_id)
+
+
+func is_object_signal(system_id: String, object_id: String) -> bool:
+	return object_scans.is_object_signal(system_id, object_id)
+
+
+func is_object_known(system_id: String, object_id: String) -> bool:
+	return object_scans.is_object_known(system_id, object_id)
+
+
+func has_explicit_object_discovery_state(system_id: String, object_id: String) -> bool:
+	return object_scans.has_explicit_object_discovery_state(system_id, object_id)
+
+
+## Ensures star, session start body, and established bases are never discovery-hidden.
+func ensure_default_discovery_for_system(system_definition: SystemDefinition) -> void:
+	if system_definition == null:
+		return
+
+	var sid := system_definition.id.strip_edges()
+	if sid.is_empty():
+		return
+
+	_seed_discovery_from_system_definition(system_definition, sid)
+
+	set_object_discovery_state(sid, SYSTEM_STAR_OBJECT_ID, DISCOVERY_KNOWN)
+
+	var start_body_id := system_definition.start_body_id.strip_edges()
+	if start_body_id.is_empty() and not system_definition.bodies.is_empty():
+		var first_body: SystemBodyDefinition = system_definition.bodies[0]
+		if first_body != null:
+			start_body_id = first_body.id.strip_edges()
+
+	if not start_body_id.is_empty():
+		set_object_discovery_state(sid, start_body_id, DISCOVERY_KNOWN)
+
+	for bid_var: Variant in _established_base_records.keys():
+		var bid := str(bid_var).strip_edges()
+		if bid.is_empty():
+			continue
+
+		var rec := get_established_base_record(bid)
+		if rec.is_empty():
+			continue
+
+		if not bool(rec.get("established", false)):
+			continue
+
+		if str(rec.get("system_id", "")).strip_edges() != sid:
+			continue
+
+		var body_id := str(rec.get("body_id", bid)).strip_edges()
+		if body_id.is_empty():
+			continue
+
+		set_object_discovery_state(sid, body_id, DISCOVERY_KNOWN)
+
+
+func _seed_discovery_from_system_definition(
+	system_definition: SystemDefinition,
+	system_id: String
+) -> void:
+	for body_def_variant: Variant in system_definition.bodies:
+		var body_def := body_def_variant as SystemBodyDefinition
+		if body_def == null:
+			continue
+		_apply_definition_discovery_default(system_id, body_def.id, body_def.get_normalized_default_discovery_state())
+
+	for poi_def_variant: Variant in system_definition.pois:
+		var poi_def := poi_def_variant as PointOfInterestDefinition
+		if poi_def == null:
+			continue
+		_apply_definition_discovery_default(system_id, poi_def.id, poi_def.get_normalized_default_discovery_state())
+
+
+func _apply_definition_discovery_default(
+	system_id: String,
+	object_id: String,
+	normalized_default_state: String
+) -> void:
+	var oid := object_id.strip_edges()
+	if oid.is_empty():
+		return
+
+	if object_scans.has_explicit_object_discovery_state(system_id, oid):
+		return
+
+	if normalized_default_state.is_empty():
+		return
+
+	set_object_discovery_state(system_id, oid, normalized_default_state)
 
 
 func scan_state_rank(scan_state: String) -> int:
@@ -878,6 +1217,265 @@ func scan_state_rank(scan_state: String) -> int:
 			return 3
 		_:
 			return 0
+
+
+const SCAN_BLOCK_NOT_DISCOVERED := "Object not discovered"
+const SCAN_BLOCK_NO_DRONE := "No scan drone available"
+const SCAN_BLOCK_IN_PROGRESS := "Scan already in progress"
+const SCAN_BLOCK_NO_LAYER := "No scan layer available"
+
+const SCAN_SURVEY_DATA_REWARD_BASIC := 10
+const SCAN_SURVEY_DATA_REWARD_DEEP := 25
+const SCAN_SURVEY_DATA_REWARD_SPECIAL := 50
+
+const _SCAN_DRONE_UNIT_PATH := "res://data/units/scan_drone.tres"
+
+var _scan_drone_unit_definition: UnitDefinition = null
+
+
+func scan_state_to_resource_layer(scan_state: String) -> int:
+	match scan_state:
+		SCAN_DEEP:
+			return ScannedResourceEntry.Layer.DEEP
+		SCAN_SPECIAL:
+			return ScannedResourceEntry.Layer.SPECIAL
+		_:
+			return ScannedResourceEntry.Layer.BASIC
+
+
+func get_next_scan_target_state(
+	system_id: String,
+	object_id: String,
+	base_id: String = BaseStore.BASE_EARTH,
+) -> String:
+	var sid := system_id.strip_edges()
+	var oid := object_id.strip_edges()
+	if sid.is_empty() or oid.is_empty():
+		return ""
+
+	var unlocked_layer: int = get_unlocked_scan_layer_for_base(_economy_base_id(base_id))
+	var current_rank: int = scan_state_rank(get_object_scan_state(sid, oid))
+
+	if current_rank <= 0:
+		return SCAN_BASIC
+	if current_rank == scan_state_rank(SCAN_BASIC):
+		if unlocked_layer >= ScannedResourceEntry.Layer.DEEP:
+			return SCAN_DEEP
+		return ""
+	if current_rank == scan_state_rank(SCAN_DEEP):
+		if unlocked_layer >= ScannedResourceEntry.Layer.SPECIAL:
+			return SCAN_SPECIAL
+		return ""
+
+	return ""
+
+
+func get_scan_target_state_or_rescan_state(
+	system_id: String,
+	object_id: String,
+	base_id: String = BaseStore.BASE_EARTH,
+) -> Dictionary:
+	var sid := system_id.strip_edges()
+	var oid := object_id.strip_edges()
+	var bid := _economy_base_id(base_id)
+
+	if sid.is_empty() or oid.is_empty():
+		return {"target_scan_state": "", "scan_is_progression": false}
+
+	var progress_state: String = get_next_scan_target_state(sid, oid, bid)
+	if not progress_state.is_empty():
+		return {"target_scan_state": progress_state, "scan_is_progression": true}
+
+	var current_state: String = get_object_scan_state(sid, oid)
+	var current_rank: int = scan_state_rank(current_state)
+
+	if current_rank <= 0:
+		return {"target_scan_state": SCAN_BASIC, "scan_is_progression": true}
+
+	if current_rank >= scan_state_rank(SCAN_SPECIAL):
+		return {"target_scan_state": SCAN_SPECIAL, "scan_is_progression": false}
+	if current_rank >= scan_state_rank(SCAN_DEEP):
+		return {"target_scan_state": SCAN_DEEP, "scan_is_progression": false}
+
+	return {"target_scan_state": SCAN_BASIC, "scan_is_progression": false}
+
+
+func get_scan_button_label_for_target_state(
+	target_scan_state: String,
+	scan_is_progression: bool = true,
+) -> String:
+	if not scan_is_progression:
+		return get_rescan_button_label_for_target_state(target_scan_state)
+
+	match target_scan_state:
+		SCAN_DEEP:
+			return "Deep Scan"
+		SCAN_SPECIAL:
+			return "Special Scan"
+		_:
+			return "Basic Scan"
+
+
+func get_rescan_button_label_for_target_state(target_scan_state: String) -> String:
+	match target_scan_state:
+		SCAN_DEEP:
+			return "Deep Rescan"
+		SCAN_SPECIAL:
+			return "Special Rescan"
+		_:
+			return "Basic Rescan"
+
+
+func can_scan_object(
+	system_id: String,
+	object_id: String,
+	base_id: String = BaseStore.BASE_EARTH,
+	has_idle_scan_drone: bool = false,
+	target_has_active_scan: bool = false,
+) -> Dictionary:
+	var sid := system_id.strip_edges()
+	var oid := object_id.strip_edges()
+	var bid := _economy_base_id(base_id)
+	var scan_target: Dictionary = get_scan_target_state_or_rescan_state(sid, oid, bid)
+	var target_state: String = str(scan_target.get("target_scan_state", "")).strip_edges()
+	var scan_is_progression: bool = bool(scan_target.get("scan_is_progression", true))
+
+	if oid.is_empty() or sid.is_empty():
+		return {
+			"ok": false,
+			"blocked_reason": SCAN_BLOCK_NOT_DISCOVERED,
+			"target_scan_state": "",
+			"scan_is_progression": false,
+		}
+
+	if not is_object_known(sid, oid):
+		return {
+			"ok": false,
+			"blocked_reason": SCAN_BLOCK_NOT_DISCOVERED,
+			"target_scan_state": target_state,
+			"scan_is_progression": scan_is_progression,
+		}
+
+	if target_state.is_empty():
+		return {
+			"ok": false,
+			"blocked_reason": SCAN_BLOCK_NO_LAYER,
+			"target_scan_state": "",
+			"scan_is_progression": false,
+		}
+
+	if scan_is_progression and not _scan_layer_allows_target_state(bid, target_state):
+		return {
+			"ok": false,
+			"blocked_reason": SCAN_BLOCK_NO_LAYER,
+			"target_scan_state": target_state,
+			"scan_is_progression": scan_is_progression,
+		}
+
+	if target_has_active_scan:
+		return {
+			"ok": false,
+			"blocked_reason": SCAN_BLOCK_IN_PROGRESS,
+			"target_scan_state": target_state,
+			"scan_is_progression": scan_is_progression,
+		}
+
+	if not has_idle_scan_drone:
+		return {
+			"ok": false,
+			"blocked_reason": SCAN_BLOCK_NO_DRONE,
+			"target_scan_state": target_state,
+			"scan_is_progression": scan_is_progression,
+		}
+
+	return {
+		"ok": true,
+		"blocked_reason": "",
+		"target_scan_state": target_state,
+		"scan_is_progression": scan_is_progression,
+	}
+
+
+func _scan_layer_allows_target_state(base_id: String, target_scan_state: String) -> bool:
+	var unlocked_layer: int = get_unlocked_scan_layer_for_base(_economy_base_id(base_id))
+	match target_scan_state:
+		SCAN_BASIC:
+			return true
+		SCAN_DEEP:
+			return unlocked_layer >= ScannedResourceEntry.Layer.DEEP
+		SCAN_SPECIAL:
+			return unlocked_layer >= ScannedResourceEntry.Layer.SPECIAL
+		_:
+			return false
+
+
+func get_scan_duration_seconds_for_target_state(
+	target_scan_state: String,
+	base_id: String = BaseStore.BASE_EARTH,
+) -> float:
+	var bid := _economy_base_id(base_id)
+	var seconds: float = 0.0
+	var unit_def := _get_scan_drone_unit_definition()
+
+	if unit_def != null:
+		match target_scan_state:
+			SCAN_DEEP:
+				if unit_def.deep_scan_duration_seconds > 0.0:
+					seconds = unit_def.deep_scan_duration_seconds
+			SCAN_SPECIAL:
+				if unit_def.special_scan_duration_seconds > 0.0:
+					seconds = unit_def.special_scan_duration_seconds
+			_:
+				if unit_def.basic_scan_duration_seconds > 0.0:
+					seconds = unit_def.basic_scan_duration_seconds
+
+	if seconds <= 0.0:
+		var balance := get_game_balance()
+		if balance != null:
+			seconds = balance.get_scan_duration_for_layer(scan_state_to_resource_layer(target_scan_state))
+		else:
+			match target_scan_state:
+				SCAN_DEEP:
+					seconds = 85.0
+				SCAN_SPECIAL:
+					seconds = 140.0
+				_:
+					seconds = 35.0
+
+	return maxf(seconds * get_scan_drone_scan_duration_multiplier(bid), 0.001)
+
+
+func grant_scan_survey_data_reward(base_id: String, completed_scan_state: String) -> void:
+	var amount: int = 0
+	match completed_scan_state:
+		SCAN_DEEP:
+			amount = SCAN_SURVEY_DATA_REWARD_DEEP
+		SCAN_SPECIAL:
+			amount = SCAN_SURVEY_DATA_REWARD_SPECIAL
+		SCAN_BASIC:
+			amount = SCAN_SURVEY_DATA_REWARD_BASIC
+		_:
+			return
+
+	if amount <= 0:
+		return
+
+	var resource_id := str(GameBalanceDefinition.RESOURCE_SURVEY_DATA)
+	var added: int = add_base_resource(_economy_base_id(base_id), resource_id, amount)
+	if added <= 0:
+		push_warning(
+			"GameSession: SurveyData scan reward skipped (state=%s, added=%d)."
+			% [completed_scan_state, added]
+		)
+
+
+func _get_scan_drone_unit_definition() -> UnitDefinition:
+	if _scan_drone_unit_definition != null:
+		return _scan_drone_unit_definition
+	var res: Resource = load(_SCAN_DRONE_UNIT_PATH)
+	if res is UnitDefinition:
+		_scan_drone_unit_definition = res as UnitDefinition
+	return _scan_drone_unit_definition
 
 
 # --------------------------------------------------
@@ -956,6 +1554,82 @@ func get_base_colony_ship_count(base_id: String) -> int:
 	return bases.get_colony_ship_count(base_id)
 
 
+func _economy_base_id(base_id: String) -> String:
+	var bid := base_id.strip_edges()
+	return bid if not bid.is_empty() else BaseStore.BASE_EARTH
+
+
+func get_available_survey_probe_count(base_id: String = BaseStore.BASE_EARTH) -> int:
+	return bases.get_available_survey_probe_count(_economy_base_id(base_id))
+
+
+func can_consume_survey_probe(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return bases.can_consume_survey_probe(_economy_base_id(base_id))
+
+
+func reserve_or_consume_survey_probe(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	var bid := _economy_base_id(base_id)
+	if not bases.reserve_or_consume_survey_probe(bid):
+		return false
+	base_resources_changed.emit(bid)
+	return true
+
+
+func add_survey_probe(amount: int, base_id: String = BaseStore.BASE_EARTH) -> void:
+	if amount <= 0:
+		return
+	var bid := _economy_base_id(base_id)
+	bases.add_survey_probe(bid, amount)
+	base_resources_changed.emit(bid)
+
+
+func get_survey_probe_build_time_seconds() -> float:
+	var balance := get_game_balance()
+	if balance != null:
+		return maxf(0.0, balance.survey_probe_build_time)
+	return 8.0
+
+
+func get_survey_probe_build_cost() -> Dictionary:
+	var cost := get_production_cost(BaseStore.PRODUCTION_SURVEY_PROBE)
+	if not cost.is_empty():
+		return cost
+	var balance := get_game_balance()
+	if balance != null:
+		return balance.survey_probe_build_cost.duplicate(true)
+	return {GameBalanceDefinition.RESOURCE_IRON: 40}
+
+
+func can_build_base_survey_probe(base_id: String) -> bool:
+	return get_build_base_survey_probe_gate(base_id).get("ok", false)
+
+
+func get_build_base_survey_probe_gate(base_id: String) -> Dictionary:
+	var bid := _economy_base_id(base_id)
+	var reason := bases.get_build_survey_probe_blocked_reason(bid)
+	return {"ok": reason.is_empty(), "blocked_reason": reason}
+
+
+func get_build_base_scan_drone_gate(base_id: String) -> Dictionary:
+	var bid := _economy_base_id(base_id)
+	var reason := bases.get_build_scan_drone_blocked_reason(bid)
+	return {"ok": reason.is_empty(), "blocked_reason": reason}
+
+
+func get_build_base_mining_ship_gate(base_id: String) -> Dictionary:
+	var bid := _economy_base_id(base_id)
+	var reason := bases.get_build_mining_ship_blocked_reason(bid)
+	return {"ok": reason.is_empty(), "blocked_reason": reason}
+
+
+func build_base_survey_probe(base_id: String) -> bool:
+	var bid := _economy_base_id(base_id)
+	if not bases.build_survey_probe(bid):
+		return false
+	base_resources_changed.emit(bid)
+	return true
+
+
 func build_base_drone(base_id: String) -> bool:
 	if not bases.build_drone(base_id):
 		return false
@@ -973,14 +1647,15 @@ func build_base_mining_ship(base_id: String) -> bool:
 
 
 func build_base_colony_ship(base_id: String) -> bool:
-	var bid := base_id.strip_edges()
+	var bid := _economy_base_id(base_id)
 	if bid.is_empty():
 		push_warning("GameSession: cannot build ColonyShip without base_id.")
 		return false
 	if not has_established_base(bid):
 		push_warning("GameSession: cannot build ColonyShip for non-established base_id=%s." % bid)
 		return false
-	if not bases.build_colony_ship(bid):
+	var prereq_reason := get_colony_ship_build_prerequisite_blocked_reason(bid)
+	if not bases.build_colony_ship(bid, prereq_reason):
 		return false
 
 	base_resources_changed.emit(bid)
@@ -996,7 +1671,31 @@ func get_base_storage_capacity(base_id: String = BaseStore.BASE_EARTH) -> int:
 
 
 func get_base_storage_free(base_id: String = BaseStore.BASE_EARTH) -> int:
-	return bases.get_storage_free(base_id)
+	return get_base_remaining_storage_capacity(base_id)
+
+
+func get_base_remaining_storage_capacity(base_id: String = BaseStore.BASE_EARTH) -> int:
+	return bases.get_remaining_storage_capacity(base_id)
+
+
+func is_base_storage_full(base_id: String = BaseStore.BASE_EARTH) -> bool:
+	return bases.is_storage_full(base_id)
+
+
+func can_accept_base_resource(base_id: String, resource_id: String, amount: int) -> bool:
+	return bases.can_accept_resource(base_id, resource_id, amount)
+
+
+func add_base_resource_with_capacity_check(
+	base_id: String,
+	resource_id: String,
+	amount: int,
+) -> int:
+	return add_base_resource(base_id, resource_id, amount)
+
+
+func get_base_storage_blocked_reason_full() -> String:
+	return BaseStore.STORAGE_BLOCKED_REASON_FULL
 
 
 func get_base_upgrade_level(base_id: String, category: StringName) -> int:
@@ -1022,10 +1721,15 @@ func has_next_base_upgrade(base_id: String, category: StringName) -> bool:
 
 
 func can_buy_next_base_upgrade(base_id: String, category: StringName) -> bool:
-	var nxt := get_next_upgrade_definition(base_id, category)
-	if nxt == null:
-		return false
-	return bases.can_afford_upgrade(base_id, nxt)
+	return get_buy_next_base_upgrade_gate(base_id, category).get("ok", false)
+
+
+func get_buy_next_base_upgrade_gate(base_id: String, category: StringName) -> Dictionary:
+	var bid := _economy_base_id(base_id)
+	var reason := bases.get_buy_next_upgrade_blocked_reason(bid, category)
+	if reason.is_empty() and not has_next_base_upgrade(bid, category):
+		return {"ok": false, "blocked_reason": ""}
+	return {"ok": reason.is_empty(), "blocked_reason": reason}
 
 
 func buy_next_base_upgrade(base_id: String, category: StringName) -> bool:
@@ -1098,21 +1802,223 @@ func get_mining_ship_cargo_capacity_multiplier(base_id: String = BaseStore.BASE_
 	return clampf(bases.get_mining_ship_cargo_capacity_multiplier(base_id), 1.0, 4.0)
 
 
+func get_mining_ship_mining_rate_multiplier(base_id: String = BaseStore.BASE_EARTH) -> float:
+	return clampf(bases.get_mining_ship_mining_rate_multiplier(base_id), 0.05, 10.0)
+
+
+func get_max_base_scan_drone_count() -> int:
+	return bases.get_max_scan_drone_count()
+
+
+func get_max_base_mining_ship_count() -> int:
+	return bases.get_max_mining_ship_count()
+
+
 func can_build_base_drone(base_id: String) -> bool:
-	return bases.can_build_drone(base_id)
+	return get_build_base_scan_drone_gate(base_id).get("ok", false)
 
 
 func can_build_base_mining_ship(base_id: String) -> bool:
-	return bases.can_build_mining_ship(base_id)
+	return get_build_base_mining_ship_gate(base_id).get("ok", false)
+
+
+func get_colony_ship_build_cost() -> Dictionary:
+	var cost := get_production_cost(BaseStore.PRODUCTION_COLONY_SHIP)
+	if not cost.is_empty():
+		return cost
+	var balance := get_game_balance()
+	if balance != null:
+		return balance.colony_ship_build_cost.duplicate(true)
+	return {}
+
+
+func get_colony_ship_build_time_seconds() -> float:
+	var def := get_production_definition(BaseStore.PRODUCTION_COLONY_SHIP)
+	if def != null and def.build_time_seconds > 0.0:
+		return def.build_time_seconds
+	var balance := get_game_balance()
+	if balance != null and balance.colony_ship_build_time_seconds > 0.0:
+		return balance.colony_ship_build_time_seconds
+	return 0.0
+
+
+## v0.1: Storage Upgrade I proxies Shipyard I until a dedicated Shipyard tech exists.
+func has_colony_ship_shipyard_i_for_base(base_id: String) -> bool:
+	var bid := _economy_base_id(base_id)
+	var balance := get_game_balance()
+	var need_lvl := 1
+	if balance != null:
+		need_lvl = maxi(1, balance.colony_ship_shipyard_proxy_storage_upgrade_level)
+	return bases.get_upgrade_level(bid, &"storage") >= need_lvl
+
+
+## v0.1: Mining Ship Upgrade I proxies Colony Protocol until dedicated tech exists.
+func has_colony_ship_colony_protocol_for_base(base_id: String) -> bool:
+	var bid := _economy_base_id(base_id)
+	var balance := get_game_balance()
+	var need_lvl := 1
+	if balance != null:
+		need_lvl = maxi(1, balance.colony_ship_protocol_proxy_mining_ship_upgrade_level)
+	return bases.get_upgrade_level(bid, &"mining_ship") >= need_lvl
+
+
+func has_colony_ship_deep_scan_module_for_base(base_id: String) -> bool:
+	return bases.get_upgrade_level(_economy_base_id(base_id), &"scan_drone") >= 1
+
+
+func count_fully_scanned_objects(system_id: String = "") -> int:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		sid = current_system_id.strip_edges()
+	if sid.is_empty():
+		return 0
+
+	var system_states: Variant = object_scans.object_scan_states.get(sid, {})
+	if not system_states is Dictionary:
+		return 0
+
+	var deep_rank := scan_state_rank(SCAN_DEEP)
+	var count := 0
+	for _oid: Variant in (system_states as Dictionary).keys():
+		var state := str((system_states as Dictionary).get(_oid, SCAN_UNKNOWN))
+		if scan_state_rank(state) >= deep_rank:
+			count += 1
+	return count
+
+
+func get_colony_ship_min_fully_scanned_objects() -> int:
+	var balance := get_game_balance()
+	if balance != null:
+		return maxi(1, balance.colony_ship_min_fully_scanned_objects)
+	return 3
+
+
+func has_discovered_ice_source(system_id: String = "") -> bool:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return _any_system_has_discovered_ice_source()
+	return _system_has_discovered_ice_source(sid)
+
+
+func _any_system_has_discovered_ice_source() -> bool:
+	for sys_key: Variant in object_scans.object_scan_states.keys():
+		if _system_has_discovered_ice_source(str(sys_key)):
+			return true
+	return false
+
+
+func _system_has_discovered_ice_source(system_id: String) -> bool:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return false
+
+	var system_def := get_system_definition_by_id(sid)
+	if system_def == null:
+		return false
+
+	var ice_ids := _colony_ship_ice_resource_ids_normalized()
+
+	for body_variant: Variant in system_def.bodies:
+		var body_def := body_variant as SystemBodyDefinition
+		if body_def == null:
+			continue
+		var oid := str(body_def.id).strip_edges()
+		if oid.is_empty():
+			continue
+		if not is_object_known(sid, oid):
+			continue
+		var scan_state := get_object_scan_state(sid, oid)
+		if scan_state_rank(scan_state) < scan_state_rank(SCAN_BASIC):
+			continue
+		for entry: Variant in _collect_scan_entries_for_definition(body_def, scan_state):
+			if entry is ScannedResourceEntry:
+				var rid := str((entry as ScannedResourceEntry).resource_id)
+				if _resource_id_matches_ice_source(rid, ice_ids):
+					return true
+	return false
+
+
+func _colony_ship_ice_resource_ids_normalized() -> PackedStringArray:
+	var balance := get_game_balance()
+	if balance != null and balance.colony_ship_ice_resource_ids.size() > 0:
+		return balance.colony_ship_ice_resource_ids
+	return PackedStringArray(["Ice", "Water"])
+
+
+func _resource_id_matches_ice_source(resource_id: String, ice_ids: PackedStringArray) -> bool:
+	var rid := resource_id.strip_edges().to_lower()
+	if rid.is_empty():
+		return false
+	for ice_id: String in ice_ids:
+		if rid == str(ice_id).strip_edges().to_lower():
+			return true
+	return false
+
+
+func get_colony_ship_build_prerequisite_status(base_id: String) -> Array:
+	var bid := _economy_base_id(base_id)
+	return [
+		{
+			"id": "deep_scan_module",
+			"label": "Deep Scan Module",
+			"met": has_colony_ship_deep_scan_module_for_base(bid),
+			"blocked_reason": BaseStore.COLONY_BLOCK_DEEP_SCAN_MODULE,
+		},
+		{
+			"id": "shipyard_i",
+			"label": "Shipyard I",
+			"met": has_colony_ship_shipyard_i_for_base(bid),
+			"blocked_reason": BaseStore.COLONY_BLOCK_SHIPYARD_I,
+		},
+		{
+			"id": "colony_protocol",
+			"label": "Colony Protocol",
+			"met": has_colony_ship_colony_protocol_for_base(bid),
+			"blocked_reason": BaseStore.COLONY_BLOCK_COLONY_PROTOCOL,
+		},
+		{
+			"id": "ice_source",
+			"label": "Ice source discovered",
+			"met": has_discovered_ice_source(),
+			"blocked_reason": BaseStore.COLONY_BLOCK_ICE_SOURCE,
+		},
+		{
+			"id": "fully_scan_three",
+			"label": "Fully scan 3 objects",
+			"met": count_fully_scanned_objects() >= get_colony_ship_min_fully_scanned_objects(),
+			"blocked_reason": BaseStore.COLONY_BLOCK_FULLY_SCAN_THREE,
+		},
+	]
+
+
+func get_colony_ship_build_prerequisite_blocked_reason(base_id: String) -> String:
+	for entry: Variant in get_colony_ship_build_prerequisite_status(base_id):
+		if not (entry is Dictionary):
+			continue
+		var row: Dictionary = entry
+		if bool(row.get("met", false)):
+			continue
+		return str(row.get("blocked_reason", "")).strip_edges()
+	return ""
+
+
+func get_build_base_colony_ship_gate(base_id: String) -> Dictionary:
+	var bid := _economy_base_id(base_id)
+	if bid.is_empty() or not has_established_base(bid):
+		return {"ok": false, "blocked_reason": "", "prerequisites": []}
+
+	var prereq_reason := get_colony_ship_build_prerequisite_blocked_reason(bid)
+	var store_reason := bases.get_build_colony_ship_blocked_reason(bid, prereq_reason)
+	var prerequisites: Array = get_colony_ship_build_prerequisite_status(bid)
+	return {
+		"ok": store_reason.is_empty(),
+		"blocked_reason": store_reason,
+		"prerequisites": prerequisites,
+	}
 
 
 func can_build_base_colony_ship(base_id: String) -> bool:
-	var bid := base_id.strip_edges()
-	if bid.is_empty():
-		return false
-	if not has_established_base(bid):
-		return false
-	return bases.can_build_colony_ship(bid)
+	return get_build_base_colony_ship_gate(base_id).get("ok", false)
 
 
 func get_production_cost(production_id: String) -> Dictionary:
@@ -1127,8 +2033,15 @@ func get_production_definition(production_id: String) -> ProductionDefinition:
 # Automation API
 # --------------------------------------------------
 
-func create_scan_mission(base_id: String, target_id: String) -> int:
-	return automation.create_scan_mission(base_id, target_id)
+func create_scan_mission(
+	base_id: String,
+	target_id: String,
+	target_scan_state: String = "",
+	scan_is_progression: bool = true,
+) -> int:
+	return automation.create_scan_mission(
+		base_id, target_id, target_scan_state, scan_is_progression
+	)
 
 
 func create_mining_mission(base_id: String, target_id: String) -> int:
@@ -1173,12 +2086,30 @@ func reset_for_new_game() -> void:
 	var start_drones: int = 1
 	var start_mining_ships: int = 1
 	var start_colony_ships: int = 0
+	var start_survey_probes: int = 2
 	if def != null:
 		start_resources = def.start_resources.duplicate(true)
+		if start_resources.is_empty():
+			var start_balance := def.load_balance_profile()
+			if start_balance != null:
+				start_resources = start_balance.build_start_resources_dictionary()
 		start_population = def.start_population
 		start_drones = def.start_drones
 		start_mining_ships = def.start_mining_ships
 		start_colony_ships = def.start_colony_ships
+		start_survey_probes = maxi(0, def.start_survey_probes)
+	else:
+		var balance_fallback := get_game_balance()
+		if balance_fallback != null:
+			start_survey_probes = maxi(0, balance_fallback.survey_probe_start_count)
+
+	var start_storage_capacity: int = -1
+	if def != null and def.start_storage_capacity >= 0:
+		start_storage_capacity = def.start_storage_capacity
+	else:
+		var balance_storage := get_game_balance()
+		if balance_storage != null:
+			start_storage_capacity = balance_storage.get_storage_capacity_for_upgrade_level(0)
 
 	bases.bases = {
 		primary_base_id: bases.create_new_game_base_entry(
@@ -1187,10 +2118,13 @@ func reset_for_new_game() -> void:
 			start_mining_ships,
 			start_colony_ships,
 			start_resources,
+			start_storage_capacity,
+			start_survey_probes,
 		),
 	}
 
 	object_scans.object_scan_states = {}
+	object_scans.object_discovery_states = {}
 	object_scans.remaining_resources_by_object = {}
 
 	automation.missions.clear()
@@ -1212,6 +2146,14 @@ func reset_for_new_game() -> void:
 
 func refresh_automation_snapshot_from_scene() -> void:
 	_automation_runtime_pending = _capture_live_automation_runtime_snapshot()
+
+
+## Pre-save (v0.1): cancel in-flight survey-probe missions and refund probes (no mission restore on load).
+func cancel_active_survey_probe_missions_before_save() -> int:
+	var controller := _find_survey_probe_mission_controller_in_tree()
+	if controller == null:
+		return 0
+	return controller.cancel_all_active_investigations_refund()
 
 
 func refresh_camera_snapshot_from_scene() -> void:
@@ -1276,6 +2218,23 @@ func _find_automation_controller_recursive(node: Node) -> Node:
 		return node
 	for child: Node in node.get_children():
 		var found := _find_automation_controller_recursive(child)
+		if found != null:
+			return found
+	return null
+
+
+func _find_survey_probe_mission_controller_in_tree() -> SurveyProbeMissionController:
+	var root := get_tree().root if is_inside_tree() else null
+	if root == null:
+		return null
+	return _find_survey_probe_mission_controller_recursive(root)
+
+
+func _find_survey_probe_mission_controller_recursive(node: Node) -> SurveyProbeMissionController:
+	if node is SurveyProbeMissionController:
+		return node as SurveyProbeMissionController
+	for child: Node in node.get_children():
+		var found := _find_survey_probe_mission_controller_recursive(child)
 		if found != null:
 			return found
 	return null
@@ -1382,6 +2341,9 @@ func apply_save_data(data: Dictionary) -> bool:
 		object_scans.apply_save_data(scans_variant as Dictionary)
 
 	_sync_basic_intel_from_all_established_bases()
+
+	if current_system_definition != null:
+		ensure_default_discovery_for_system(current_system_definition)
 
 	_apply_automation_from_save_data(data.get("automation", {}))
 	_apply_camera_state_from_save_data(data.get("camera_state", {}))

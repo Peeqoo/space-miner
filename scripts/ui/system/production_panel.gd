@@ -1,9 +1,11 @@
-## ProductionPanel — build ScanDrones, MiningShips, and ColonyShip inventory.
-## Emits build_scan_drone_requested / build_mining_ship_requested for AutomationController spawning.
+## ProductionPanel — build ScanDrones, MiningShips, Survey Probes, and ColonyShip inventory.
+## Emits build_*_requested for AutomationController spawning where applicable.
 extends PanelContainer
 
 signal build_scan_drone_requested
 signal build_mining_ship_requested
+signal build_survey_probe_requested
+signal build_colony_ship_requested
 signal close_requested
 
 ## Target BaseStore base id (`SystemBody.body_id`). Set by SystemUI from session primary base.
@@ -25,6 +27,7 @@ func _economy_body_id_for_ops() -> String:
 
 @onready var build_scan_drone_button: Button = $Margin/Root/ProductionList/BuildScanDroneButton
 @onready var build_mining_ship_button: Button = $Margin/Root/ProductionList/BuildMiningShipButton
+@onready var build_survey_probe_button: Button = $Margin/Root/ProductionList/BuildSurveyProbeButton
 @onready var build_colony_ship_button: Button = $Margin/Root/ProductionList/BuildColonyShipButton
 @onready var close_button: Button = $Margin/Root/HeaderRow/CloseButton
 @onready var hover_info_section: PanelContainer = $Margin/Root/HoverInfoSection
@@ -48,14 +51,18 @@ func _ready() -> void:
 	_connect_button(close_button, _on_close_pressed)
 	_connect_button(build_scan_drone_button, _on_build_scan_drone_pressed)
 	_connect_button(build_mining_ship_button, _on_build_mining_ship_pressed)
+	_connect_button(build_survey_probe_button, _on_build_survey_probe_pressed)
 	_connect_button(build_colony_ship_button, _on_build_colony_ship_pressed)
 
 	_register_hover(build_scan_drone_button)
 	_register_hover(build_mining_ship_button)
+	_register_hover(build_survey_probe_button)
 	_register_hover(build_colony_ship_button)
 
 	if not GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.connect(_on_resources_changed)
+	if not GameSession.base_upgrades_changed.is_connected(_on_upgrades_changed):
+		GameSession.base_upgrades_changed.connect(_on_upgrades_changed)
 
 	refresh_from_game_session()
 
@@ -63,13 +70,52 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if GameSession.base_resources_changed.is_connected(_on_resources_changed):
 		GameSession.base_resources_changed.disconnect(_on_resources_changed)
+	if GameSession.base_upgrades_changed.is_connected(_on_upgrades_changed):
+		GameSession.base_upgrades_changed.disconnect(_on_upgrades_changed)
 
 
 func refresh_from_game_session() -> void:
 	var oid := _economy_body_id_for_ops()
-	build_scan_drone_button.disabled = not GameSession.can_build_base_drone(oid)
-	build_mining_ship_button.disabled = not GameSession.can_build_base_mining_ship(oid)
-	build_colony_ship_button.disabled = not GameSession.can_build_base_colony_ship(oid)
+	_refresh_build_button(
+		build_scan_drone_button,
+		GameSession.get_build_base_scan_drone_gate(oid),
+	)
+	_refresh_build_button(
+		build_mining_ship_button,
+		GameSession.get_build_base_mining_ship_gate(oid),
+	)
+	_refresh_build_button(
+		build_survey_probe_button,
+		GameSession.get_build_base_survey_probe_gate(oid),
+	)
+	_refresh_colony_ship_button(oid)
+
+
+func _refresh_build_button(button: Button, gate: Dictionary) -> void:
+	if button == null:
+		return
+	button.disabled = not bool(gate.get("ok", false))
+	var reason := str(gate.get("blocked_reason", "")).strip_edges()
+	button.tooltip_text = reason
+
+
+func _refresh_colony_ship_button(base_id: String) -> void:
+	if build_colony_ship_button == null:
+		return
+	var gate: Dictionary = GameSession.get_build_base_colony_ship_gate(base_id)
+	build_colony_ship_button.disabled = not bool(gate.get("ok", false))
+	var reason := str(gate.get("blocked_reason", "")).strip_edges()
+	if reason.is_empty():
+		for entry: Variant in gate.get("prerequisites", []):
+			if not (entry is Dictionary):
+				continue
+			var row: Dictionary = entry
+			if bool(row.get("met", false)):
+				continue
+			reason = str(row.get("blocked_reason", "")).strip_edges()
+			if not reason.is_empty():
+				break
+	build_colony_ship_button.tooltip_text = reason
 
 
 func _on_close_pressed() -> void:
@@ -78,35 +124,52 @@ func _on_close_pressed() -> void:
 
 
 func _on_build_scan_drone_pressed() -> void:
-	var oid := _economy_body_id_for_ops()
-	if not GameSession.has_established_base(oid):
-		return
-	if GameSession.build_base_drone(oid):
-		AudioManager.play_sfx_optional(&"build_success")
-		build_scan_drone_requested.emit()
-	else:
-		AudioManager.play_sfx_optional(&"not_enough_resources")
-	refresh_from_game_session()
+	_try_build_unit(
+		GameSession.get_build_base_scan_drone_gate(_economy_body_id_for_ops()),
+		GameSession.build_base_drone,
+		build_scan_drone_requested,
+	)
 
 
 func _on_build_mining_ship_pressed() -> void:
-	var oid := _economy_body_id_for_ops()
-	if not GameSession.has_established_base(oid):
-		return
-	if GameSession.build_base_mining_ship(oid):
-		AudioManager.play_sfx_optional(&"build_success")
-		build_mining_ship_requested.emit()
-	else:
-		AudioManager.play_sfx_optional(&"not_enough_resources")
-	refresh_from_game_session()
+	_try_build_unit(
+		GameSession.get_build_base_mining_ship_gate(_economy_body_id_for_ops()),
+		GameSession.build_base_mining_ship,
+		build_mining_ship_requested,
+	)
+
+
+func _on_build_survey_probe_pressed() -> void:
+	_try_build_unit(
+		GameSession.get_build_base_survey_probe_gate(_economy_body_id_for_ops()),
+		GameSession.build_base_survey_probe,
+		build_survey_probe_requested,
+	)
 
 
 func _on_build_colony_ship_pressed() -> void:
+	_try_build_unit(
+		GameSession.get_build_base_colony_ship_gate(_economy_body_id_for_ops()),
+		GameSession.build_base_colony_ship,
+		build_colony_ship_requested,
+	)
+
+
+func _try_build_unit(
+	gate: Dictionary,
+	build_callable: Callable,
+	success_signal: Signal,
+) -> void:
 	var oid := _economy_body_id_for_ops()
 	if not GameSession.has_established_base(oid):
 		return
-	if GameSession.build_base_colony_ship(oid):
+	if not bool(gate.get("ok", false)):
+		AudioManager.play_sfx_optional(&"not_enough_resources")
+		refresh_from_game_session()
+		return
+	if build_callable.call(oid):
 		AudioManager.play_sfx_optional(&"build_success")
+		success_signal.emit()
 	else:
 		AudioManager.play_sfx_optional(&"not_enough_resources")
 	refresh_from_game_session()
@@ -126,7 +189,7 @@ func _on_button_hover_entered(button: Button) -> void:
 	var production_def: ProductionDefinition = GameSession.get_production_definition(production_id)
 
 	hover_title_label.text = button.text
-	hover_desc_label.text = _build_hover_description(production_def)
+	hover_desc_label.text = _build_hover_description(production_def, button)
 	hover_cost_label.text = _build_cost_text(production_id)
 	hover_info_section.visible = true
 
@@ -141,22 +204,48 @@ func _production_id_from_button(button: Button) -> String:
 			return BaseStore.PRODUCTION_SCAN_DRONE
 		"BuildMiningShipButton":
 			return BaseStore.PRODUCTION_MINING_SHIP
+		"BuildSurveyProbeButton":
+			return BaseStore.PRODUCTION_SURVEY_PROBE
 		"BuildColonyShipButton":
 			return BaseStore.PRODUCTION_COLONY_SHIP
 		_:
 			return ""
 
 
-func _build_hover_description(production_def: ProductionDefinition) -> String:
+func _build_hover_description(production_def: ProductionDefinition, button: Button) -> String:
 	var lines := ProductionDefinition.build_hover_description_lines(production_def)
+	if production_def != null and production_def.id == BaseStore.PRODUCTION_COLONY_SHIP:
+		lines.append_array(_colony_prerequisite_hover_lines())
+		var build_time := GameSession.get_colony_ship_build_time_seconds()
+		if build_time > 0.0:
+			lines.append("Build time: %s s (instant build — timer TODO)" % NumberFormat.format_compact(int(build_time)))
+	var reason := button.tooltip_text.strip_edges()
+	if not reason.is_empty():
+		lines.append(reason)
 	if lines.is_empty():
 		return _hover_desc_placeholder
 	return "\n".join(lines)
 
 
+func _colony_prerequisite_hover_lines() -> PackedStringArray:
+	var lines: PackedStringArray = []
+	lines.append("Prerequisites:")
+	for entry: Variant in GameSession.get_colony_ship_build_prerequisite_status(_economy_body_id_for_ops()):
+		if not (entry is Dictionary):
+			continue
+		var row: Dictionary = entry
+		var mark := "✓" if bool(row.get("met", false)) else "✗"
+		lines.append("%s %s" % [mark, str(row.get("label", ""))])
+	return lines
+
+
 func _build_cost_text(production_id: String) -> String:
 	var resources := GameSession.get_base_resources(_economy_body_id_for_ops())
 	var cost := GameSession.get_production_cost(production_id)
+	if production_id == BaseStore.PRODUCTION_COLONY_SHIP:
+		var colony_cost := GameSession.get_colony_ship_build_cost()
+		if not colony_cost.is_empty():
+			cost = colony_cost
 	var lines := ProductionDefinition.format_cost_lines_with_availability(cost, resources)
 	if lines.is_empty():
 		return _hover_cost_header
@@ -176,6 +265,12 @@ func _connect_button(button: Button, callback: Callable) -> void:
 
 
 func _on_resources_changed(_base_id: String) -> void:
+	if not visible:
+		return
+	refresh_from_game_session()
+
+
+func _on_upgrades_changed(_base_id: String) -> void:
 	if not visible:
 		return
 	refresh_from_game_session()
