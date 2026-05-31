@@ -82,10 +82,6 @@ static func get_unknown_signal_name() -> String:
 	return get_template(KEY_UNKNOWN_SIGNAL_NAME)
 
 
-static func get_unknown_signal_type() -> String:
-	return get_template(KEY_UNKNOWN_SIGNAL_TYPE)
-
-
 static func get_unknown_signal_lore() -> String:
 	return get_template(KEY_UNKNOWN_SIGNAL_LORE)
 
@@ -95,10 +91,6 @@ static func format_investigate_progress(percent: int) -> String:
 	if format_str.is_empty():
 		format_str = FALLBACK_INVESTIGATE_PROGRESS
 	return format_str % maxi(0, percent)
-
-
-static func get_sensor_pulse_button_label() -> String:
-	return get_template(KEY_SENSOR_PULSE_BUTTON_LABEL)
 
 
 static func format_sensor_pulse_progress(percent: int) -> String:
