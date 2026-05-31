@@ -39,7 +39,7 @@ layout_mode = 2
 [node name="CurrentSystemTitleLabel" type="Label" parent="Margin/Row" unique_id=938342706]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
-text = "Aktuelles System:"
+text = "Current System:"
 label_settings = ExtResource("3_0qajj")
 
 [node name="CurrentSystemValueLabel" type="Label" parent="Margin/Row" unique_id=1655836973]

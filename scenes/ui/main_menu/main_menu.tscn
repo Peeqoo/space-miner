@@ -45,7 +45,7 @@ theme_override_constants/separation = 6
 
 [node name="TitleLabel" type="Label" parent="RootPanel/Margin/Root/MainMenuButtons" unique_id=1365063974]
 layout_mode = 2
-text = "Hauptmenü"
+text = "Main Menu"
 label_settings = ExtResource("2_title")
 horizontal_alignment = 1
 
@@ -92,7 +92,7 @@ theme_override_constants/separation = 4
 
 [node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SaveTimestampRow" unique_id=1310440832]
 layout_mode = 2
-text = "Zeit:"
+text = "Time:"
 label_settings = ExtResource("3_text")
 
 [node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/FilledStateContainer/SaveTimestampRow" unique_id=369520842]
@@ -145,7 +145,7 @@ theme_override_constants/separation = 2
 
 [node name="DeleteConfirmLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot1Row/DeleteConfirmContainer" unique_id=598342122]
 layout_mode = 2
-text = "Spielstand löschen?"
+text = "Delete save game?"
 label_settings = ExtResource("3_text")
 horizontal_alignment = 1
 
@@ -186,7 +186,7 @@ theme_override_constants/separation = 4
 
 [node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SaveTimestampRow" unique_id=749845021]
 layout_mode = 2
-text = "Zeit:"
+text = "Time:"
 label_settings = ExtResource("3_text")
 
 [node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/FilledStateContainer/SaveTimestampRow" unique_id=1087929928]
@@ -239,7 +239,7 @@ theme_override_constants/separation = 2
 
 [node name="DeleteConfirmLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot2Row/DeleteConfirmContainer" unique_id=1304891782]
 layout_mode = 2
-text = "Spielstand löschen?"
+text = "Delete save game?"
 label_settings = ExtResource("3_text")
 horizontal_alignment = 1
 
@@ -280,7 +280,7 @@ theme_override_constants/separation = 4
 
 [node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SaveTimestampRow" unique_id=1711723745]
 layout_mode = 2
-text = "Zeit:"
+text = "Time:"
 label_settings = ExtResource("3_text")
 
 [node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/FilledStateContainer/SaveTimestampRow" unique_id=1188260854]
@@ -333,7 +333,7 @@ theme_override_constants/separation = 2
 
 [node name="DeleteConfirmLabel" type="Label" parent="RootPanel/Margin/Root/SaveSlotPanel/Slot3Row/DeleteConfirmContainer" unique_id=1732194248]
 layout_mode = 2
-text = "Spielstand löschen?"
+text = "Delete save game?"
 label_settings = ExtResource("3_text")
 horizontal_alignment = 1
 

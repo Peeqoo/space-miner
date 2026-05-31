@@ -109,7 +109,7 @@ label_settings = ExtResource("4_a5r5f")
 [node name="HoverEffectsSectionLabel" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137935]
 visible = false
 layout_mode = 2
-text = "Effekte:"
+text = "Effects:"
 label_settings = ExtResource("4_a5r5f")
 
 [node name="HoverStatusSectionLabel" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137936]
@@ -121,7 +121,7 @@ label_settings = ExtResource("4_a5r5f")
 [node name="HoverMaxLevelMessageLabel" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137937]
 visible = false
 layout_mode = 2
-text = "Maximale Stufe erreicht."
+text = "Maximum level reached."
 label_settings = ExtResource("4_a5r5f")
 
 [node name="HoverUpgradeFallbackLabel" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137938]
@@ -133,23 +133,23 @@ label_settings = ExtResource("4_a5r5f")
 [node name="MaxLevelCaptionStorage" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137939]
 visible = false
 layout_mode = 2
-text = "Storage — Max. Stufe"
+text = "Storage — Max Level"
 label_settings = ExtResource("4_a5r5f")
 
 [node name="MaxLevelCaptionScanDrone" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137940]
 visible = false
 layout_mode = 2
-text = "ScanDrone — Max. Stufe"
+text = "ScanDrone — Max Level"
 label_settings = ExtResource("4_a5r5f")
 
 [node name="MaxLevelCaptionMiningShip" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137941]
 visible = false
 layout_mode = 2
-text = "MiningShip — Max. Stufe"
+text = "MiningShip — Max Level"
 label_settings = ExtResource("4_a5r5f")
 
 [node name="MaxLevelCaptionDefault" type="Label" parent="Margin/Root/HoverInfoSection/HoverInfoPanel/HoverInfoMargin/HoverInfoRoot" unique_id=1781137942]
 visible = false
 layout_mode = 2
-text = "Max. Stufe"
+text = "Max Level"
 label_settings = ExtResource("4_a5r5f")

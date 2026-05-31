@@ -17,5 +17,5 @@ scan_duration_multiplier = 0.8
 mining_yield_bonus_per_support_drone_percent = 2
 unlock_scan_layer = 1
 applies_to_new_jobs_only = true
-short_description = "Schaltet Deep-Scans frei."
-effect_lines = ["Deep-Ressourcen sichtbar"]
+short_description = "Unlocks deep scans."
+effect_lines = ["Deep resources visible"]

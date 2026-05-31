@@ -9,4 +9,4 @@ category = &"mining_ship"
 title = "MiningShip Base"
 purchasable = false
 cargo_capacity_percent = 100
-short_description = "Ermöglicht den Abbau von Basic-Ressourcen."
+short_description = "Enables mining of basic resources."

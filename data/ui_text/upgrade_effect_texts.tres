@@ -5,16 +5,16 @@
 [resource]
 script = ExtResource("1")
 templates = {
-"cargo_delta": "Fracht: +{value}%",
-"cargo_final": "Fracht: {value}%",
-"mining_rate_delta": "Mining-Rate: +{value}%",
-"mining_rate_final": "Mining-Rate: +{value}%",
-"scan_duration_delta": "Scan-Dauer: -{value}%",
-"scan_duration_final": "Scan-Dauer: -{value}%",
-"scan_speed_delta": "Scangeschwindigkeit: +{value}%",
-"scan_speed_final": "Scangeschwindigkeit: {value}%",
-"scan_support_delta": "Ertrag: +{value}%",
-"scan_support_final": "Ertrag: +{value}%",
-"storage_capacity_delta": "Lagerkapazität: +{value}%",
-"storage_capacity_final": "Lagerkapazität: {value}"
+"cargo_delta": "Cargo: +{value}%",
+"cargo_final": "Cargo: {value}%",
+"mining_rate_delta": "Mining Rate: +{value}%",
+"mining_rate_final": "Mining Rate: +{value}%",
+"scan_duration_delta": "Scan Duration: -{value}%",
+"scan_duration_final": "Scan Duration: -{value}%",
+"scan_speed_delta": "Scan Speed: +{value}%",
+"scan_speed_final": "Scan Speed: {value}%",
+"scan_support_delta": "Yield: +{value}%",
+"scan_support_final": "Yield: +{value}%",
+"storage_capacity_delta": "Storage Capacity: +{value}%",
+"storage_capacity_final": "Storage Capacity: {value}"
 }

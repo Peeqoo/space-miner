@@ -17,4 +17,4 @@ cost = {
 cargo_capacity_percent = 150
 unlock_mining_layer = 1
 applies_to_new_jobs_only = true
-short_description = "Erhöht die Cargo-Kapazität weiter."
+short_description = "Further increases cargo capacity."

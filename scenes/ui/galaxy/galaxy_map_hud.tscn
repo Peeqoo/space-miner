@@ -63,7 +63,7 @@ text = "x"
 [node name="SystemNameLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/SystemHeaderSection" unique_id=749187470]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
-text = "Kein System gewählt"
+text = "No system selected"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="AccessStatusLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/SystemHeaderSection" unique_id=920000011]
@@ -82,7 +82,7 @@ theme_override_constants/separation = 2
 [node name="ScanTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection" unique_id=1063242290]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
-text = "Scandaten"
+text = "Scan Data"
 label_settings = ExtResource("2_g1njk")
 
 [node name="StatsGrid" type="GridContainer" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection" unique_id=901785336]
@@ -95,7 +95,7 @@ columns = 2
 [node name="KnownPlanetsTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection/StatsGrid" unique_id=1529333582]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
-text = "Bekannte Planeten:"
+text = "Known Planets:"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="KnownPlanetsValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection/StatsGrid" unique_id=818791735]
@@ -108,7 +108,7 @@ horizontal_alignment = 2
 [node name="KnownResourcesTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection" unique_id=528362028]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
-text = "Bekannte Ressourcen:"
+text = "Known Resources:"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="KnownResourcesPanel" type="PanelContainer" parent="GalaxyInfoPanel/Margin/Root/ScanIntelSection" unique_id=920000060]
@@ -131,7 +131,7 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 6
-text = "Unbekannt"
+text = "Unknown"
 label_settings = ExtResource("5_3tpsn")
 autowrap_mode = 3
 
@@ -169,7 +169,7 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
-text = "Kein System ausgewählt."
+text = "No system selected."
 label_settings = ExtResource("4_3tpsn")
 autowrap_mode = 3
 
@@ -182,7 +182,7 @@ layout_mode = 2
 [node name="ColonizationTitleLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection" unique_id=892001002]
 layout_mode = 2
 theme_override_font_sizes/font_size = 7
-text = "Kolonisation"
+text = "Colonization"
 label_settings = ExtResource("2_g1njk")
 
 [node name="GridContainer" type="GridContainer" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection" unique_id=103775647]
@@ -191,7 +191,7 @@ columns = 2
 
 [node name="ColonizationStateLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=892001013]
 layout_mode = 2
-text = "Kolo.status:"
+text = "Colony Status:"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationStateValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=1196761442]
@@ -203,7 +203,7 @@ autowrap_mode = 3
 
 [node name="ColonizationTargetLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=892001014]
 layout_mode = 2
-text = "Kolonieziel:"
+text = "Colony Target:"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationTargetValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=1959242497]
@@ -227,13 +227,13 @@ label_settings = ExtResource("5_3tpsn")
 [node name="ColonizationIntelLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=892001016]
 layout_mode = 2
 theme_override_font_sizes/font_size = 6
-text = "Ressourcen:"
+text = "Resources:"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationIntelValueLabel" type="Label" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer" unique_id=1780985601]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Unbekannt"
+text = "Unknown"
 label_settings = ExtResource("5_3tpsn")
 autowrap_mode = 3
 
@@ -250,7 +250,7 @@ size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_0qajj")
 theme_override_font_sizes/font_size = 8
 disabled = true
-text = "Kolonisierung abbrechen"
+text = "Cancel Colonization"
 
 [node name="ColonizationDevButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow" unique_id=892001007]
 layout_mode = 2
@@ -258,7 +258,7 @@ size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_0qajj")
 theme_override_font_sizes/font_size = 8
 disabled = true
-text = "DEV: Ankunft simulieren"
+text = "DEV: Simulate Arrival"
 
 [node name="DividerE" type="HSeparator" parent="GalaxyInfoPanel/Margin/Root" unique_id=1314729952]
 layout_mode = 2
@@ -272,102 +272,102 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_0qajj")
 theme_override_font_sizes/font_size = 10
-text = "System betreten"
+text = "Enter System"
 
 [node name="AccessStatusCurrentTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138101]
 visible = false
 layout_mode = 2
-text = "Aktuelles System"
+text = "Current System"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="AccessStatusReadyTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138102]
 visible = false
 layout_mode = 2
-text = "Bereit"
+text = "Ready"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="AccessStatusLockedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138103]
 visible = false
 layout_mode = 2
-text = "Gesperrt"
+text = "Locked"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="AccessStatusUnreachableTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138104]
 visible = false
 layout_mode = 2
-text = "Nicht erreichbar"
+text = "Unreachable"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="EnterTooltipLockedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138105]
 visible = false
 layout_mode = 2
-text = "Zugriff gesperrt"
+text = "Access locked"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="EnterTooltipUnreachableTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138106]
 visible = false
 layout_mode = 2
-text = "System nicht erreichbar"
+text = "System unreachable"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="EnterTooltipDefaultTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138107]
 visible = false
 layout_mode = 2
-text = "Zugang derzeit nicht möglich"
+text = "Access not available"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationEstablishedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138108]
 visible = false
 layout_mode = 2
-text = "Etabliert"
+text = "Established"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationHomeTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138109]
 visible = false
 layout_mode = 2
-text = "Heimat"
+text = "Home"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationUncolonizedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138110]
 visible = false
 layout_mode = 2
-text = "Unkolonisiert"
+text = "Uncolonized"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationBlockedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138111]
 visible = false
 layout_mode = 2
-text = "Gesperrt"
+text = "Locked"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="ColonizationPendingFallbackTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138112]
 visible = false
 layout_mode = 2
-text = "Läuft"
+text = "Running"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="IntelKnownTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138113]
 visible = false
 layout_mode = 2
-text = "Bekannt"
+text = "Known"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="IntelUnknownTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138114]
 visible = false
 layout_mode = 2
-text = "Unbekannt"
+text = "Unknown"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="NoDescriptionTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138115]
 visible = false
 layout_mode = 2
-text = "Keine Beschreibung verfügbar"
+text = "No description available"
 label_settings = ExtResource("4_3tpsn")
 
 [node name="NoSelectionInfoTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138116]
 visible = false
 layout_mode = 2
-text = "Kein System ausgewählt"
+text = "No system selected"
 label_settings = ExtResource("4_3tpsn")
 
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/SystemHeaderSection/HeaderRow/CloseButton" to="." method="_on_close_button_pressed"]

@@ -13,4 +13,4 @@ cost = {
 "Iron": 50
 }
 storage_capacity_units = 2600
-short_description = "Erweitert das Lager für größere Produktion."
+short_description = "Expands storage for larger production."

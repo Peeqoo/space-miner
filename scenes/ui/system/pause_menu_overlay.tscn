@@ -42,7 +42,7 @@ theme_override_constants/separation = 6
 
 [node name="TitleLabel" type="Label" parent="RootPanel/Margin/Root" unique_id=650424135]
 layout_mode = 2
-text = "Pausiert"
+text = "Paused"
 label_settings = ExtResource("2_title")
 horizontal_alignment = 1
 
@@ -67,14 +67,14 @@ text = "Exit to Main Menu"
 [node name="SaveSuccessLabel" type="Label" parent="RootPanel/Margin/Root" unique_id=1423787878]
 visible = false
 layout_mode = 2
-text = "Gespeichert"
+text = "Saved"
 label_settings = ExtResource("3_text")
 horizontal_alignment = 1
 
 [node name="SaveFailedLabel" type="Label" parent="RootPanel/Margin/Root" unique_id=1689238552]
 visible = false
 layout_mode = 2
-text = "Speichern fehlgeschlagen"
+text = "Save failed"
 label_settings = ExtResource("3_text")
 horizontal_alignment = 1
 
@@ -100,7 +100,7 @@ alignment = 1
 
 [node name="SaveTimestampTitleLabel" type="Label" parent="RootPanel/Margin/Root/SaveTimestampRow" unique_id=161082933]
 layout_mode = 2
-text = "Letzter Spielstand:"
+text = "Last save:"
 label_settings = ExtResource("3_text")
 
 [node name="SaveTimestampValueLabel" type="Label" parent="RootPanel/Margin/Root/SaveTimestampRow" unique_id=1230066346]

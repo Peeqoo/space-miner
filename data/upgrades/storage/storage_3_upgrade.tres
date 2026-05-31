@@ -13,4 +13,4 @@ cost = {
 "Iron": 100
 }
 storage_capacity_units = 4200
-short_description = "Maximales Lager für Endgame-Produktion."
+short_description = "Maximum storage for endgame production."

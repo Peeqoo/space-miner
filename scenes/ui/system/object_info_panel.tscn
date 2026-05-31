@@ -31,7 +31,7 @@ layout_mode = 2
 [node name="HeaderLabel" type="Label" parent="Margin/Root/HBoxContainer" unique_id=994376410]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Object-Info"
+text = "Object Info"
 label_settings = ExtResource("2_2h3fg")
 
 [node name="CloseBasePanelButton" type="Button" parent="Margin/Root/HBoxContainer" unique_id=815001315]
@@ -76,18 +76,18 @@ label_settings = ExtResource("4_ckpwi")
 
 [node name="TypeLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=764784357]
 layout_mode = 2
-text = "Typ: Planet"
+text = "Type: Planet"
 label_settings = ExtResource("4_ckpwi")
 
 [node name="ScanStatusLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=586031701]
 layout_mode = 2
-text = "Scanstatus: Unknown"
+text = "Scan Status: Unknown"
 label_settings = ExtResource("4_ckpwi")
 text_overrun_behavior = 3
 
 [node name="DistanceLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=476233926]
 layout_mode = 2
-text = "Distanz: 184 u"
+text = "Distance: 184 u"
 label_settings = ExtResource("4_ckpwi")
 
 [node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=342453918]
@@ -95,7 +95,7 @@ layout_mode = 2
 
 [node name="ResourceTitleLabel" type="Label" parent="Margin/Root" unique_id=214492717]
 layout_mode = 2
-text = "Sichtbare Ressourcen"
+text = "Visible Resources"
 label_settings = ExtResource("6_2ibr3")
 
 [node name="ResourcePanel" type="PanelContainer" parent="Margin/Root" unique_id=1943916076]
@@ -145,7 +145,7 @@ horizontal_scroll_mode = 0
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Bewohnter Gesteinsplanet mit bekannter Infrastruktur."
+text = "Rocky planet with established infrastructure."
 label_settings = ExtResource("4_ckpwi")
 autowrap_mode = 3
 
@@ -158,12 +158,12 @@ theme_override_constants/separation = 2
 
 [node name="DroneOrbitLabel" type="Label" parent="Margin/Root/OrbitStatusSection" unique_id=1369567019]
 layout_mode = 2
-text = "Drones im Orbit: 0"
+text = "Drones in Orbit: 0"
 label_settings = ExtResource("6_oi0nm")
 
 [node name="MineOrbitLabel" type="Label" parent="Margin/Root/OrbitStatusSection" unique_id=700546023]
 layout_mode = 2
-text = "Mining Ship im Orbit: 0"
+text = "Mining Ship in Orbit: 0"
 label_settings = ExtResource("6_oi0nm")
 
 [node name="MiningBonusLabel" type="Label" parent="Margin/Root/OrbitStatusSection" unique_id=354748244]
@@ -242,7 +242,7 @@ size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 10
 disabled = true
-text = "Kolonisierung starten"
+text = "Start Colonization"
 
 [node name="InvestigateButton" type="Button" parent="Margin/Root/GridContainer" unique_id=1605375559]
 visible = false
@@ -297,13 +297,13 @@ label_settings = ExtResource("6_oi0nm")
 [node name="EmptySelectionLoreTemplate" type="Label" parent="Margin/Root" unique_id=1781138006]
 visible = false
 layout_mode = 2
-text = "Kein Objekt ausgewählt."
+text = "No object selected."
 label_settings = ExtResource("6_oi0nm")
 
 [node name="NoDescriptionLoreTemplate" type="Label" parent="Margin/Root" unique_id=1781138007]
 visible = false
 layout_mode = 2
-text = "Keine Beschreibung verfügbar."
+text = "No description available."
 label_settings = ExtResource("6_oi0nm")
 
 [node name="MiningButtonDepletedTemplate" type="Label" parent="Margin/Root" unique_id=1781138008]
@@ -315,23 +315,23 @@ label_settings = ExtResource("6_oi0nm")
 [node name="ColonizationRunningTemplate" type="Label" parent="Margin/Root" unique_id=1781138009]
 visible = false
 layout_mode = 2
-text = "Läuft..."
+text = "In progress..."
 label_settings = ExtResource("6_oi0nm")
 
 [node name="ColonizationNoShipTooltipTemplate" type="Label" parent="Margin/Root" unique_id=1781138010]
 visible = false
 layout_mode = 2
-text = "Kein ColonyShip verfügbar."
+text = "No Colony Ship available."
 label_settings = ExtResource("6_oi0nm")
 
 [node name="AutomationDroneSupportingTemplate" type="Label" parent="Margin/Root" unique_id=1781138011]
 visible = false
 layout_mode = 2
-text = "%d unterstützend"
+text = "%d supporting"
 label_settings = ExtResource("6_oi0nm")
 
 [node name="AutomationDroneOnMissionTemplate" type="Label" parent="Margin/Root" unique_id=1781138012]
 visible = false
 layout_mode = 2
-text = "%d im Einsatz"
+text = "%d on mission"
 label_settings = ExtResource("6_oi0nm")

@@ -74,7 +74,7 @@ label_settings = ExtResource("5_3xxhb")
 
 [node name="StatusLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=1160767719]
 layout_mode = 2
-text = "Homebasis"
+text = "Home Base"
 label_settings = ExtResource("5_3xxhb")
 
 [node name="PopulationLabel" type="Label" parent="Margin/Root/MainRow/MetaColumn" unique_id=1423240984]

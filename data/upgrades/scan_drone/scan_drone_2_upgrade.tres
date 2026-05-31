@@ -18,4 +18,4 @@ scan_duration_multiplier = 0.5
 mining_yield_bonus_per_support_drone_percent = 3
 unlock_scan_layer = 1
 applies_to_new_jobs_only = true
-short_description = "Beschleunigt Scan-Aufträge."
+short_description = "Speeds up scan missions."

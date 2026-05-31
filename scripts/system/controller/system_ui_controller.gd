@@ -491,7 +491,7 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 			info["lore_text"] = poi.definition.description
 
 	if not info.has("lore_text"):
-		info["lore_text"] = "Keine Beschreibung verfügbar."
+		info["lore_text"] = "No description available."
 
 	_apply_colonization_info_to_dict(info, selected_node)
 	_apply_sensor_pulse_info_to_dict(info)
@@ -1362,7 +1362,7 @@ func _build_hover_details(kind: String) -> Dictionary:
 	):
 		return {
 			"title": "—",
-			"details": ["Keine Basis-Kontext-ID für dieses System."],
+			"details": ["No base context ID for this system."],
 			"hint": "",
 		}
 

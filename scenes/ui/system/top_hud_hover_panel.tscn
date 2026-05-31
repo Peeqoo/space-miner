@@ -43,7 +43,7 @@ autowrap_mode = 3
 [node name="EffectsSectionLabelTemplate" type="Label" parent="Margin/Root" unique_id=1580171014]
 visible = false
 layout_mode = 2
-text = "Effekte:"
+text = "Effects:"
 label_settings = ExtResource("3_p7mc1")
 autowrap_mode = 3
 

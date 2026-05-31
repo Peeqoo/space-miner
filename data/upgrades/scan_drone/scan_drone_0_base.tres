@@ -11,4 +11,4 @@ purchasable = false
 scan_speed_percent = 100
 scan_duration_multiplier = 1.0
 mining_yield_bonus_per_support_drone_percent = 2
-short_description = "Ermöglicht Basic-Scans und erste Ressourcen."
+short_description = "Enables basic scans and initial resources."

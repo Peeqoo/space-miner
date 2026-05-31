@@ -10,5 +10,5 @@ cost = {
 "Iron": 40
 }
 sort_order = 2
-short_description = "Verbrauchbare Sonde zur Untersuchung unbekannter Signale."
-effect_lines = ["Einmalig — kein ScanDrone", "Wird bei Investigate verbraucht"]
+short_description = "Consumable probe for investigating unknown signals."
+effect_lines = ["Single-use — not a Scan Drone", "Consumed on Investigate"]

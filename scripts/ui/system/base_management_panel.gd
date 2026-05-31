@@ -105,7 +105,7 @@ func refresh_from_game_session() -> void:
 		return
 
 	base_name_label.text = current_base_name
-	status_label.text = "Homebasis" if base_id == BaseStore.BASE_EARTH else "Basis"
+	status_label.text = "Home Base" if base_id == BaseStore.BASE_EARTH else "Base"
 
 	var population := GameSession.get_base_population(base_id)
 	population_label.text = "Population: %s" % NumberFormat.format_compact(population)

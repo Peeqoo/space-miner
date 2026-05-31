@@ -9,4 +9,4 @@ unit_key = "drones"
 cost = {
 "Iron": 90
 }
-short_description = "Scannt Himmelskörper und deckt Ressourcen auf."
+short_description = "Scans celestial bodies and reveals resources."

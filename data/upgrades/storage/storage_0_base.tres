@@ -9,4 +9,4 @@ category = &"storage"
 title = "Base Storage"
 purchasable = false
 storage_capacity_units = 1000
-short_description = "Basislager für gesammelte Ressourcen."
+short_description = "Base storage for collected resources."

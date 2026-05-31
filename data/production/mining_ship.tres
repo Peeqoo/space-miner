@@ -11,5 +11,5 @@ cost = {
 "Silicon": 40
 }
 sort_order = 1
-short_description = "Baut sichtbare und minebare Ressourcen ab."
-effect_lines = ["Liefert Cargo zur Basis"]
+short_description = "Mines visible, mineable resources."
+effect_lines = ["Delivers cargo to the base"]
