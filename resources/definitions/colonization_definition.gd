@@ -7,8 +7,8 @@ extends Resource
 @export var allow_auto_complete: bool = false
 
 ## UI labels for colonization operation status (not global section captions).
-@export var pending_status_format: String = "Läuft %ds"
-@export var ready_status_label: String = "Bereit zur Ankunft"
+@export var pending_status_format: String = "Running %ds"
+@export var ready_status_label: String = "Ready for arrival"
 ## Shown when timer elapsed and `allow_auto_complete` is false (manual / dev complete).
 @export var awaiting_confirmation_status_label: String = "Awaiting confirmation"
 @export var completed_status_label: String = ""
