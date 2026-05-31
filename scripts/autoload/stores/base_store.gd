@@ -11,13 +11,6 @@ const PRODUCTION_SURVEY_PROBE := "survey_probe"
 ## Safety fallback only when `storage_0_base.tres` / UpgradeCatalog is unavailable.
 const STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK: int = 1000
 
-## Shown when unload/mining is blocked because base storage has no free capacity.
-const STORAGE_BLOCKED_REASON_FULL: String = "Storage full"
-
-const BUILD_BLOCK_NOT_ENOUGH_RESOURCES: String = "Not enough resources"
-const BUILD_BLOCK_SCAN_DRONE_LIMIT: String = "Scan drone limit reached"
-const BUILD_BLOCK_MINING_SHIP_LIMIT: String = "Mining ship limit reached"
-
 const COLONY_BLOCK_NOT_ENOUGH_RESOURCES: String = "Not enough resources"
 const COLONY_BLOCK_SHIPYARD_I: String = "Shipyard I required"
 const COLONY_BLOCK_COLONY_PROTOCOL: String = "Colony Protocol required"
@@ -215,18 +208,25 @@ func can_afford_upgrade(base_id: String, upgrade_definition: UpgradeDefinition) 
 	return can_afford(base_id, upgrade_definition.cost)
 
 
-func get_buy_next_upgrade_blocked_reason(base_id: String, category: StringName) -> String:
+func get_buy_next_upgrade_blocked_reason_key(base_id: String, category: StringName) -> StringName:
 	if _upgrade_catalog == null:
-		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+		return GateUiTextDefinition.KEY_UPGRADE_NOT_ENOUGH_RESOURCES
 	var cur := get_upgrade_level(base_id, category)
 	var nxt := _upgrade_catalog.get_next_definition(category, cur)
 	if nxt == null:
-		return ""
+		return GateUiTextDefinition.KEY_NONE
 	if not nxt.purchasable:
-		return ""
+		return GateUiTextDefinition.KEY_NONE
 	if not can_afford_upgrade(base_id, nxt):
-		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
-	return ""
+		return GateUiTextDefinition.KEY_UPGRADE_NOT_ENOUGH_RESOURCES
+	return GateUiTextDefinition.KEY_NONE
+
+
+func get_buy_next_upgrade_blocked_reason(base_id: String, category: StringName) -> String:
+	var key := get_buy_next_upgrade_blocked_reason_key(base_id, category)
+	if key == GateUiTextDefinition.KEY_NONE or String(key).is_empty():
+		return ""
+	return GateUiTextDefinition.get_text(key)
 
 
 func buy_next_upgrade(base_id: String, upgrade_definition: UpgradeDefinition) -> bool:
@@ -514,12 +514,19 @@ func add_survey_probe(base_id: String, amount: int = 1) -> void:
 
 
 func get_build_survey_probe_blocked_reason(base_id: String) -> String:
+	var key := get_build_survey_probe_blocked_reason_key(base_id)
+	if key == GateUiTextDefinition.KEY_NONE or String(key).is_empty():
+		return ""
+	return GateUiTextDefinition.get_text(key)
+
+
+func get_build_survey_probe_blocked_reason_key(base_id: String) -> StringName:
 	var cost := get_production_cost(PRODUCTION_SURVEY_PROBE)
 	if cost.is_empty():
-		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
+		return GateUiTextDefinition.KEY_BUILD_NOT_ENOUGH_RESOURCES
 	if not can_afford(base_id, cost):
-		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
-	return ""
+		return GateUiTextDefinition.KEY_BUILD_NOT_ENOUGH_RESOURCES
+	return GateUiTextDefinition.KEY_NONE
 
 
 func can_build_survey_probe(base_id: String) -> bool:
@@ -538,13 +545,20 @@ func build_survey_probe(base_id: String) -> bool:
 	return true
 
 
-func get_build_scan_drone_blocked_reason(base_id: String) -> String:
+func get_build_scan_drone_blocked_reason_key(base_id: String) -> StringName:
 	if get_drone_count(base_id) >= get_max_scan_drone_count():
-		return BUILD_BLOCK_SCAN_DRONE_LIMIT
+		return GateUiTextDefinition.KEY_BUILD_SCAN_DRONE_LIMIT
 	var cost := get_production_cost(PRODUCTION_SCAN_DRONE)
 	if cost.is_empty() or not can_afford(base_id, cost):
-		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
-	return ""
+		return GateUiTextDefinition.KEY_BUILD_NOT_ENOUGH_RESOURCES
+	return GateUiTextDefinition.KEY_NONE
+
+
+func get_build_scan_drone_blocked_reason(base_id: String) -> String:
+	var key := get_build_scan_drone_blocked_reason_key(base_id)
+	if key == GateUiTextDefinition.KEY_NONE or String(key).is_empty():
+		return ""
+	return GateUiTextDefinition.get_text(key)
 
 
 func can_build_drone(base_id: String) -> bool:
@@ -567,13 +581,20 @@ func build_drone(base_id: String) -> bool:
 	return true
 
 
-func get_build_mining_ship_blocked_reason(base_id: String) -> String:
+func get_build_mining_ship_blocked_reason_key(base_id: String) -> StringName:
 	if get_mining_ship_count(base_id) >= get_max_mining_ship_count():
-		return BUILD_BLOCK_MINING_SHIP_LIMIT
+		return GateUiTextDefinition.KEY_BUILD_MINING_SHIP_LIMIT
 	var cost := get_production_cost(PRODUCTION_MINING_SHIP)
 	if cost.is_empty() or not can_afford(base_id, cost):
-		return BUILD_BLOCK_NOT_ENOUGH_RESOURCES
-	return ""
+		return GateUiTextDefinition.KEY_BUILD_NOT_ENOUGH_RESOURCES
+	return GateUiTextDefinition.KEY_NONE
+
+
+func get_build_mining_ship_blocked_reason(base_id: String) -> String:
+	var key := get_build_mining_ship_blocked_reason_key(base_id)
+	if key == GateUiTextDefinition.KEY_NONE or String(key).is_empty():
+		return ""
+	return GateUiTextDefinition.get_text(key)
 
 
 func can_build_mining_ship(base_id: String) -> bool:

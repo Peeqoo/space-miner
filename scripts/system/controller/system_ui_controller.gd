@@ -669,11 +669,11 @@ func _apply_mining_ship_info_to_dict(
 	info["can_mine_with_ship"] = bool(mine_gate.get("ok", false))
 	info["mine_blocked_reason"] = str(mine_gate.get("blocked_reason", "")).strip_edges()
 
-	var block_reason: String = info["mine_blocked_reason"]
+	var block_key: StringName = mine_gate.get("blocked_reason_key", &"")
 	info["mining_exhausted"] = (
 		bool(info["show_mine_with_ship"])
 		and not bool(info["can_mine_with_ship"])
-		and block_reason == GameSession.MINE_BLOCK_DEPLETED
+		and block_key == GateUiTextDefinition.KEY_MINE_DEPLETED
 	)
 
 

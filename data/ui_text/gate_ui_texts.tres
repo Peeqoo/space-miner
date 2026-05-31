@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="GateUiTextDefinition" format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/gate_ui_text_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+templates = {
+"build_mining_ship_limit": "Mining ship limit reached",
+"build_not_enough_resources": "Not enough resources",
+"build_scan_drone_limit": "Scan drone limit reached",
+"colony_no_ship": "No Colony Ship available",
+"colony_not_enough_resources": "Not enough resources",
+"colony_requirement_missing": "Requirement missing",
+"mine_depleted": "Resource depleted",
+"mine_no_resources": "No resources available",
+"mine_no_ship": "No mining ship available",
+"mine_not_discovered": "Object not discovered",
+"mine_not_scanned": "Scan required",
+"mine_storage_full": "Storage full",
+"scan_already_in_progress": "Scan already in progress",
+"scan_no_drone": "No scan drone available",
+"scan_not_discovered": "Object not discovered",
+"storage_full": "Storage full",
+"upgrade_max_level": "Maximum level reached",
+"upgrade_not_enough_resources": "Not enough resources"
+}

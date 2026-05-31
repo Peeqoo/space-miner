@@ -25,6 +25,7 @@ const DEFAULT_UPGRADE_EFFECT_TEXTS_PATH := "res://data/ui_text/upgrade_effect_te
 const DEFAULT_DISCOVERY_SIGNAL_UI_TEXTS_PATH := (
 	"res://data/ui_text/discovery_signal_ui_texts.tres"
 )
+const DEFAULT_GATE_UI_TEXTS_PATH := "res://data/ui_text/gate_ui_texts.tres"
 ## Safety fallback only when `ColonizationDefinition` fails to load — not the primary data source.
 const COLONIZATION_OPERATION_DURATION_MS_FALLBACK := 60000
 
@@ -103,6 +104,7 @@ func _ready() -> void:
 	bases.set_game_balance(get_game_balance())
 	_load_upgrade_effect_texts()
 	_load_discovery_signal_ui_texts()
+	_load_gate_ui_texts()
 
 	mark_base_established(BaseStore.BASE_EARTH)
 	ensure_default_system_loaded()
@@ -442,6 +444,36 @@ func _load_discovery_signal_ui_texts() -> void:
 		% DEFAULT_DISCOVERY_SIGNAL_UI_TEXTS_PATH
 	)
 	DiscoverySignalUiTextDefinition.set_global(null)
+
+
+func _load_gate_ui_texts() -> void:
+	var res: Resource = load(DEFAULT_GATE_UI_TEXTS_PATH)
+	if res is GateUiTextDefinition:
+		GateUiTextDefinition.set_global(res as GateUiTextDefinition)
+		return
+	push_warning(
+		"GameSession: failed to load GateUiTextDefinition from %s" % DEFAULT_GATE_UI_TEXTS_PATH
+	)
+	GateUiTextDefinition.set_global(null)
+
+
+func get_gate_ui_texts() -> GateUiTextDefinition:
+	return GateUiTextDefinition.get_global()
+
+
+func get_gate_text(key: StringName, fallback: String = "") -> String:
+	return GateUiTextDefinition.get_text(key, fallback)
+
+
+func _gate_fail(reason_key: StringName, extra: Dictionary = {}) -> Dictionary:
+	var gate := {
+		"ok": false,
+		"blocked_reason_key": reason_key,
+		"blocked_reason": get_gate_text(reason_key),
+	}
+	for k: Variant in extra.keys():
+		gate[k] = extra[k]
+	return gate
 
 
 func get_colonization_operation_duration_ms() -> int:
@@ -963,13 +995,6 @@ func is_object_depleted(system_id: String, object_id: String) -> bool:
 	return object_scans.is_object_depleted(system_id, object_id)
 
 
-const MINE_BLOCK_NOT_DISCOVERED := "Object not discovered"
-const MINE_BLOCK_NOT_SCANNED := "Object not scanned"
-const MINE_BLOCK_NO_RESOURCES := "No resources available"
-const MINE_BLOCK_DEPLETED := "Resource depleted"
-const MINE_BLOCK_NO_SHIP := "No mining ship available"
-
-
 func ensure_mining_resources_for_object(system_id: String, object_id: String) -> void:
 	var sid := system_id.strip_edges()
 	var oid := object_id.strip_edges()
@@ -999,43 +1024,50 @@ func can_mine_object(
 	var bid := _economy_base_id(base_id)
 
 	if oid.is_empty() or sid.is_empty():
-		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, false)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NO_RESOURCES, false)
 
 	if not is_object_known(sid, oid):
-		return _mine_blocked(MINE_BLOCK_NOT_DISCOVERED, false)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NOT_DISCOVERED, false)
 
 	var scan_state: String = get_object_scan_state(sid, oid)
 	if scan_state == SCAN_UNKNOWN:
-		return _mine_blocked(MINE_BLOCK_NOT_SCANNED, false)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NOT_SCANNED, false)
 
 	var definition: Resource = _load_object_definition_for_system(sid, oid)
 	if definition == null:
-		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, false)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NO_RESOURCES, false)
 
 	var entries: Array = _collect_scan_entries_for_definition(definition, scan_state)
 	if entries.is_empty():
-		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, false)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NO_RESOURCES, false)
 
 	ensure_mining_resources_for_object(sid, oid)
 
 	var probe_ids: Array = _resource_ids_from_scan_entries(entries)
 	if probe_ids.is_empty():
-		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, true)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NO_RESOURCES, true)
 
 	if not has_object_resources(sid, oid):
-		return _mine_blocked(MINE_BLOCK_NO_RESOURCES, true)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NO_RESOURCES, true)
 
 	if is_object_depleted(sid, oid) or not has_remaining_resources_among(sid, oid, probe_ids):
-		return _mine_blocked(MINE_BLOCK_DEPLETED, true)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_DEPLETED, true)
 
 	if not has_idle_mining_ship:
-		return _mine_blocked(MINE_BLOCK_NO_SHIP, true)
+		return _mine_blocked(GateUiTextDefinition.KEY_MINE_NO_SHIP, true)
 
-	return {"ok": true, "blocked_reason": "", "show_mine_button": true}
+	return {
+		"ok": true,
+		"blocked_reason": "",
+		"blocked_reason_key": GateUiTextDefinition.KEY_NONE,
+		"show_mine_button": true,
+	}
 
 
-func _mine_blocked(reason: String, show_mine_button: bool) -> Dictionary:
-	return {"ok": false, "blocked_reason": reason, "show_mine_button": show_mine_button}
+func _mine_blocked(reason_key: StringName, show_mine_button: bool) -> Dictionary:
+	var gate := _gate_fail(reason_key)
+	gate["show_mine_button"] = show_mine_button
+	return gate
 
 
 func _resource_ids_from_scan_entries(entries: Array) -> Array:
@@ -1219,9 +1251,6 @@ func scan_state_rank(scan_state: String) -> int:
 			return 0
 
 
-const SCAN_BLOCK_NOT_DISCOVERED := "Object not discovered"
-const SCAN_BLOCK_NO_DRONE := "No scan drone available"
-const SCAN_BLOCK_IN_PROGRESS := "Scan already in progress"
 const SCAN_BLOCK_NO_LAYER := "No scan layer available"
 
 const _SCAN_DRONE_UNIT_PATH := "res://data/units/scan_drone.tres"
@@ -1337,57 +1366,68 @@ func can_scan_object(
 	var scan_is_progression: bool = bool(scan_target.get("scan_is_progression", true))
 
 	if oid.is_empty() or sid.is_empty():
-		return {
-			"ok": false,
-			"blocked_reason": SCAN_BLOCK_NOT_DISCOVERED,
-			"target_scan_state": "",
-			"scan_is_progression": false,
-		}
+		return _scan_blocked(
+			GateUiTextDefinition.KEY_SCAN_NOT_DISCOVERED,
+			"",
+			false,
+		)
 
 	if not is_object_known(sid, oid):
-		return {
-			"ok": false,
-			"blocked_reason": SCAN_BLOCK_NOT_DISCOVERED,
-			"target_scan_state": target_state,
-			"scan_is_progression": scan_is_progression,
-		}
+		return _scan_blocked(
+			GateUiTextDefinition.KEY_SCAN_NOT_DISCOVERED,
+			target_state,
+			scan_is_progression,
+		)
 
 	if target_state.is_empty():
-		return {
-			"ok": false,
-			"blocked_reason": SCAN_BLOCK_NO_LAYER,
-			"target_scan_state": "",
-			"scan_is_progression": false,
-		}
+		return _scan_blocked_no_layer("", false)
 
 	if scan_is_progression and not _scan_layer_allows_target_state(bid, target_state):
-		return {
-			"ok": false,
-			"blocked_reason": SCAN_BLOCK_NO_LAYER,
-			"target_scan_state": target_state,
-			"scan_is_progression": scan_is_progression,
-		}
+		return _scan_blocked_no_layer(target_state, scan_is_progression)
 
 	if target_has_active_scan:
-		return {
-			"ok": false,
-			"blocked_reason": SCAN_BLOCK_IN_PROGRESS,
-			"target_scan_state": target_state,
-			"scan_is_progression": scan_is_progression,
-		}
+		return _scan_blocked(
+			GateUiTextDefinition.KEY_SCAN_ALREADY_IN_PROGRESS,
+			target_state,
+			scan_is_progression,
+		)
 
 	if not has_idle_scan_drone:
-		return {
-			"ok": false,
-			"blocked_reason": SCAN_BLOCK_NO_DRONE,
-			"target_scan_state": target_state,
-			"scan_is_progression": scan_is_progression,
-		}
+		return _scan_blocked(
+			GateUiTextDefinition.KEY_SCAN_NO_DRONE,
+			target_state,
+			scan_is_progression,
+		)
 
 	return {
 		"ok": true,
 		"blocked_reason": "",
+		"blocked_reason_key": GateUiTextDefinition.KEY_NONE,
 		"target_scan_state": target_state,
+		"scan_is_progression": scan_is_progression,
+	}
+
+
+func _scan_blocked(
+	reason_key: StringName,
+	target_scan_state: String,
+	scan_is_progression: bool,
+) -> Dictionary:
+	return _gate_fail(
+		reason_key,
+		{
+			"target_scan_state": target_scan_state,
+			"scan_is_progression": scan_is_progression,
+		},
+	)
+
+
+func _scan_blocked_no_layer(target_scan_state: String, scan_is_progression: bool) -> Dictionary:
+	return {
+		"ok": false,
+		"blocked_reason": SCAN_BLOCK_NO_LAYER,
+		"blocked_reason_key": &"",
+		"target_scan_state": target_scan_state,
 		"scan_is_progression": scan_is_progression,
 	}
 
@@ -1595,20 +1635,23 @@ func can_build_base_survey_probe(base_id: String) -> bool:
 
 func get_build_base_survey_probe_gate(base_id: String) -> Dictionary:
 	var bid := _economy_base_id(base_id)
-	var reason := bases.get_build_survey_probe_blocked_reason(bid)
-	return {"ok": reason.is_empty(), "blocked_reason": reason}
+	return _build_gate_from_key(bases.get_build_survey_probe_blocked_reason_key(bid))
 
 
 func get_build_base_scan_drone_gate(base_id: String) -> Dictionary:
 	var bid := _economy_base_id(base_id)
-	var reason := bases.get_build_scan_drone_blocked_reason(bid)
-	return {"ok": reason.is_empty(), "blocked_reason": reason}
+	return _build_gate_from_key(bases.get_build_scan_drone_blocked_reason_key(bid))
 
 
 func get_build_base_mining_ship_gate(base_id: String) -> Dictionary:
 	var bid := _economy_base_id(base_id)
-	var reason := bases.get_build_mining_ship_blocked_reason(bid)
-	return {"ok": reason.is_empty(), "blocked_reason": reason}
+	return _build_gate_from_key(bases.get_build_mining_ship_blocked_reason_key(bid))
+
+
+func _build_gate_from_key(reason_key: StringName) -> Dictionary:
+	if reason_key == GateUiTextDefinition.KEY_NONE or String(reason_key).is_empty():
+		return {"ok": true, "blocked_reason": "", "blocked_reason_key": GateUiTextDefinition.KEY_NONE}
+	return _gate_fail(reason_key)
 
 
 func build_base_survey_probe(base_id: String) -> bool:
@@ -1684,7 +1727,10 @@ func add_base_resource_with_capacity_check(
 
 
 func get_base_storage_blocked_reason_full() -> String:
-	return BaseStore.STORAGE_BLOCKED_REASON_FULL
+	return get_gate_text(
+		GateUiTextDefinition.KEY_STORAGE_FULL,
+		GateUiTextDefinition.FALLBACK_STORAGE_FULL,
+	)
 
 
 func get_base_upgrade_level(base_id: String, category: StringName) -> int:
@@ -1715,10 +1761,16 @@ func can_buy_next_base_upgrade(base_id: String, category: StringName) -> bool:
 
 func get_buy_next_base_upgrade_gate(base_id: String, category: StringName) -> Dictionary:
 	var bid := _economy_base_id(base_id)
-	var reason := bases.get_buy_next_upgrade_blocked_reason(bid, category)
-	if reason.is_empty() and not has_next_base_upgrade(bid, category):
-		return {"ok": false, "blocked_reason": ""}
-	return {"ok": reason.is_empty(), "blocked_reason": reason}
+	var reason_key := bases.get_buy_next_upgrade_blocked_reason_key(bid, category)
+	if reason_key == GateUiTextDefinition.KEY_NONE or String(reason_key).is_empty():
+		if not has_next_base_upgrade(bid, category):
+			return {
+				"ok": false,
+				"blocked_reason": "",
+				"blocked_reason_key": GateUiTextDefinition.KEY_NONE,
+			}
+		return {"ok": true, "blocked_reason": "", "blocked_reason_key": GateUiTextDefinition.KEY_NONE}
+	return _gate_fail(reason_key)
 
 
 func buy_next_base_upgrade(base_id: String, category: StringName) -> bool:

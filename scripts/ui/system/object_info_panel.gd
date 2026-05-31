@@ -639,7 +639,8 @@ func _apply_live_action_controls() -> void:
 	_live_action_cache["mining_exhausted"] = mining_exhausted
 
 	var mining_block_depleted: bool = (
-		mining_exhausted or mine_blocked == GameSession.MINE_BLOCK_DEPLETED
+		mining_exhausted
+		or mine_blocked == GateUiTextDefinition.get_text(GateUiTextDefinition.KEY_MINE_DEPLETED)
 	)
 	var can_mine_effective: bool = can_mine and not mining_block_depleted
 	var mine_visible: bool = show_mine or can_mine
