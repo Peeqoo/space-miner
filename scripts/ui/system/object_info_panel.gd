@@ -46,6 +46,7 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var sensor_pulse_button: Button = $Margin/Root/GridContainer/SensorPulseButton
 @onready var economy_block_label: Label = $Margin/Root/EconomyBlockLabel
 @onready var investigate_progress_label: Label = $Margin/Root/InvestigateProgressLabel
+@onready var sensor_pulse_progress_label: Label = $Margin/Root/SensorPulseProgressLabel
 @onready var investigate_progress_format_template: Label = (
 	$Margin/Root/InvestigateProgressFormatTemplate
 )
@@ -400,6 +401,7 @@ func show_empty() -> void:
 
 	_apply_signal_discovery_controls()
 	_hide_investigate_progress_ui()
+	_hide_sensor_pulse_progress_ui()
 	if is_instance_valid(economy_block_label):
 		economy_block_label.visible = false
 
@@ -513,6 +515,23 @@ func _show_investigate_progress_ui(progress_text: String, _percent: int) -> void
 func _hide_investigate_progress_ui() -> void:
 	if investigate_progress_label != null:
 		investigate_progress_label.visible = false
+
+
+func _show_sensor_pulse_progress_ui(progress_text: String) -> void:
+	if sensor_pulse_progress_label == null:
+		return
+	sensor_pulse_progress_label.text = progress_text
+	sensor_pulse_progress_label.visible = true
+	_queue_panel_layout_refresh(false)
+
+
+func _hide_sensor_pulse_progress_ui() -> void:
+	if sensor_pulse_progress_label == null:
+		return
+	if not sensor_pulse_progress_label.visible:
+		return
+	sensor_pulse_progress_label.visible = false
+	_queue_panel_layout_refresh(false)
 
 
 func _set_resource_section_visible(visible: bool) -> void:
@@ -645,6 +664,7 @@ func _apply_live_action_controls() -> void:
 	else:
 		if sensor_pulse_button != null:
 			sensor_pulse_button.visible = false
+		_hide_sensor_pulse_progress_ui()
 		_set_action_buttons(
 			can_scan,
 			show_scan,
@@ -669,6 +689,7 @@ func _apply_sensor_pulse_controls() -> void:
 	var show_pulse: bool = bool(_live_action_cache.get("show_sensor_pulse", false))
 	if not show_pulse:
 		sensor_pulse_button.visible = false
+		_hide_sensor_pulse_progress_ui()
 		return
 
 	var in_progress: bool = bool(_live_action_cache.get("sensor_pulse_in_progress", false))
@@ -682,14 +703,12 @@ func _apply_sensor_pulse_controls() -> void:
 		).strip_edges()
 		if progress_text.is_empty():
 			progress_text = "Scanning for signals: 0%"
-		_show_investigate_progress_ui(progress_text, 0)
-	elif _live_action_cache.get("is_investigate_active", false) != true:
-		_hide_investigate_progress_ui()
-
-	if in_progress:
+		_show_sensor_pulse_progress_ui(progress_text)
 		if is_instance_valid(economy_block_label):
 			economy_block_label.visible = false
 		return
+
+	_hide_sensor_pulse_progress_ui()
 
 	sensor_pulse_button.visible = true
 	sensor_pulse_button.disabled = not can_pulse

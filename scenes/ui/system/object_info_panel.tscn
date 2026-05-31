@@ -192,6 +192,13 @@ size_flags_horizontal = 3
 text = "Investigating: 0%"
 label_settings = ExtResource("6_oi0nm")
 
+[node name="SensorPulseProgressLabel" type="Label" parent="Margin/Root" unique_id=920000102]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Scanning for signals: 0%"
+label_settings = ExtResource("6_oi0nm")
+
 [node name="GridContainer" type="GridContainer" parent="Margin/Root" unique_id=1253186436]
 layout_mode = 2
 theme_override_constants/h_separation = 2
