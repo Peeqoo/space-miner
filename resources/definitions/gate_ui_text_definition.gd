@@ -89,16 +89,6 @@ static func get_text(key: StringName, fallback: String = "") -> String:
 	return fallback
 
 
-static func has_text(key: StringName) -> bool:
-	if key == KEY_NONE or String(key).is_empty():
-		return false
-	if _global != null:
-		var from_data := str(_global.templates.get(key, "")).strip_edges()
-		if not from_data.is_empty():
-			return true
-	return not _fallback_for_key(key).is_empty()
-
-
 static func _fallback_for_key(key: StringName) -> String:
 	match key:
 		KEY_SCAN_NOT_DISCOVERED:
