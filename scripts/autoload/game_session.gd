@@ -1224,10 +1224,6 @@ const SCAN_BLOCK_NO_DRONE := "No scan drone available"
 const SCAN_BLOCK_IN_PROGRESS := "Scan already in progress"
 const SCAN_BLOCK_NO_LAYER := "No scan layer available"
 
-const SCAN_SURVEY_DATA_REWARD_BASIC := 10
-const SCAN_SURVEY_DATA_REWARD_DEEP := 25
-const SCAN_SURVEY_DATA_REWARD_SPECIAL := 50
-
 const _SCAN_DRONE_UNIT_PATH := "res://data/units/scan_drone.tres"
 
 var _scan_drone_unit_definition: UnitDefinition = null
@@ -1446,17 +1442,10 @@ func get_scan_duration_seconds_for_target_state(
 
 
 func grant_scan_survey_data_reward(base_id: String, completed_scan_state: String) -> void:
-	var amount: int = 0
-	match completed_scan_state:
-		SCAN_DEEP:
-			amount = SCAN_SURVEY_DATA_REWARD_DEEP
-		SCAN_SPECIAL:
-			amount = SCAN_SURVEY_DATA_REWARD_SPECIAL
-		SCAN_BASIC:
-			amount = SCAN_SURVEY_DATA_REWARD_BASIC
-		_:
-			return
-
+	var balance := get_game_balance()
+	if balance == null:
+		balance = GameBalanceDefinition.new()
+	var amount: int = balance.get_scan_survey_data_reward_for_state(StringName(completed_scan_state))
 	if amount <= 0:
 		return
 

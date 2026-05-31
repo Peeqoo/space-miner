@@ -4,6 +4,10 @@
 
 [resource]
 script = ExtResource("1")
+survey_probe_investigate_survey_data_reward = 5
+scan_basic_survey_data_reward = 10
+scan_deep_survey_data_reward = 25
+scan_special_survey_data_reward = 50
 base_sensor_pulse_duration_seconds = 12.0
 base_sensor_reveal_count = 1
 base_sensor_max_visible_signals = 2

@@ -35,6 +35,7 @@ const RESOURCE_SURVEY_DATA := &"SurveyData"
 @export var survey_probe_investigate_time_min: float = 15.0
 @export var survey_probe_investigate_time_max: float = 25.0
 @export var survey_probe_early_fail_chance: float = 0.0
+@export var survey_probe_investigate_survey_data_reward: int = 5
 
 # --- SCAN DRONE --------------------------------------------------------------
 
@@ -46,6 +47,9 @@ const RESOURCE_SURVEY_DATA := &"SurveyData"
 @export var scan_drone_near_travel_time_min: float = 10.0
 @export var scan_drone_near_travel_time_max: float = 15.0
 @export var scan_drone_is_consumed_on_scan: bool = false
+@export var scan_basic_survey_data_reward: int = 10
+@export var scan_deep_survey_data_reward: int = 25
+@export var scan_special_survey_data_reward: int = 50
 
 # --- MINING SHIP -------------------------------------------------------------
 
@@ -148,6 +152,22 @@ func get_scan_duration_for_layer(layer: int) -> float:
 			return special_scan_duration
 		_:
 			return basic_scan_duration
+
+
+func get_scan_survey_data_reward_for_state(scan_state: StringName) -> int:
+	match String(scan_state).strip_edges():
+		ObjectScanStore.SCAN_DEEP:
+			return maxi(0, scan_deep_survey_data_reward)
+		ObjectScanStore.SCAN_SPECIAL:
+			return maxi(0, scan_special_survey_data_reward)
+		ObjectScanStore.SCAN_BASIC:
+			return maxi(0, scan_basic_survey_data_reward)
+		_:
+			return 0
+
+
+func get_survey_probe_investigate_survey_data_reward() -> int:
+	return maxi(0, survey_probe_investigate_survey_data_reward)
 
 
 func get_unit_build_cost(cost_key: StringName) -> Dictionary:

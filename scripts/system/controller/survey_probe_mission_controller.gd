@@ -5,8 +5,6 @@ extends Node
 signal investigate_mission_changed
 signal investigation_progress_changed(object_id: String, progress: float)
 
-const SURVEY_DATA_REWARD_AMOUNT: int = 5
-
 const REASON_NO_PROBE: StringName = DiscoverySignalUiTextDefinition.KEY_BLOCKED_NO_PROBE
 const REASON_NOT_SIGNAL: StringName = DiscoverySignalUiTextDefinition.KEY_BLOCKED_NOT_SIGNAL
 const REASON_IN_PROGRESS: StringName = DiscoverySignalUiTextDefinition.KEY_BLOCKED_IN_PROGRESS
@@ -372,8 +370,14 @@ func _refresh_selection_after_reveal(object_id: String) -> void:
 
 
 func _grant_survey_data_reward(base_id: String) -> void:
+	var balance := GameSession.get_game_balance()
+	if balance == null:
+		balance = GameBalanceDefinition.new()
+	var amount: int = balance.get_survey_probe_investigate_survey_data_reward()
+	if amount <= 0:
+		return
 	var resource_id := str(GameBalanceDefinition.RESOURCE_SURVEY_DATA)
-	var added: int = GameSession.add_base_resource(base_id, resource_id, SURVEY_DATA_REWARD_AMOUNT)
+	var added: int = GameSession.add_base_resource(base_id, resource_id, amount)
 	if added <= 0:
 		push_warning(
 			"SurveyProbeMissionController: SurveyData reward skipped (added=%d, base=%s)."
