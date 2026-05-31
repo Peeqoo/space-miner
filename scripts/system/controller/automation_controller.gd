@@ -407,9 +407,7 @@ func launch_scan_drone(target_id: String) -> void:
 
 	unit.work_duration = _get_scan_work_duration_for_base(session_bid_ls)
 
-	_stop_scan_orbit_audio(unit)
-	_play_automation_sfx(&"scan_drone_launch", unit)
-	unit.start_mission_to_node(target_node)
+	_scan_drone_start_outbound(unit, target_node)
 
 	_request_automation_state_changed()
 
@@ -478,8 +476,7 @@ func launch_mining_ship(target_id: String) -> bool:
 		"extract_remainder": 0.0,
 	}
 
-	_play_automation_sfx(&"mining_ship_launch", unit)
-	unit.start_mission_to_node(target_node)
+	_mining_ship_start_outbound(unit, target_node)
 
 	_request_automation_state_changed()
 	return true
@@ -700,10 +697,9 @@ func recall_one_drone_from_target(target_id: String) -> bool:
 			continue
 
 		_abort_scan_mission_for_unit(mission_drone)
-		_stop_scan_orbit_audio(mission_drone)
 		_disconnect_unit_signals(mission_drone)
 		_ensure_returned_to_base_connected(mission_drone)
-		mission_drone.recall_to_base(home_base_node)
+		_scan_drone_recall_to_base(mission_drone, home_base_node)
 		_request_automation_state_changed()
 		return true
 
@@ -725,10 +721,9 @@ func recall_one_drone_from_target(target_id: String) -> bool:
 		if scan_drone_target_by_unit_id.has(support_uid):
 			_abort_scan_mission_for_unit(drone)
 
-		_stop_scan_orbit_audio(drone)
 		_disconnect_unit_signals(drone)
 		_ensure_returned_to_base_connected(drone)
-		drone.recall_to_base(home_base_node)
+		_scan_drone_recall_to_base(drone, home_base_node)
 		_request_automation_state_changed()
 		return true
 
@@ -814,9 +809,9 @@ func recall_one_mining_ship_from_target(target_id: String) -> bool:
 			selected_runtime["status"] = MiningShipStatus.TO_BASE
 			selected_runtime["extract_remainder"] = 0.0
 			selected_runtime["mining_extract_remainders"] = {} as Dictionary
-			selected_ship.recall_to_base(home_base_node)
+			_mining_ship_recall_to_base(selected_ship, home_base_node)
 		MiningShipStatus.TO_BASE:
-			selected_ship.recall_to_base(home_base_node)
+			_mining_ship_recall_to_base(selected_ship, home_base_node)
 		MiningShipStatus.UNLOADING:
 			_mining_ship_enter_waiting_for_storage(selected_ship, selected_runtime)
 		_:
@@ -893,8 +888,7 @@ func _on_scan_drone_arrived_at_target(
 	active_units_by_mission_id.erase(mission_id)
 
 	if target_node == null:
-		_stop_scan_orbit_audio(unit)
-		unit.return_to_base_orbit()
+		_scan_drone_return_to_base_orbit(unit)
 		_request_automation_state_changed()
 		return
 
@@ -923,7 +917,7 @@ func _on_mining_ship_arrived_at_target(unit: AutomationUnit) -> void:
 		var home_fallback: Node2D = _get_target_node(_get_session_base_id())
 
 		if home_fallback != null:
-			unit.recall_to_base(home_fallback)
+			_mining_ship_recall_to_base(unit, home_fallback)
 
 		_request_automation_state_changed()
 		return
@@ -932,8 +926,7 @@ func _on_mining_ship_arrived_at_target(unit: AutomationUnit) -> void:
 
 	runtime["status"] = MiningShipStatus.MINING
 	mining_ship_runtime_by_unit_id[unit_id] = runtime
-	var mining_arrive_node: Node2D = target_node if target_node != null else unit
-	_play_automation_sfx(&"mining_ship_arrive", mining_arrive_node)
+	_play_mining_ship_arrive_audio(unit, target_node)
 	_request_automation_state_changed()
 
 
@@ -1038,7 +1031,7 @@ func _process(delta: float) -> void:
 
 					if home_full_c != null:
 						runtime["status"] = MiningShipStatus.TO_BASE
-						unit.recall_to_base(home_full_c)
+						_mining_ship_recall_to_base(unit, home_full_c)
 
 					mining_ship_runtime_by_unit_id[unit_id] = runtime
 					continue
@@ -1065,7 +1058,7 @@ func _process(delta: float) -> void:
 
 						if home_empty_src != null:
 							runtime["status"] = MiningShipStatus.TO_BASE
-							unit.recall_to_base(home_empty_src)
+							_mining_ship_recall_to_base(unit, home_empty_src)
 					else:
 						runtime["loop_active"] = false
 						mining_ship_runtime_by_unit_id[unit_id] = runtime
@@ -1090,7 +1083,7 @@ func _process(delta: float) -> void:
 
 						if home_ws != null:
 							runtime["status"] = MiningShipStatus.TO_BASE
-							unit.recall_to_base(home_ws)
+							_mining_ship_recall_to_base(unit, home_ws)
 					else:
 						runtime["loop_active"] = false
 						mining_ship_runtime_by_unit_id[unit_id] = runtime
@@ -1180,7 +1173,7 @@ func _process(delta: float) -> void:
 						var mining_done_node: Node2D = target_node_min if target_node_min != null else unit
 						_play_automation_sfx(&"mining_complete", mining_done_node)
 						runtime["status"] = MiningShipStatus.TO_BASE
-						unit.recall_to_base(home_cap)
+						_mining_ship_recall_to_base(unit, home_cap)
 
 				var post_candidates: Array = _list_mining_weighted_candidates(
 					sid_min,
@@ -1200,7 +1193,7 @@ func _process(delta: float) -> void:
 							var mining_done_node_pc: Node2D = target_node_min if target_node_min != null else unit
 							_play_automation_sfx(&"mining_complete", mining_done_node_pc)
 							runtime["status"] = MiningShipStatus.TO_BASE
-							unit.recall_to_base(home_pc)
+							_mining_ship_recall_to_base(unit, home_pc)
 					else:
 						runtime["loop_active"] = false
 						mining_ship_runtime_by_unit_id[unit_id] = runtime
@@ -1317,7 +1310,7 @@ func _process(delta: float) -> void:
 								if target_node_ul != null:
 									runtime["status"] = MiningShipStatus.TO_TARGET
 									mining_ship_runtime_by_unit_id[unit_id] = runtime
-									unit.start_mission_to_node(target_node_ul)
+									_mining_ship_start_outbound(unit, target_node_ul)
 								else:
 									ids_to_release.append(unit_id)
 						else:
@@ -1379,7 +1372,7 @@ func _process(delta: float) -> void:
 							if target_node_ws != null:
 								runtime["status"] = MiningShipStatus.TO_TARGET
 								mining_ship_runtime_by_unit_id[unit_id] = runtime
-								unit_ws.start_mission_to_node(target_node_ws)
+								_mining_ship_start_outbound(unit_ws, target_node_ws)
 							else:
 								ids_to_release.append(unit_id)
 					else:
@@ -1446,8 +1439,10 @@ func _on_mining_ship_returned_to_base(unit: AutomationUnit) -> void:
 	if unit.base_node != null and is_instance_valid(unit.base_node):
 		unit.transfer_orbit_to_base(unit.base_node)
 
-	if total_rb > 0:
-		_play_automation_sfx(&"ship_return", _audio_node_for_base(_runtime_base_id_with_session_fallback(runtime), unit))
+	_play_mining_ship_arrive_audio(
+		unit,
+		_audio_node_for_base(_runtime_base_id_with_session_fallback(runtime), unit),
+	)
 
 	_request_automation_state_changed()
 
@@ -1586,6 +1581,7 @@ func _on_scan_drone_return_dock_clear_assignment(unit: AutomationUnit) -> void:
 	var drone_uid_rb: int = unit.get_instance_id()
 
 	_stop_scan_orbit_audio(unit)
+	_play_scan_drone_arrive_audio(unit, _audio_node_for_base(_get_session_base_id(), unit))
 
 	if not scan_drone_target_by_unit_id.has(drone_uid_rb):
 		return
@@ -2537,6 +2533,96 @@ func _play_automation_sfx(event_id: StringName, source: Node2D) -> void:
 	AudioManager.play_world_sfx_optional(event_id, source.global_position)
 
 
+func _play_unit_travel_sfx(event_id: StringName, unit: AutomationUnit, fallback: Node2D = null) -> void:
+	var source: Node2D = _audio_source_node(unit, fallback)
+
+	if source == null:
+		return
+
+	var cooldown_key: StringName = event_id
+
+	if unit != null and is_instance_valid(unit):
+		cooldown_key = StringName("%s_%d" % [String(event_id), unit.get_instance_id()])
+
+	AudioManager.play_world_sfx_with_cooldown_optional(
+		event_id,
+		source.global_position,
+		cooldown_key,
+	)
+
+
+func _play_scan_drone_launch_audio(unit: AutomationUnit) -> void:
+	_play_unit_travel_sfx(&"scan_drone_launch", unit)
+
+
+func _play_scan_drone_arrive_audio(unit: AutomationUnit, fallback: Node2D = null) -> void:
+	_play_unit_travel_sfx(&"scan_drone_arrive", unit, fallback)
+
+
+func _play_mining_ship_launch_audio(unit: AutomationUnit) -> void:
+	_play_unit_travel_sfx(&"mining_ship_launch", unit)
+
+
+func _play_mining_ship_arrive_audio(unit: AutomationUnit, fallback: Node2D = null) -> void:
+	_play_unit_travel_sfx(&"mining_ship_arrive", unit, fallback)
+
+
+func _begin_scan_drone_return_travel(unit: AutomationUnit) -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	_stop_scan_orbit_audio(unit)
+	_play_scan_drone_launch_audio(unit)
+
+
+func _begin_mining_ship_return_travel(unit: AutomationUnit) -> void:
+	if unit == null or not is_instance_valid(unit):
+		return
+
+	_play_mining_ship_launch_audio(unit)
+
+
+func _scan_drone_start_outbound(unit: AutomationUnit, target_node: Node2D) -> void:
+	if unit == null or target_node == null:
+		return
+
+	_stop_scan_orbit_audio(unit)
+	_play_scan_drone_launch_audio(unit)
+	unit.start_mission_to_node(target_node)
+
+
+func _mining_ship_start_outbound(unit: AutomationUnit, target_node: Node2D) -> void:
+	if unit == null or target_node == null:
+		return
+
+	_play_mining_ship_launch_audio(unit)
+	unit.start_mission_to_node(target_node)
+
+
+func _scan_drone_recall_to_base(unit: AutomationUnit, home_base_node: Node2D) -> void:
+	if unit == null or home_base_node == null:
+		return
+
+	_begin_scan_drone_return_travel(unit)
+	unit.recall_to_base(home_base_node)
+
+
+func _scan_drone_return_to_base_orbit(unit: AutomationUnit) -> void:
+	if unit == null:
+		return
+
+	_begin_scan_drone_return_travel(unit)
+	unit.return_to_base_orbit()
+
+
+func _mining_ship_recall_to_base(unit: AutomationUnit, home_base_node: Node2D) -> void:
+	if unit == null or home_base_node == null:
+		return
+
+	_begin_mining_ship_return_travel(unit)
+	unit.recall_to_base(home_base_node)
+
+
 func _play_mining_resource_tick_sfx(unit: AutomationUnit) -> void:
 	if unit == null or not is_instance_valid(unit):
 		return
@@ -2556,7 +2642,7 @@ func _start_scan_orbit_audio(unit: AutomationUnit, target_node: Node2D) -> void:
 	var audio_source := _audio_source_node(unit, target_node)
 	if audio_source == null:
 		return
-	_play_automation_sfx(&"scan_drone_arrive", audio_source)
+	_play_scan_drone_arrive_audio(unit, target_node)
 	AudioManager.play_world_loop_optional(
 		&"scan_loop",
 		_scan_orbit_loop_id(unit),
