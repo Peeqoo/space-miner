@@ -19,5 +19,13 @@ templates = {
 "signal_lore_fallback": "Unidentified signal. Survey required before this object can be analyzed.",
 "unknown_signal_lore": "Unknown signal detected by the base sensors.",
 "unknown_signal_name": "Unknown",
-"unknown_signal_type": "Unknown"
+"unknown_signal_type": "Unknown",
+"sensor_pulse_button_label": "Sensor Pulse",
+"sensor_pulse_progress_format": "Scanning for signals: %d%%",
+"sensor_pulse_block_active": "Sensor pulse already active",
+"sensor_pulse_block_cooldown": "Sensor pulse cooling down",
+"sensor_pulse_block_no_hidden": "No hidden signals detected",
+"sensor_pulse_block_not_enough_survey_data": "Not enough Survey Data",
+"sensor_pulse_block_base_missing": "No established base",
+"sensor_pulse_cost_format": "Cost: %s"
 }

@@ -620,7 +620,9 @@ func _apply_sensor_pulse_info_to_dict(info: Dictionary) -> void:
 
 	if in_progress:
 		var percent: int = base_sensor_pulse_controller.get_pulse_progress_percent()
-		info["sensor_pulse_progress_text"] = "Scanning for signals: %d%%" % percent
+		info["sensor_pulse_progress_text"] = DiscoverySignalUiTextDefinition.format_sensor_pulse_progress(
+			percent
+		)
 		return
 
 	info["sensor_pulse_cost_text"] = base_sensor_pulse_controller.get_pulse_cost_display_text()

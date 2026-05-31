@@ -20,6 +20,15 @@ const KEY_BLOCKED_BASE_MISSING := &"blocked_base_missing"
 const KEY_BLOCKED_ALREADY_KNOWN := &"blocked_already_known"
 const KEY_BLOCKED_ACTIVE_PROBE_LIMIT := &"blocked_active_probe_limit"
 
+const KEY_SENSOR_PULSE_BUTTON_LABEL := &"sensor_pulse_button_label"
+const KEY_SENSOR_PULSE_PROGRESS := &"sensor_pulse_progress_format"
+const KEY_SENSOR_PULSE_BLOCK_ACTIVE := &"sensor_pulse_block_active"
+const KEY_SENSOR_PULSE_BLOCK_COOLDOWN := &"sensor_pulse_block_cooldown"
+const KEY_SENSOR_PULSE_BLOCK_NO_HIDDEN := &"sensor_pulse_block_no_hidden"
+const KEY_SENSOR_PULSE_BLOCK_NOT_ENOUGH_SURVEY_DATA := &"sensor_pulse_block_not_enough_survey_data"
+const KEY_SENSOR_PULSE_BLOCK_BASE_MISSING := &"sensor_pulse_block_base_missing"
+const KEY_SENSOR_PULSE_COST_FORMAT := &"sensor_pulse_cost_format"
+
 const FALLBACK_INVESTIGATE_PROGRESS := "Investigating: %d%%"
 const FALLBACK_INVESTIGATE_LORE_ACTIVE := "Survey probe investigating this signal..."
 const FALLBACK_SIGNAL_LORE := (
@@ -38,6 +47,15 @@ const FALLBACK_BLOCKED_TARGET_MISSING := "Signal target missing"
 const FALLBACK_BLOCKED_BASE_MISSING := "Base missing"
 const FALLBACK_BLOCKED_ALREADY_KNOWN := "Object already discovered"
 const FALLBACK_BLOCKED_ACTIVE_PROBE_LIMIT := "Active probe limit reached"
+
+const FALLBACK_SENSOR_PULSE_BUTTON_LABEL := "Sensor Pulse"
+const FALLBACK_SENSOR_PULSE_PROGRESS := "Scanning for signals: %d%%"
+const FALLBACK_SENSOR_PULSE_BLOCK_ACTIVE := "Sensor pulse already active"
+const FALLBACK_SENSOR_PULSE_BLOCK_COOLDOWN := "Sensor pulse cooling down"
+const FALLBACK_SENSOR_PULSE_BLOCK_NO_HIDDEN := "No hidden signals detected"
+const FALLBACK_SENSOR_PULSE_BLOCK_NOT_ENOUGH_SURVEY_DATA := "Not enough Survey Data"
+const FALLBACK_SENSOR_PULSE_BLOCK_BASE_MISSING := "No established base"
+const FALLBACK_SENSOR_PULSE_COST_FORMAT := "Cost: %s"
 
 @export var templates: Dictionary = {}
 
@@ -79,6 +97,27 @@ static func format_investigate_progress(percent: int) -> String:
 	return format_str % maxi(0, percent)
 
 
+static func get_sensor_pulse_button_label() -> String:
+	return get_template(KEY_SENSOR_PULSE_BUTTON_LABEL)
+
+
+static func format_sensor_pulse_progress(percent: int) -> String:
+	var format_str := get_template(KEY_SENSOR_PULSE_PROGRESS)
+	if format_str.is_empty():
+		format_str = FALLBACK_SENSOR_PULSE_PROGRESS
+	return format_str % maxi(0, percent)
+
+
+static func format_sensor_pulse_cost(cost_summary: String) -> String:
+	var summary := cost_summary.strip_edges()
+	if summary.is_empty():
+		return ""
+	var format_str := get_template(KEY_SENSOR_PULSE_COST_FORMAT)
+	if format_str.is_empty():
+		format_str = FALLBACK_SENSOR_PULSE_COST_FORMAT
+	return format_str % summary
+
+
 static func _fallback_for_key(key: StringName) -> String:
 	match key:
 		KEY_INVESTIGATE_PROGRESS:
@@ -111,5 +150,21 @@ static func _fallback_for_key(key: StringName) -> String:
 			return FALLBACK_BLOCKED_ALREADY_KNOWN
 		KEY_BLOCKED_ACTIVE_PROBE_LIMIT:
 			return FALLBACK_BLOCKED_ACTIVE_PROBE_LIMIT
+		KEY_SENSOR_PULSE_BUTTON_LABEL:
+			return FALLBACK_SENSOR_PULSE_BUTTON_LABEL
+		KEY_SENSOR_PULSE_PROGRESS:
+			return FALLBACK_SENSOR_PULSE_PROGRESS
+		KEY_SENSOR_PULSE_BLOCK_ACTIVE:
+			return FALLBACK_SENSOR_PULSE_BLOCK_ACTIVE
+		KEY_SENSOR_PULSE_BLOCK_COOLDOWN:
+			return FALLBACK_SENSOR_PULSE_BLOCK_COOLDOWN
+		KEY_SENSOR_PULSE_BLOCK_NO_HIDDEN:
+			return FALLBACK_SENSOR_PULSE_BLOCK_NO_HIDDEN
+		KEY_SENSOR_PULSE_BLOCK_NOT_ENOUGH_SURVEY_DATA:
+			return FALLBACK_SENSOR_PULSE_BLOCK_NOT_ENOUGH_SURVEY_DATA
+		KEY_SENSOR_PULSE_BLOCK_BASE_MISSING:
+			return FALLBACK_SENSOR_PULSE_BLOCK_BASE_MISSING
+		KEY_SENSOR_PULSE_COST_FORMAT:
+			return FALLBACK_SENSOR_PULSE_COST_FORMAT
 		_:
 			return ""

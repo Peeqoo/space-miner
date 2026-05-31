@@ -5,11 +5,13 @@ extends Node
 signal sensor_pulse_changed
 signal sensor_pulse_progress_changed(progress: float)
 
-const BLOCK_NO_CANDIDATES := "No hidden signals detected"
-const BLOCK_IN_PROGRESS := "Sensor pulse already active"
-const BLOCK_COOLDOWN := "Sensor pulse cooling down"
-const BLOCK_BASE_MISSING := "No established base"
-const BLOCK_NOT_ENOUGH_SURVEY_DATA := "Not enough Survey Data"
+const REASON_NO_CANDIDATES: StringName = DiscoverySignalUiTextDefinition.KEY_SENSOR_PULSE_BLOCK_NO_HIDDEN
+const REASON_IN_PROGRESS: StringName = DiscoverySignalUiTextDefinition.KEY_SENSOR_PULSE_BLOCK_ACTIVE
+const REASON_COOLDOWN: StringName = DiscoverySignalUiTextDefinition.KEY_SENSOR_PULSE_BLOCK_COOLDOWN
+const REASON_BASE_MISSING: StringName = DiscoverySignalUiTextDefinition.KEY_SENSOR_PULSE_BLOCK_BASE_MISSING
+const REASON_NOT_ENOUGH_SURVEY_DATA: StringName = (
+	DiscoverySignalUiTextDefinition.KEY_SENSOR_PULSE_BLOCK_NOT_ENOUGH_SURVEY_DATA
+)
 
 const FALLBACK_PULSE_DURATION_SECONDS := 12.0
 const FALLBACK_REVEAL_COUNT := 1
@@ -76,27 +78,27 @@ func get_pulse_cost_display_text() -> String:
 	if parts.is_empty():
 		return ""
 
-	return "Cost: %s" % ", ".join(parts)
+	return DiscoverySignalUiTextDefinition.format_sensor_pulse_cost(", ".join(parts))
 
 
 func can_start_sensor_pulse(base_id: String = "") -> Dictionary:
 	var bid := _resolve_base_id(base_id)
 
 	if bid.is_empty() or not GameSession.has_established_base(bid):
-		return _blocked(BLOCK_BASE_MISSING)
+		return _blocked(REASON_BASE_MISSING)
 
 	if _pulse_active:
-		return _blocked(BLOCK_IN_PROGRESS)
+		return _blocked(REASON_IN_PROGRESS)
 
 	if _cooldown_remaining > 0.0:
-		return _blocked(BLOCK_COOLDOWN)
+		return _blocked(REASON_COOLDOWN)
 
 	var candidates: Array[Dictionary] = _build_sorted_candidates(bid)
 	if candidates.is_empty():
-		return _blocked(BLOCK_NO_CANDIDATES)
+		return _blocked(REASON_NO_CANDIDATES)
 
 	if not _can_afford_pulse_cost(bid):
-		return _blocked(BLOCK_NOT_ENOUGH_SURVEY_DATA)
+		return _blocked(REASON_NOT_ENOUGH_SURVEY_DATA)
 
 	return {"ok": true, "blocked_reason": ""}
 
@@ -335,8 +337,11 @@ func _clear_paid_pulse_cost_tracking() -> void:
 	_paid_pulse_base_id = ""
 
 
-func _blocked(reason: String) -> Dictionary:
-	return {"ok": false, "blocked_reason": reason}
+func _blocked(reason_key: StringName) -> Dictionary:
+	return {
+		"ok": false,
+		"blocked_reason": DiscoverySignalUiTextDefinition.get_template(reason_key),
+	}
 
 
 func _emit_progress_if_changed() -> void:

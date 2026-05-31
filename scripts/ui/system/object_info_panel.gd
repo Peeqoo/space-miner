@@ -702,7 +702,7 @@ func _apply_sensor_pulse_controls() -> void:
 			_live_action_cache.get("sensor_pulse_progress_text", "")
 		).strip_edges()
 		if progress_text.is_empty():
-			progress_text = "Scanning for signals: 0%"
+			progress_text = DiscoverySignalUiTextDefinition.format_sensor_pulse_progress(0)
 		_show_sensor_pulse_progress_ui(progress_text)
 		if is_instance_valid(economy_block_label):
 			economy_block_label.visible = false
