@@ -11,6 +11,7 @@ var object_info_panel: PanelContainer
 var base_management_panel: PanelContainer
 var automation_controller: AutomationController = null
 var survey_probe_mission_controller: SurveyProbeMissionController = null
+var base_sensor_pulse_controller: BaseSensorPulseController = null
 
 var production_panel: Control = null
 var upgrade_panel: Control = null
@@ -39,6 +40,7 @@ func setup(
 	p_automation_controller: AutomationController = null,
 	p_spawner: SystemSpawner = null,
 	p_survey_probe_mission_controller: SurveyProbeMissionController = null,
+	p_base_sensor_pulse_controller: BaseSensorPulseController = null,
 	p_production_panel: Control = null,
 	p_upgrade_panel: Control = null,
 	p_top_hud: Control = null,
@@ -54,6 +56,7 @@ func setup(
 	base_management_panel = p_base_management_panel
 	automation_controller = p_automation_controller
 	survey_probe_mission_controller = p_survey_probe_mission_controller
+	base_sensor_pulse_controller = p_base_sensor_pulse_controller
 
 	production_panel = p_production_panel
 	upgrade_panel = p_upgrade_panel
@@ -293,6 +296,7 @@ func _connect_ui_signals() -> void:
 				object_info_panel.colonization_requested.connect(_on_colonization_requested)
 
 		_connect_object_info_investigate_signal()
+		_connect_object_info_sensor_pulse_signal()
 
 	if survey_probe_mission_controller != null:
 		if not survey_probe_mission_controller.investigate_mission_changed.is_connected(
@@ -306,6 +310,16 @@ func _connect_ui_signals() -> void:
 		):
 			survey_probe_mission_controller.investigation_progress_changed.connect(
 				_on_investigation_progress_changed
+			)
+
+	if base_sensor_pulse_controller != null:
+		if not base_sensor_pulse_controller.sensor_pulse_changed.is_connected(_on_sensor_pulse_changed):
+			base_sensor_pulse_controller.sensor_pulse_changed.connect(_on_sensor_pulse_changed)
+		if not base_sensor_pulse_controller.sensor_pulse_progress_changed.is_connected(
+			_on_sensor_pulse_progress_changed
+		):
+			base_sensor_pulse_controller.sensor_pulse_progress_changed.connect(
+				_on_sensor_pulse_progress_changed
 			)
 
 	if base_management_panel != null:
@@ -480,6 +494,7 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 		info["lore_text"] = "Keine Beschreibung verfügbar."
 
 	_apply_colonization_info_to_dict(info, selected_node)
+	_apply_sensor_pulse_info_to_dict(info)
 
 	var sys_gate_id := _current_system_definition_id()
 	if sys_gate_id.is_empty() or GameSession.get_established_base_id_for_system(sys_gate_id).is_empty():
@@ -585,6 +600,36 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 	info["scan_blocked_reason"] = str(scan_gate.get("blocked_reason", "")).strip_edges()
 	if not target_state.is_empty():
 		info["scan_button_text"] = "Scan"
+
+
+func _apply_sensor_pulse_info_to_dict(info: Dictionary) -> void:
+	info["show_sensor_pulse"] = false
+	info["can_sensor_pulse"] = false
+	info["sensor_pulse_blocked_reason"] = ""
+	info["sensor_pulse_in_progress"] = false
+	info["sensor_pulse_progress_text"] = ""
+	info["sensor_pulse_cost_text"] = ""
+
+	if not bool(info.get("is_home_base", false)):
+		return
+
+	if base_sensor_pulse_controller == null:
+		return
+
+	var base_id: String = _economy_body_id_for_ui()
+	var in_progress: bool = base_sensor_pulse_controller.is_pulse_active()
+	info["sensor_pulse_in_progress"] = in_progress
+	info["show_sensor_pulse"] = true
+
+	if in_progress:
+		var percent: int = base_sensor_pulse_controller.get_pulse_progress_percent()
+		info["sensor_pulse_progress_text"] = "Scanning for signals: %d%%" % percent
+		return
+
+	info["sensor_pulse_cost_text"] = base_sensor_pulse_controller.get_pulse_cost_display_text()
+	var gate: Dictionary = base_sensor_pulse_controller.can_start_sensor_pulse(base_id)
+	info["can_sensor_pulse"] = bool(gate.get("ok", false))
+	info["sensor_pulse_blocked_reason"] = str(gate.get("blocked_reason", "")).strip_edges()
 
 
 func _apply_mining_ship_info_to_dict(
@@ -812,6 +857,47 @@ func _connect_object_info_investigate_signal() -> void:
 ## Public entry for ObjectInfoPanel fallback when signal had zero listeners at click time.
 func handle_investigate_requested(object_id: String) -> void:
 	_on_investigate_requested(object_id)
+
+
+func handle_sensor_pulse_requested() -> void:
+	_on_sensor_pulse_requested()
+
+
+func _connect_object_info_sensor_pulse_signal() -> void:
+	if object_info_panel == null:
+		return
+	var panel := object_info_panel as ObjectInfoPanel
+	if panel == null:
+		push_warning("SystemUIController: ObjectInfoPanel script mismatch; sensor pulse signal not connected.")
+		return
+	var handler := _on_sensor_pulse_requested
+	if not panel.sensor_pulse_requested.is_connected(handler):
+		panel.sensor_pulse_requested.connect(handler)
+
+
+func _on_sensor_pulse_requested() -> void:
+	if base_sensor_pulse_controller == null:
+		return
+
+	if not _session_primary_base_established():
+		return
+
+	var base_id: String = _economy_body_id_for_ui()
+	if base_sensor_pulse_controller.try_start_sensor_pulse(base_id):
+		update_object_info()
+		_update_top_hud()
+		return
+
+	update_object_info()
+
+
+func _on_sensor_pulse_changed() -> void:
+	update_object_info()
+	_update_top_hud()
+
+
+func _on_sensor_pulse_progress_changed(_progress: float) -> void:
+	update_object_info()
 
 
 func _on_investigate_requested(object_id: String) -> void:

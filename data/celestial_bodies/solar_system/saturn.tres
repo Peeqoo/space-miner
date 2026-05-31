@@ -48,4 +48,5 @@ reference_period_days = 10762.0
 size_authoring_mode = 1
 scan_resources = Array[ExtResource("1_2q1uy")]([SubResource("saturn_res_hydrogen"), SubResource("saturn_res_carbon"), SubResource("saturn_res_helium"), SubResource("saturn_res_methane")])
 default_discovery_state = "hidden"
+base_sensor_reveal_priority = 60
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

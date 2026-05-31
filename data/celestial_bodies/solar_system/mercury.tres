@@ -54,4 +54,5 @@ size_authoring_mode = 1
 gameplay_orbit_bias = 0.78
 scan_resources = Array[ExtResource("1_e30or")]([SubResource("mercury_res_iron"), SubResource("mercury_res_silicon"), SubResource("mercury_res_copper"), SubResource("mercury_res_nickel"), SubResource("mercury_res_cobalt")])
 default_discovery_state = "hidden"
+base_sensor_reveal_priority = 50
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

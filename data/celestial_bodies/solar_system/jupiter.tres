@@ -56,4 +56,5 @@ size_authoring_mode = 1
 scan_resources = Array[ExtResource("1_fqwt2")]([SubResource("jupiter_res_hydrogen"), SubResource("jupiter_res_carbon"), SubResource("jupiter_res_helium"), SubResource("jupiter_res_methane"), SubResource("jupiter_res_oxygen")])
 default_discovery_state = "hidden"
 signal_type = ExtResource("3_signal_gravity")
+base_sensor_reveal_priority = 20
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

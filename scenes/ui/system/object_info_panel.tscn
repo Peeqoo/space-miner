@@ -245,6 +245,14 @@ theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 10
 text = "Investigate"
 
+[node name="SensorPulseButton" type="Button" parent="Margin/Root/GridContainer" unique_id=1605375560]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("5_ckpwi")
+theme_override_font_sizes/font_size = 10
+text = "Sensor Pulse"
+
 [node name="DividerE" type="HSeparator" parent="Margin/Root" unique_id=1043062862]
 visible = false
 layout_mode = 2

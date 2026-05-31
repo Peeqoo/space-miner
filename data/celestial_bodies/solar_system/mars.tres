@@ -75,4 +75,5 @@ gameplay_orbit_bias = 1.42
 scan_resources = Array[ExtResource("1_qsy51")]([SubResource("mars_res_iron"), SubResource("mars_res_silicon"), SubResource("mars_res_carbon"), SubResource("mars_res_water"), SubResource("mars_res_copper"), SubResource("mars_res_magnesium"), SubResource("mars_res_aluminium"), SubResource("mars_res_nickel")])
 default_discovery_state = "signal"
 signal_type = ExtResource("3_signal_gravity")
+base_sensor_reveal_priority = 10
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

@@ -21,4 +21,5 @@ reference_orbit_au = 30.07
 reference_period_days = 60196.0
 size_authoring_mode = 1
 default_discovery_state = "hidden"
+base_sensor_reveal_priority = 90
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

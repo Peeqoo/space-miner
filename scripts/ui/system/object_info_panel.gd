@@ -9,6 +9,7 @@ signal recall_drone_requested(object_id: String)
 signal recall_mining_ship_requested(object_id: String)
 signal colonization_requested(object_id: String)
 signal investigate_requested(object_id: String)
+signal sensor_pulse_requested()
 signal close_requested()
 
 const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/resource_info_row.tscn")
@@ -42,6 +43,7 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
 @onready var colonization_button: Button = $Margin/Root/GridContainer/ColonizationButton
 @onready var investigate_button: Button = $Margin/Root/GridContainer/InvestigateButton
+@onready var sensor_pulse_button: Button = $Margin/Root/GridContainer/SensorPulseButton
 @onready var economy_block_label: Label = $Margin/Root/EconomyBlockLabel
 @onready var investigate_progress_label: Label = $Margin/Root/InvestigateProgressLabel
 @onready var investigate_progress_format_template: Label = (
@@ -85,6 +87,12 @@ var _live_action_cache: Dictionary = {
 	"investigate_progress": 0.0,
 	"investigate_progress_text": "",
 	"discovery_complete_message": "",
+	"show_sensor_pulse": false,
+	"can_sensor_pulse": false,
+	"sensor_pulse_blocked_reason": "",
+	"sensor_pulse_in_progress": false,
+	"sensor_pulse_progress_text": "",
+	"sensor_pulse_cost_text": "",
 }
 
 ## Editor-owned prefixes captured from visible meta/orbit labels in _ready().
@@ -149,6 +157,9 @@ func _ready() -> void:
 	if investigate_button != null:
 		if not investigate_button.pressed.is_connected(_on_investigate_pressed):
 			investigate_button.pressed.connect(_on_investigate_pressed)
+	if sensor_pulse_button != null:
+		if not sensor_pulse_button.pressed.is_connected(_on_sensor_pulse_pressed):
+			sensor_pulse_button.pressed.connect(_on_sensor_pulse_pressed)
 
 	_mining_button_text_default = send_mining_ship_button.text
 	_scan_button_text_default = scan_with_drone_button.text
@@ -161,6 +172,7 @@ func _ready() -> void:
 		recall_mining_ship_button,
 		colonization_button,
 		investigate_button,
+		sensor_pulse_button,
 	]:
 		AudioManager.bind_ui_button_optional(ui_button)
 
@@ -465,6 +477,12 @@ func _apply_info(info: Dictionary) -> void:
 		"investigate_progress": float(info.get("investigate_progress", 0.0)),
 		"investigate_progress_text": str(info.get("investigate_progress_text", "")).strip_edges(),
 		"discovery_complete_message": str(info.get("discovery_complete_message", "")).strip_edges(),
+		"show_sensor_pulse": bool(info.get("show_sensor_pulse", false)),
+		"can_sensor_pulse": bool(info.get("can_sensor_pulse", false)),
+		"sensor_pulse_blocked_reason": str(info.get("sensor_pulse_blocked_reason", "")).strip_edges(),
+		"sensor_pulse_in_progress": bool(info.get("sensor_pulse_in_progress", false)),
+		"sensor_pulse_progress_text": str(info.get("sensor_pulse_progress_text", "")).strip_edges(),
+		"sensor_pulse_cost_text": str(info.get("sensor_pulse_cost_text", "")).strip_edges(),
 	}
 
 	_apply_signal_discovery_controls()
@@ -623,7 +641,10 @@ func _apply_live_action_controls() -> void:
 		send_mining_ship_button.text = _mining_button_text_default
 		_set_action_buttons(false, false, false, false, _scan_button_text_default, "")
 		_set_recall_buttons(false, false)
+		_apply_sensor_pulse_controls()
 	else:
+		if sensor_pulse_button != null:
+			sensor_pulse_button.visible = false
 		_set_action_buttons(
 			can_scan,
 			show_scan,
@@ -637,6 +658,53 @@ func _apply_live_action_controls() -> void:
 		_set_recall_buttons(can_recall_drone, can_recall_mining_ship)
 
 	_apply_colonization_controls()
+	if not is_home_base and sensor_pulse_button != null:
+		sensor_pulse_button.visible = false
+
+
+func _apply_sensor_pulse_controls() -> void:
+	if sensor_pulse_button == null:
+		return
+
+	var show_pulse: bool = bool(_live_action_cache.get("show_sensor_pulse", false))
+	if not show_pulse:
+		sensor_pulse_button.visible = false
+		return
+
+	var in_progress: bool = bool(_live_action_cache.get("sensor_pulse_in_progress", false))
+	var can_pulse: bool = bool(_live_action_cache.get("can_sensor_pulse", false))
+	var blocked: String = str(_live_action_cache.get("sensor_pulse_blocked_reason", "")).strip_edges()
+
+	if in_progress:
+		sensor_pulse_button.visible = false
+		var progress_text: String = str(
+			_live_action_cache.get("sensor_pulse_progress_text", "")
+		).strip_edges()
+		if progress_text.is_empty():
+			progress_text = "Scanning for signals: 0%"
+		_show_investigate_progress_ui(progress_text, 0)
+	elif _live_action_cache.get("is_investigate_active", false) != true:
+		_hide_investigate_progress_ui()
+
+	if in_progress:
+		if is_instance_valid(economy_block_label):
+			economy_block_label.visible = false
+		return
+
+	sensor_pulse_button.visible = true
+	sensor_pulse_button.disabled = not can_pulse
+	var cost_text: String = str(_live_action_cache.get("sensor_pulse_cost_text", "")).strip_edges()
+	if can_pulse:
+		sensor_pulse_button.tooltip_text = cost_text
+	else:
+		sensor_pulse_button.tooltip_text = blocked if not blocked.is_empty() else cost_text
+
+	if is_instance_valid(economy_block_label):
+		if not can_pulse and not blocked.is_empty():
+			economy_block_label.text = blocked
+			economy_block_label.visible = true
+		elif str(_live_action_cache.get("system_economy_blocked_reason", "")).strip_edges().is_empty():
+			economy_block_label.visible = false
 
 
 func _apply_colonization_controls() -> void:
@@ -1072,3 +1140,21 @@ func _on_investigate_pressed() -> void:
 	investigate_requested.emit(current_object_id)
 	if listener_count == 0:
 		_forward_investigate_if_unconnected(current_object_id)
+
+
+func _on_sensor_pulse_pressed() -> void:
+	if sensor_pulse_button == null or sensor_pulse_button.disabled:
+		return
+
+	var listener_count: int = sensor_pulse_requested.get_connections().size()
+	sensor_pulse_requested.emit()
+	if listener_count == 0:
+		_forward_sensor_pulse_if_unconnected()
+
+
+func _forward_sensor_pulse_if_unconnected() -> void:
+	for node: Node in get_tree().get_nodes_in_group(&"system_ui_controller"):
+		if node is SystemUIController:
+			(node as SystemUIController).handle_sensor_pulse_requested()
+			return
+	push_warning("ObjectInfoPanel: sensor_pulse_requested has no listeners.")

@@ -2156,6 +2156,13 @@ func cancel_active_survey_probe_missions_before_save() -> int:
 	return controller.cancel_all_active_investigations_refund()
 
 
+func cancel_active_base_sensor_pulse_before_save() -> void:
+	var controller := _find_base_sensor_pulse_controller_in_tree()
+	if controller == null:
+		return
+	controller.cancel_pulse_before_save()
+
+
 func refresh_camera_snapshot_from_scene() -> void:
 	_camera_state_pending = _capture_live_camera_snapshot()
 
@@ -2235,6 +2242,23 @@ func _find_survey_probe_mission_controller_recursive(node: Node) -> SurveyProbeM
 		return node as SurveyProbeMissionController
 	for child: Node in node.get_children():
 		var found := _find_survey_probe_mission_controller_recursive(child)
+		if found != null:
+			return found
+	return null
+
+
+func _find_base_sensor_pulse_controller_in_tree() -> BaseSensorPulseController:
+	var root := get_tree().root if is_inside_tree() else null
+	if root == null:
+		return null
+	return _find_base_sensor_pulse_controller_recursive(root)
+
+
+func _find_base_sensor_pulse_controller_recursive(node: Node) -> BaseSensorPulseController:
+	if node is BaseSensorPulseController:
+		return node as BaseSensorPulseController
+	for child: Node in node.get_children():
+		var found := _find_base_sensor_pulse_controller_recursive(child)
 		if found != null:
 			return found
 	return null

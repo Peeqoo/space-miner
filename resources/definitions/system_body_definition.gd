@@ -61,6 +61,11 @@ enum SizeAuthoringMode {
 ## Optional pre-reveal lore for SIGNAL state; does not use the real `description`.
 @export_multiline var signal_lore: String = ""
 
+@export_group("Base Sensor")
+@export var discoverable_by_base_sensor: bool = true
+@export var base_sensor_reveal_priority: int = 100
+@export var base_sensor_reveal_tier: int = 0
+
 
 func get_normalized_default_discovery_state() -> String:
 	var context := "SystemBodyDefinition '%s'" % id.strip_edges()

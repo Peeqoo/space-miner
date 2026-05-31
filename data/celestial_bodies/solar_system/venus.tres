@@ -61,4 +61,5 @@ size_authoring_mode = 1
 gameplay_orbit_bias = 0.98
 scan_resources = Array[ExtResource("1_mmcrg")]([SubResource("venus_res_carbon"), SubResource("venus_res_copper"), SubResource("venus_res_silicon"), SubResource("venus_res_oxygen"), SubResource("venus_res_sodium"), SubResource("venus_res_potassium")])
 default_discovery_state = "signal"
+base_sensor_reveal_priority = 40
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

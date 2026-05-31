@@ -61,4 +61,5 @@ size_authoring_mode = 1
 gameplay_size_bias = 0.5
 scan_resources = Array[ExtResource("1_j1tw6")]([SubResource("Resource_2yaiy"), SubResource("Resource_dvlyy"), SubResource("Resource_j1tw6"), SubResource("Resource_2c68a"), SubResource("Resource_ciqjq"), SubResource("Resource_13sni")])
 default_discovery_state = "hidden"
+base_sensor_reveal_priority = 30
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

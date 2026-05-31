@@ -88,6 +88,7 @@ func build_save_data(slot_index: int = -1) -> Dictionary:
 			"Cancelled active survey probe investigations before save; probes refunded: %d"
 			% refunded_probe_missions
 		)
+	GameSession.cancel_active_base_sensor_pulse_before_save()
 	GameSession.refresh_automation_snapshot_from_scene()
 	GameSession.refresh_camera_snapshot_from_scene()
 	var session_data: Dictionary = GameSession.to_save_data()

@@ -15,6 +15,7 @@ extends Node2D
 @onready var automation_controller: AutomationController = $AutomationController
 @onready var discovery_controller: SystemDiscoveryController = $SystemDiscoveryController
 @onready var survey_probe_mission_controller: SurveyProbeMissionController = $SurveyProbeMissionController
+@onready var base_sensor_pulse_controller: BaseSensorPulseController = $BaseSensorPulseController
 @onready var pause_menu_overlay: Control = $UI/PauseMenuOverlay
 # VISUAL_LIGHTING_EXPERIMENT_START
 @onready var system_light_controller: SystemLightController = $SystemLightController
@@ -141,6 +142,15 @@ func _setup_controllers() -> void:
 			_resolved_start_body_id,
 		)
 
+	if base_sensor_pulse_controller != null:
+		base_sensor_pulse_controller.setup(
+			spawner,
+			discovery_controller,
+			system_definition,
+			system_definition.id if system_definition != null else "",
+			_resolved_start_body_id,
+		)
+
 	system_ui.setup(
 		system_definition,
 		selection,
@@ -149,6 +159,7 @@ func _setup_controllers() -> void:
 		automation_controller,
 		spawner,
 		survey_probe_mission_controller,
+		base_sensor_pulse_controller,
 		$UI/ProductionPanel,
 		$UI/UpgradePanel,
 		$UI/TopHUD,

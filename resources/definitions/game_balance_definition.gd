@@ -88,6 +88,17 @@ const RESOURCE_SURVEY_DATA := &"SurveyData"
 @export var colony_ship_shipyard_proxy_storage_upgrade_level: int = 1
 @export var colony_ship_protocol_proxy_mining_ship_upgrade_level: int = 1
 
+# --- BASE SENSOR PULSE -------------------------------------------------------
+
+@export_group("Base Sensor Pulse")
+@export var base_sensor_pulse_duration_seconds: float = 12.0
+@export var base_sensor_reveal_count: int = 1
+## Legacy cap; not used as a start gate in v0.1 (pulse costs Survey Data instead).
+@export var base_sensor_max_visible_signals: int = 2
+@export var base_sensor_reveal_tier: int = 0
+@export var base_sensor_cooldown_seconds: float = 3.0
+@export var base_sensor_pulse_cost: Dictionary = {RESOURCE_SURVEY_DATA: 5}
+
 # --- CONTROL LIMITS ----------------------------------------------------------
 
 @export_group("Control Limits")
