@@ -10,7 +10,6 @@ scan_deep_survey_data_reward = 25
 scan_special_survey_data_reward = 50
 base_sensor_pulse_duration_seconds = 12.0
 base_sensor_reveal_count = 1
-base_sensor_max_visible_signals = 2
 base_sensor_reveal_tier = 0
 base_sensor_cooldown_seconds = 3.0
 base_sensor_pulse_cost = {
