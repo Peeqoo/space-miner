@@ -15,4 +15,4 @@ cost = {
 build_time_seconds = 120.0
 sort_order = 3
 short_description = "Errichtet neue Basen in anderen Systemen."
-effect_lines = ["Wird bei Kolonisierung verbraucht", "Build-Zeit: 120 s (UI; Timer TODO)"]
+effect_lines = ["Wird bei Kolonisierung verbraucht"]

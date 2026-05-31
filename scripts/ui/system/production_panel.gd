@@ -215,10 +215,8 @@ func _production_id_from_button(button: Button) -> String:
 func _build_hover_description(production_def: ProductionDefinition, button: Button) -> String:
 	var lines := ProductionDefinition.build_hover_description_lines(production_def)
 	if production_def != null and production_def.id == BaseStore.PRODUCTION_COLONY_SHIP:
+		# v0.1: builds are instant; build_time_seconds is data-only until a queue UI exists.
 		lines.append_array(_colony_prerequisite_hover_lines())
-		var build_time := GameSession.get_colony_ship_build_time_seconds()
-		if build_time > 0.0:
-			lines.append("Build time: %s s (instant build — timer TODO)" % NumberFormat.format_compact(int(build_time)))
 	var reason := button.tooltip_text.strip_edges()
 	if not reason.is_empty():
 		lines.append(reason)
