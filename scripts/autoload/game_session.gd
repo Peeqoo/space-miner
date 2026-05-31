@@ -1682,8 +1682,8 @@ func build_base_colony_ship(base_id: String) -> bool:
 	if not has_established_base(bid):
 		push_warning("GameSession: cannot build ColonyShip for non-established base_id=%s." % bid)
 		return false
-	var prereq_reason := get_colony_ship_build_prerequisite_blocked_reason(bid)
-	if not bases.build_colony_ship(bid, prereq_reason):
+	var prereq_key := get_colony_ship_build_prerequisite_blocked_reason_key(bid)
+	if not bases.build_colony_ship(bid, prereq_key):
 		return false
 
 	base_resources_changed.emit(bid)
@@ -1995,63 +1995,98 @@ func _resource_id_matches_ice_source(resource_id: String, ice_ids: PackedStringA
 func get_colony_ship_build_prerequisite_status(base_id: String) -> Array:
 	var bid := _economy_base_id(base_id)
 	return [
-		{
-			"id": "deep_scan_module",
-			"label": "Deep Scan Module",
-			"met": has_colony_ship_deep_scan_module_for_base(bid),
-			"blocked_reason": BaseStore.COLONY_BLOCK_DEEP_SCAN_MODULE,
-		},
-		{
-			"id": "shipyard_i",
-			"label": "Shipyard I",
-			"met": has_colony_ship_shipyard_i_for_base(bid),
-			"blocked_reason": BaseStore.COLONY_BLOCK_SHIPYARD_I,
-		},
-		{
-			"id": "colony_protocol",
-			"label": "Colony Protocol",
-			"met": has_colony_ship_colony_protocol_for_base(bid),
-			"blocked_reason": BaseStore.COLONY_BLOCK_COLONY_PROTOCOL,
-		},
-		{
-			"id": "ice_source",
-			"label": "Ice source discovered",
-			"met": has_discovered_ice_source(),
-			"blocked_reason": BaseStore.COLONY_BLOCK_ICE_SOURCE,
-		},
-		{
-			"id": "fully_scan_three",
-			"label": "Fully scan 3 objects",
-			"met": count_fully_scanned_objects() >= get_colony_ship_min_fully_scanned_objects(),
-			"blocked_reason": BaseStore.COLONY_BLOCK_FULLY_SCAN_THREE,
-		},
+		_colony_prerequisite_entry(
+			"deep_scan_module",
+			"Deep Scan Module",
+			has_colony_ship_deep_scan_module_for_base(bid),
+			GateUiTextDefinition.KEY_COLONY_DEEP_SCAN_REQUIRED,
+		),
+		_colony_prerequisite_entry(
+			"shipyard_i",
+			"Shipyard I",
+			has_colony_ship_shipyard_i_for_base(bid),
+			GateUiTextDefinition.KEY_COLONY_SHIPYARD_REQUIRED,
+		),
+		_colony_prerequisite_entry(
+			"colony_protocol",
+			"Colony Protocol",
+			has_colony_ship_colony_protocol_for_base(bid),
+			GateUiTextDefinition.KEY_COLONY_PROTOCOL_REQUIRED,
+		),
+		_colony_prerequisite_entry(
+			"ice_source",
+			"Ice source discovered",
+			has_discovered_ice_source(),
+			GateUiTextDefinition.KEY_COLONY_ICE_SOURCE_REQUIRED,
+		),
+		_colony_prerequisite_entry(
+			"fully_scan_three",
+			"Fully scan 3 objects",
+			count_fully_scanned_objects() >= get_colony_ship_min_fully_scanned_objects(),
+			GateUiTextDefinition.KEY_COLONY_FULLY_SCAN_THREE,
+		),
 	]
 
 
-func get_colony_ship_build_prerequisite_blocked_reason(base_id: String) -> String:
+func _colony_prerequisite_entry(
+	id: String,
+	label: String,
+	met: bool,
+	reason_key: StringName,
+) -> Dictionary:
+	return {
+		"id": id,
+		"label": label,
+		"met": met,
+		"blocked_reason_key": reason_key,
+		"blocked_reason": get_gate_text(reason_key),
+	}
+
+
+func get_colony_ship_build_prerequisite_blocked_reason_key(base_id: String) -> StringName:
 	for entry: Variant in get_colony_ship_build_prerequisite_status(base_id):
 		if not (entry is Dictionary):
 			continue
 		var row: Dictionary = entry
 		if bool(row.get("met", false)):
 			continue
-		return str(row.get("blocked_reason", "")).strip_edges()
-	return ""
+		var key: StringName = row.get("blocked_reason_key", GateUiTextDefinition.KEY_NONE)
+		if key != GateUiTextDefinition.KEY_NONE and not String(key).is_empty():
+			return key
+	return GateUiTextDefinition.KEY_NONE
+
+
+func get_colony_ship_build_prerequisite_blocked_reason(base_id: String) -> String:
+	var key := get_colony_ship_build_prerequisite_blocked_reason_key(base_id)
+	if key == GateUiTextDefinition.KEY_NONE or String(key).is_empty():
+		return ""
+	return get_gate_text(key)
 
 
 func get_build_base_colony_ship_gate(base_id: String) -> Dictionary:
 	var bid := _economy_base_id(base_id)
 	if bid.is_empty() or not has_established_base(bid):
-		return {"ok": false, "blocked_reason": "", "prerequisites": []}
+		return {
+			"ok": false,
+			"blocked_reason": "",
+			"blocked_reason_key": GateUiTextDefinition.KEY_NONE,
+			"prerequisites": [],
+		}
 
-	var prereq_reason := get_colony_ship_build_prerequisite_blocked_reason(bid)
-	var store_reason := bases.get_build_colony_ship_blocked_reason(bid, prereq_reason)
 	var prerequisites: Array = get_colony_ship_build_prerequisite_status(bid)
-	return {
-		"ok": store_reason.is_empty(),
-		"blocked_reason": store_reason,
-		"prerequisites": prerequisites,
-	}
+	var prereq_key := get_colony_ship_build_prerequisite_blocked_reason_key(bid)
+	var reason_key := bases.get_build_colony_ship_blocked_reason_key(bid, prereq_key)
+	if reason_key == GateUiTextDefinition.KEY_NONE or String(reason_key).is_empty():
+		return {
+			"ok": true,
+			"blocked_reason": "",
+			"blocked_reason_key": GateUiTextDefinition.KEY_NONE,
+			"prerequisites": prerequisites,
+		}
+
+	var gate := _gate_fail(reason_key)
+	gate["prerequisites"] = prerequisites
+	return gate
 
 
 func can_build_base_colony_ship(base_id: String) -> bool:

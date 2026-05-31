@@ -11,13 +11,6 @@ const PRODUCTION_SURVEY_PROBE := "survey_probe"
 ## Safety fallback only when `storage_0_base.tres` / UpgradeCatalog is unavailable.
 const STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK: int = 1000
 
-const COLONY_BLOCK_NOT_ENOUGH_RESOURCES: String = "Not enough resources"
-const COLONY_BLOCK_SHIPYARD_I: String = "Shipyard I required"
-const COLONY_BLOCK_COLONY_PROTOCOL: String = "Colony Protocol required"
-const COLONY_BLOCK_DEEP_SCAN_MODULE: String = "Deep Scan Module required"
-const COLONY_BLOCK_ICE_SOURCE: String = "Ice source not discovered"
-const COLONY_BLOCK_FULLY_SCAN_THREE: String = "Fully scan 3 objects"
-
 const FALLBACK_MAX_SCAN_DRONES: int = 2
 const FALLBACK_MAX_MINING_SHIPS: int = 2
 
@@ -617,21 +610,45 @@ func build_mining_ship(base_id: String) -> bool:
 	return true
 
 
-func get_build_colony_ship_blocked_reason(base_id: String, prerequisite_reason: String = "") -> String:
-	if not prerequisite_reason.is_empty():
-		return prerequisite_reason
+func get_build_colony_ship_blocked_reason_key(
+	base_id: String,
+	prerequisite_reason_key: StringName = GateUiTextDefinition.KEY_NONE,
+) -> StringName:
+	if (
+		prerequisite_reason_key != GateUiTextDefinition.KEY_NONE
+		and not String(prerequisite_reason_key).is_empty()
+	):
+		return prerequisite_reason_key
 	var cost := get_production_cost(PRODUCTION_COLONY_SHIP)
 	if cost.is_empty() or not can_afford(base_id, cost):
-		return COLONY_BLOCK_NOT_ENOUGH_RESOURCES
-	return ""
+		return GateUiTextDefinition.KEY_COLONY_NOT_ENOUGH_RESOURCES
+	return GateUiTextDefinition.KEY_NONE
 
 
-func can_build_colony_ship(base_id: String, prerequisite_reason: String = "") -> bool:
-	return get_build_colony_ship_blocked_reason(base_id, prerequisite_reason).is_empty()
+func get_build_colony_ship_blocked_reason(
+	base_id: String,
+	prerequisite_reason_key: StringName = GateUiTextDefinition.KEY_NONE,
+) -> String:
+	var key := get_build_colony_ship_blocked_reason_key(base_id, prerequisite_reason_key)
+	if key == GateUiTextDefinition.KEY_NONE or String(key).is_empty():
+		return ""
+	return GateUiTextDefinition.get_text(key)
 
 
-func build_colony_ship(base_id: String, prerequisite_reason: String = "") -> bool:
-	if not can_build_colony_ship(base_id, prerequisite_reason):
+func can_build_colony_ship(
+	base_id: String,
+	prerequisite_reason_key: StringName = GateUiTextDefinition.KEY_NONE,
+) -> bool:
+	return get_build_colony_ship_blocked_reason_key(base_id, prerequisite_reason_key) == (
+		GateUiTextDefinition.KEY_NONE
+	)
+
+
+func build_colony_ship(
+	base_id: String,
+	prerequisite_reason_key: StringName = GateUiTextDefinition.KEY_NONE,
+) -> bool:
+	if not can_build_colony_ship(base_id, prerequisite_reason_key):
 		return false
 	var cost := get_production_cost(PRODUCTION_COLONY_SHIP)
 	if cost.is_empty():

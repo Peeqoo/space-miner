@@ -28,7 +28,11 @@ const KEY_STORAGE_FULL := &"storage_full"
 
 const KEY_COLONY_NO_SHIP := &"colony_no_ship"
 const KEY_COLONY_NOT_ENOUGH_RESOURCES := &"colony_not_enough_resources"
-const KEY_COLONY_REQUIREMENT_MISSING := &"colony_requirement_missing"
+const KEY_COLONY_SHIPYARD_REQUIRED := &"colony_shipyard_required"
+const KEY_COLONY_PROTOCOL_REQUIRED := &"colony_protocol_required"
+const KEY_COLONY_DEEP_SCAN_REQUIRED := &"colony_deep_scan_required"
+const KEY_COLONY_ICE_SOURCE_REQUIRED := &"colony_ice_source_required"
+const KEY_COLONY_FULLY_SCAN_THREE := &"colony_fully_scan_three"
 
 const FALLBACK_SCAN_NOT_DISCOVERED := "Object not discovered"
 const FALLBACK_SCAN_ALREADY_IN_PROGRESS := "Scan already in progress"
@@ -53,7 +57,11 @@ const FALLBACK_STORAGE_FULL := "Storage full"
 
 const FALLBACK_COLONY_NO_SHIP := "No Colony Ship available"
 const FALLBACK_COLONY_NOT_ENOUGH_RESOURCES := "Not enough resources"
-const FALLBACK_COLONY_REQUIREMENT_MISSING := "Requirement missing"
+const FALLBACK_COLONY_SHIPYARD_REQUIRED := "Shipyard I required"
+const FALLBACK_COLONY_PROTOCOL_REQUIRED := "Colony Protocol required"
+const FALLBACK_COLONY_DEEP_SCAN_REQUIRED := "Deep Scan Module required"
+const FALLBACK_COLONY_ICE_SOURCE_REQUIRED := "Ice source not discovered"
+const FALLBACK_COLONY_FULLY_SCAN_THREE := "Fully scan 3 objects"
 
 @export var templates: Dictionary = {}
 
@@ -129,7 +137,15 @@ static func _fallback_for_key(key: StringName) -> String:
 			return FALLBACK_COLONY_NO_SHIP
 		KEY_COLONY_NOT_ENOUGH_RESOURCES:
 			return FALLBACK_COLONY_NOT_ENOUGH_RESOURCES
-		KEY_COLONY_REQUIREMENT_MISSING:
-			return FALLBACK_COLONY_REQUIREMENT_MISSING
+		KEY_COLONY_SHIPYARD_REQUIRED:
+			return FALLBACK_COLONY_SHIPYARD_REQUIRED
+		KEY_COLONY_PROTOCOL_REQUIRED:
+			return FALLBACK_COLONY_PROTOCOL_REQUIRED
+		KEY_COLONY_DEEP_SCAN_REQUIRED:
+			return FALLBACK_COLONY_DEEP_SCAN_REQUIRED
+		KEY_COLONY_ICE_SOURCE_REQUIRED:
+			return FALLBACK_COLONY_ICE_SOURCE_REQUIRED
+		KEY_COLONY_FULLY_SCAN_THREE:
+			return FALLBACK_COLONY_FULLY_SCAN_THREE
 		_:
 			return ""
