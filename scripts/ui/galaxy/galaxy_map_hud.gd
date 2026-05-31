@@ -64,11 +64,6 @@ signal close_requested
 @onready var access_status_unreachable_template: Label = (
 	$GalaxyInfoPanel/Margin/Root/AccessStatusUnreachableTemplate
 )
-@onready var enter_tooltip_locked_template: Label = $GalaxyInfoPanel/Margin/Root/EnterTooltipLockedTemplate
-@onready var enter_tooltip_unreachable_template: Label = (
-	$GalaxyInfoPanel/Margin/Root/EnterTooltipUnreachableTemplate
-)
-@onready var enter_tooltip_default_template: Label = $GalaxyInfoPanel/Margin/Root/EnterTooltipDefaultTemplate
 @onready var colonization_established_template: Label = (
 	$GalaxyInfoPanel/Margin/Root/ColonizationEstablishedTemplate
 )
@@ -91,7 +86,6 @@ var _colonization_preview_access_state: String = ""
 var _no_selection_system_name: String = ""
 var _access_status_prefix: String = ""
 var _access_status_texts: Dictionary = {}
-var _enter_tooltips: Dictionary = {}
 var _colonization_state_texts: Dictionary = {}
 var _colonization_pending_fallback: String = ""
 var _intel_known_text: String = ""
@@ -121,11 +115,6 @@ func _capture_editor_text_templates() -> void:
 		ACCESS_READY: access_status_ready_template.text.strip_edges(),
 		ACCESS_LOCKED: access_status_locked_template.text.strip_edges(),
 		ACCESS_UNREACHABLE: access_status_unreachable_template.text.strip_edges(),
-	}
-	_enter_tooltips = {
-		ACCESS_LOCKED: enter_tooltip_locked_template.text.strip_edges(),
-		ACCESS_UNREACHABLE: enter_tooltip_unreachable_template.text.strip_edges(),
-		"default": enter_tooltip_default_template.text.strip_edges(),
 	}
 	_colonization_state_texts = {
 		"established": colonization_established_template.text.strip_edges(),

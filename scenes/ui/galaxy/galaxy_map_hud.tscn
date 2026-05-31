@@ -298,24 +298,6 @@ layout_mode = 2
 text = "Unreachable"
 label_settings = ExtResource("4_3tpsn")
 
-[node name="EnterTooltipLockedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138105]
-visible = false
-layout_mode = 2
-text = "Access locked"
-label_settings = ExtResource("4_3tpsn")
-
-[node name="EnterTooltipUnreachableTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138106]
-visible = false
-layout_mode = 2
-text = "System unreachable"
-label_settings = ExtResource("4_3tpsn")
-
-[node name="EnterTooltipDefaultTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138107]
-visible = false
-layout_mode = 2
-text = "Access not available"
-label_settings = ExtResource("4_3tpsn")
-
 [node name="ColonizationEstablishedTemplate" type="Label" parent="GalaxyInfoPanel/Margin/Root" unique_id=1781138108]
 visible = false
 layout_mode = 2
