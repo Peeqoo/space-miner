@@ -19,6 +19,7 @@ templates = {
 "mine_storage_full": "Storage full",
 "scan_already_in_progress": "Scan already in progress",
 "scan_no_drone": "No scan drone available",
+"scan_no_layer": "No scan layer available",
 "scan_not_discovered": "Object not discovered",
 "storage_full": "Storage full",
 "upgrade_max_level": "Maximum level reached",

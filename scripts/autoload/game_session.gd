@@ -1251,8 +1251,6 @@ func scan_state_rank(scan_state: String) -> int:
 			return 0
 
 
-const SCAN_BLOCK_NO_LAYER := "No scan layer available"
-
 const _SCAN_DRONE_UNIT_PATH := "res://data/units/scan_drone.tres"
 
 var _scan_drone_unit_definition: UnitDefinition = null
@@ -1423,13 +1421,11 @@ func _scan_blocked(
 
 
 func _scan_blocked_no_layer(target_scan_state: String, scan_is_progression: bool) -> Dictionary:
-	return {
-		"ok": false,
-		"blocked_reason": SCAN_BLOCK_NO_LAYER,
-		"blocked_reason_key": &"",
-		"target_scan_state": target_scan_state,
-		"scan_is_progression": scan_is_progression,
-	}
+	return _scan_blocked(
+		GateUiTextDefinition.KEY_SCAN_NO_LAYER,
+		target_scan_state,
+		scan_is_progression,
+	)
 
 
 func _scan_layer_allows_target_state(base_id: String, target_scan_state: String) -> bool:

@@ -8,6 +8,7 @@ const KEY_NONE := &"none"
 const KEY_SCAN_NOT_DISCOVERED := &"scan_not_discovered"
 const KEY_SCAN_ALREADY_IN_PROGRESS := &"scan_already_in_progress"
 const KEY_SCAN_NO_DRONE := &"scan_no_drone"
+const KEY_SCAN_NO_LAYER := &"scan_no_layer"
 
 const KEY_MINE_NOT_DISCOVERED := &"mine_not_discovered"
 const KEY_MINE_NOT_SCANNED := &"mine_not_scanned"
@@ -32,6 +33,7 @@ const KEY_COLONY_REQUIREMENT_MISSING := &"colony_requirement_missing"
 const FALLBACK_SCAN_NOT_DISCOVERED := "Object not discovered"
 const FALLBACK_SCAN_ALREADY_IN_PROGRESS := "Scan already in progress"
 const FALLBACK_SCAN_NO_DRONE := "No scan drone available"
+const FALLBACK_SCAN_NO_LAYER := "No scan layer available"
 
 const FALLBACK_MINE_NOT_DISCOVERED := "Object not discovered"
 const FALLBACK_MINE_NOT_SCANNED := "Scan required"
@@ -97,6 +99,8 @@ static func _fallback_for_key(key: StringName) -> String:
 			return FALLBACK_SCAN_ALREADY_IN_PROGRESS
 		KEY_SCAN_NO_DRONE:
 			return FALLBACK_SCAN_NO_DRONE
+		KEY_SCAN_NO_LAYER:
+			return FALLBACK_SCAN_NO_LAYER
 		KEY_MINE_NOT_DISCOVERED:
 			return FALLBACK_MINE_NOT_DISCOVERED
 		KEY_MINE_NOT_SCANNED:
