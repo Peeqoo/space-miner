@@ -566,7 +566,6 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 	info["show_scan_with_drone"] = false
 	info["can_scan_with_drone"] = false
 	info["scan_blocked_reason"] = ""
-	info["scan_button_text"] = "Scan"
 
 	if selected_node == null:
 		return
@@ -598,8 +597,6 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 	info["show_scan_with_drone"] = not target_state.is_empty()
 	info["can_scan_with_drone"] = bool(scan_gate.get("ok", false))
 	info["scan_blocked_reason"] = str(scan_gate.get("blocked_reason", "")).strip_edges()
-	if not target_state.is_empty():
-		info["scan_button_text"] = "Scan"
 
 
 func _apply_sensor_pulse_info_to_dict(info: Dictionary) -> void:
