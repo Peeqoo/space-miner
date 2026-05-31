@@ -95,8 +95,6 @@ func _refresh_build_button(button: Button, gate: Dictionary) -> void:
 	if button == null:
 		return
 	button.disabled = not bool(gate.get("ok", false))
-	var reason := str(gate.get("blocked_reason", "")).strip_edges()
-	button.tooltip_text = reason
 
 
 func _refresh_colony_ship_button(base_id: String) -> void:
@@ -104,18 +102,6 @@ func _refresh_colony_ship_button(base_id: String) -> void:
 		return
 	var gate: Dictionary = GameSession.get_build_base_colony_ship_gate(base_id)
 	build_colony_ship_button.disabled = not bool(gate.get("ok", false))
-	var reason := str(gate.get("blocked_reason", "")).strip_edges()
-	if reason.is_empty():
-		for entry: Variant in gate.get("prerequisites", []):
-			if not (entry is Dictionary):
-				continue
-			var row: Dictionary = entry
-			if bool(row.get("met", false)):
-				continue
-			reason = str(row.get("blocked_reason", "")).strip_edges()
-			if not reason.is_empty():
-				break
-	build_colony_ship_button.tooltip_text = reason
 
 
 func _on_close_pressed() -> void:
@@ -217,12 +203,40 @@ func _build_hover_description(production_def: ProductionDefinition, button: Butt
 	if production_def != null and production_def.id == BaseStore.PRODUCTION_COLONY_SHIP:
 		# v0.1: builds are instant; build_time_seconds is data-only until a queue UI exists.
 		lines.append_array(_colony_prerequisite_hover_lines())
-	var reason := button.tooltip_text.strip_edges()
+	var reason := _blocked_reason_for_button(button)
 	if not reason.is_empty():
 		lines.append(reason)
 	if lines.is_empty():
 		return _hover_desc_placeholder
 	return "\n".join(lines)
+
+
+func _blocked_reason_for_button(button: Button) -> String:
+	var base_id := _economy_body_id_for_ops()
+	match button.name:
+		"BuildScanDroneButton":
+			return str(GameSession.get_build_base_scan_drone_gate(base_id).get("blocked_reason", "")).strip_edges()
+		"BuildMiningShipButton":
+			return str(GameSession.get_build_base_mining_ship_gate(base_id).get("blocked_reason", "")).strip_edges()
+		"BuildSurveyProbeButton":
+			return str(GameSession.get_build_base_survey_probe_gate(base_id).get("blocked_reason", "")).strip_edges()
+		"BuildColonyShipButton":
+			var gate: Dictionary = GameSession.get_build_base_colony_ship_gate(base_id)
+			var reason := str(gate.get("blocked_reason", "")).strip_edges()
+			if not reason.is_empty():
+				return reason
+			for entry: Variant in gate.get("prerequisites", []):
+				if not (entry is Dictionary):
+					continue
+				var row: Dictionary = entry
+				if bool(row.get("met", false)):
+					continue
+				reason = str(row.get("blocked_reason", "")).strip_edges()
+				if not reason.is_empty():
+					return reason
+			return ""
+		_:
+			return ""
 
 
 func _colony_prerequisite_hover_lines() -> PackedStringArray:

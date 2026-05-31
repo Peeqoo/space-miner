@@ -101,7 +101,6 @@ func _apply_refresh() -> void:
 		var b10 := discard_10_button_template.duplicate() as Button
 		b10.visible = true
 		b10.size_flags_horizontal = Control.SIZE_SHRINK_END
-		b10.tooltip_text = ""
 		b10.pressed.connect(_on_discard_pressed.bind(rid, 10))
 		AudioManager.bind_ui_button_optional(b10)
 		row.add_child(b10)

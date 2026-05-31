@@ -572,10 +572,6 @@ func _apply_signal_discovery_controls() -> void:
 	else:
 		investigate_button.visible = true
 		investigate_button.disabled = not can_investigate
-		if can_investigate:
-			investigate_button.tooltip_text = ""
-		else:
-			investigate_button.tooltip_text = blocked
 
 	if in_progress:
 		var progress_text: String = str(
@@ -635,17 +631,9 @@ func _apply_live_action_controls() -> void:
 		if is_instance_valid(economy_block_label):
 			economy_block_label.text = block_rs
 			economy_block_label.visible = true
-		scan_with_drone_button.tooltip_text = block_rs
-		send_mining_ship_button.tooltip_text = block_rs
-		recall_drone_button.tooltip_text = block_rs
-		recall_mining_ship_button.tooltip_text = block_rs
 	else:
 		if is_instance_valid(economy_block_label):
 			economy_block_label.visible = false
-		scan_with_drone_button.tooltip_text = ""
-		send_mining_ship_button.tooltip_text = ""
-		recall_drone_button.tooltip_text = ""
-		recall_mining_ship_button.tooltip_text = ""
 
 	var mining_exhausted: bool = bool(_live_action_cache.get("mining_exhausted", false)) or _is_current_object_mining_exhausted()
 	_live_action_cache["mining_exhausted"] = mining_exhausted
@@ -655,6 +643,16 @@ func _apply_live_action_controls() -> void:
 	)
 	var can_mine_effective: bool = can_mine and not mining_block_depleted
 	var mine_visible: bool = show_mine or can_mine
+
+	if block_rs.is_empty() and is_instance_valid(economy_block_label):
+		var action_block := ""
+		if show_scan and not can_scan and not scan_blocked.is_empty():
+			action_block = scan_blocked
+		elif mine_visible and not can_mine_effective and not mine_blocked.is_empty():
+			action_block = mine_blocked
+		if not action_block.is_empty():
+			economy_block_label.text = action_block
+			economy_block_label.visible = true
 
 	if is_home_base:
 		send_mining_ship_button.text = _mining_button_text_default
@@ -712,11 +710,6 @@ func _apply_sensor_pulse_controls() -> void:
 
 	sensor_pulse_button.visible = true
 	sensor_pulse_button.disabled = not can_pulse
-	var cost_text: String = str(_live_action_cache.get("sensor_pulse_cost_text", "")).strip_edges()
-	if can_pulse:
-		sensor_pulse_button.tooltip_text = cost_text
-	else:
-		sensor_pulse_button.tooltip_text = blocked if not blocked.is_empty() else cost_text
 
 	if is_instance_valid(economy_block_label):
 		if not can_pulse and not blocked.is_empty():
@@ -735,22 +728,19 @@ func _apply_colonization_controls() -> void:
 	if not show_colonization:
 		colonization_button.disabled = true
 		colonization_button.text = _colonization_button_text_default
-		colonization_button.tooltip_text = ""
 		return
 
 	if bool(_live_action_cache.get("colonization_pending", false)):
 		colonization_button.disabled = true
 		colonization_button.text = _colonization_button_text_running
-		colonization_button.tooltip_text = ""
 		return
 
 	var can_start: bool = bool(_live_action_cache.get("colonization_can_start", false))
 	colonization_button.disabled = not can_start
 	colonization_button.text = _colonization_button_text_default
-	if can_start:
-		colonization_button.tooltip_text = ""
-	else:
-		colonization_button.tooltip_text = _colonization_no_ship_tooltip
+	if not can_start and is_instance_valid(economy_block_label) and not _colonization_no_ship_tooltip.is_empty():
+		economy_block_label.text = _colonization_no_ship_tooltip
+		economy_block_label.visible = true
 
 
 func _is_current_object_mining_exhausted() -> bool:
@@ -988,12 +978,6 @@ func _set_action_buttons(
 		scan_label = _scan_button_text_default
 	scan_with_drone_button.text = scan_label
 
-	var scan_block := scan_blocked_reason.strip_edges()
-	if show_scan and not can_scan and not scan_block.is_empty():
-		scan_with_drone_button.tooltip_text = scan_block
-	elif scan_block.is_empty():
-		scan_with_drone_button.tooltip_text = ""
-
 	send_mining_ship_button.visible = mine_visible
 	send_mining_ship_button.disabled = not mine_enabled
 
@@ -1001,12 +985,6 @@ func _set_action_buttons(
 		send_mining_ship_button.text = _mining_button_text_depleted
 	else:
 		send_mining_ship_button.text = _mining_button_text_default
-
-	var mine_block := mine_blocked_reason.strip_edges()
-	if mine_visible and not mine_enabled and not mine_block.is_empty():
-		send_mining_ship_button.tooltip_text = mine_block
-	elif mine_block.is_empty():
-		send_mining_ship_button.tooltip_text = ""
 
 
 func _set_recall_buttons(can_recall_drone: bool, can_recall_mining_ship: bool) -> void:

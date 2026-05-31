@@ -98,9 +98,6 @@ func _refresh_upgrade_button(button: Button, category: StringName) -> void:
 	var can_buy := bool(gate.get("ok", false))
 	button.disabled = is_max or not can_buy
 	button.text = _upgrade_button_caption(category, is_max)
-	var reason := str(gate.get("blocked_reason", "")).strip_edges()
-	button.tooltip_text = reason if not is_max else ""
-
 
 func _upgrade_button_caption(category: StringName, is_max: bool) -> String:
 	if is_max:
@@ -219,10 +216,19 @@ func _build_upgrade_hover_description(category: StringName, button: Button) -> S
 	var nxt: UpgradeDefinition = GameSession.get_next_upgrade_definition(base_id, category)
 	var has_next := GameSession.has_next_base_upgrade(base_id, category)
 	var lines := UpgradeDefinition.build_panel_hover_lines(cur, nxt, has_next, _hover_section_labels())
-	var reason := button.tooltip_text.strip_edges()
+	var reason := _blocked_reason_for_category(category)
 	if not reason.is_empty():
 		lines.append(reason)
 	return "\n".join(lines)
+
+
+func _blocked_reason_for_category(category: StringName) -> String:
+	var base_id := _economy_body_id_for_ops()
+	if not GameSession.has_next_base_upgrade(base_id, category):
+		return ""
+	return str(
+		GameSession.get_buy_next_base_upgrade_gate(base_id, category).get("blocked_reason", "")
+	).strip_edges()
 
 
 func _connect_button(button: Button, callback: Callable) -> void:

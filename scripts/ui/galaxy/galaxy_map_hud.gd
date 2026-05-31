@@ -232,7 +232,6 @@ func show_no_selection_state() -> void:
 	_set_info_text(_no_selection_info_text)
 	if is_instance_valid(enter_button):
 		enter_button.disabled = true
-		enter_button.tooltip_text = ""
 	_hide_colonization_section()
 
 
@@ -259,7 +258,6 @@ func show_system_info(
 	_set_info_text(info_text)
 	if is_instance_valid(enter_button):
 		enter_button.disabled = not can_enter
-	_apply_enter_button_tooltip(can_enter, access_state)
 
 
 func _is_unknown_resources_summary(summary_text: String) -> bool:
@@ -273,21 +271,6 @@ func _set_info_text(value: String) -> void:
 		t = _no_description_text
 	if is_instance_valid(info_text_label):
 		info_text_label.text = t
-
-
-func _apply_enter_button_tooltip(can_enter: bool, access_state: String) -> void:
-	if not is_instance_valid(enter_button):
-		return
-	if can_enter:
-		enter_button.tooltip_text = ""
-		return
-	match access_state:
-		ACCESS_LOCKED:
-			enter_button.tooltip_text = str(_enter_tooltips.get(ACCESS_LOCKED, ""))
-		ACCESS_UNREACHABLE:
-			enter_button.tooltip_text = str(_enter_tooltips.get(ACCESS_UNREACHABLE, ""))
-		_:
-			enter_button.tooltip_text = str(_enter_tooltips.get("default", ""))
 
 
 func _access_status_text_for_state(access_state: String) -> String:
