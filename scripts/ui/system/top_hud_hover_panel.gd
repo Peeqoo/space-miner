@@ -1,5 +1,6 @@
 ## TopHudHoverPanel — reusable detail popup for TopHUD widget hovers.
 ## API: show_details(title, details, hint, source_control) / clear()
+class_name TopHUDHoverPanel
 extends PanelContainer
 
 const _HOVER_BELOW_MARGIN := 4.0

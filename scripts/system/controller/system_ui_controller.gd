@@ -17,7 +17,7 @@ var production_panel: ProductionPanel = null
 var upgrade_panel: UpgradePanel = null
 var storage_panel: StoragePanel = null
 var top_hud: TopHUD = null
-var top_hud_hover_panel: Control = null
+var top_hud_hover_panel: TopHUDHoverPanel = null
 
 ## Primary celestial body id for fleet/storage TopHUD hovers (= `BaseStore` key).
 var _primary_base_body_id: String = ""
@@ -101,7 +101,15 @@ func setup(
 		top_hud = typed_top_hud
 	else:
 		top_hud = null
-	top_hud_hover_panel = p_top_hud_hover_panel
+	if p_top_hud_hover_panel != null:
+		var typed_top_hud_hover_panel := p_top_hud_hover_panel as TopHUDHoverPanel
+		if typed_top_hud_hover_panel == null:
+			push_warning(
+				"SystemUIController: top_hud_hover_panel node is not a TopHUDHoverPanel."
+			)
+		top_hud_hover_panel = typed_top_hud_hover_panel
+	else:
+		top_hud_hover_panel = null
 	if p_storage_panel != null:
 		var typed_storage_panel := p_storage_panel as StoragePanel
 		if typed_storage_panel == null:
@@ -1207,8 +1215,8 @@ func _update_top_hud() -> void:
 
 
 func _clear_top_hud_hover_panel() -> void:
-	if top_hud_hover_panel != null and top_hud_hover_panel.has_method("clear"):
-		top_hud_hover_panel.call("clear")
+	if is_instance_valid(top_hud_hover_panel):
+		top_hud_hover_panel.clear()
 
 
 func _on_base_open_production() -> void:
@@ -1292,13 +1300,13 @@ func _on_top_hud_hover_requested(kind: String, source_control: Control) -> void:
 	var title: String = str(content.get("title", ""))
 	var details: Array = content.get("details", [])
 	var hint: String = str(content.get("hint", ""))
-	if top_hud_hover_panel.has_method("show_details"):
-		top_hud_hover_panel.call("show_details", title, details, hint, source_control)
+	if is_instance_valid(top_hud_hover_panel):
+		top_hud_hover_panel.show_details(title, details, hint, source_control)
 
 
 func _on_top_hud_hover_cleared() -> void:
-	if top_hud_hover_panel != null and top_hud_hover_panel.has_method("clear"):
-		top_hud_hover_panel.call("clear")
+	if is_instance_valid(top_hud_hover_panel):
+		top_hud_hover_panel.clear()
 
 
 func _hover_display_name_for_object_id(object_id: String) -> String:
@@ -1371,8 +1379,8 @@ func _hover_append_simple_object_count_lines(details: Array, counts_by_object: D
 
 
 func _top_hud_effects_section_caption() -> String:
-	if top_hud_hover_panel != null and top_hud_hover_panel.has_method("get_effects_section_caption"):
-		return str(top_hud_hover_panel.call("get_effects_section_caption")).strip_edges()
+	if is_instance_valid(top_hud_hover_panel):
+		return top_hud_hover_panel.get_effects_section_caption()
 	return ""
 
 
