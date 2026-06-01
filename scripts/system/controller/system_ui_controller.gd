@@ -8,7 +8,7 @@ var selection: SystemSelectionController
 var spawner: SystemSpawner = null
 
 var object_info_panel: ObjectInfoPanel = null
-var base_management_panel: PanelContainer
+var base_management_panel: BaseManagementPanel = null
 var automation_controller: AutomationController = null
 var survey_probe_mission_controller: SurveyProbeMissionController = null
 var base_sensor_pulse_controller: BaseSensorPulseController = null
@@ -61,7 +61,15 @@ func setup(
 		object_info_panel = typed_object_info
 	else:
 		object_info_panel = null
-	base_management_panel = p_base_management_panel
+	if p_base_management_panel != null:
+		var typed_base_panel := p_base_management_panel as BaseManagementPanel
+		if typed_base_panel == null:
+			push_warning(
+				"SystemUIController: base_management_panel node is not a BaseManagementPanel."
+			)
+		base_management_panel = typed_base_panel
+	else:
+		base_management_panel = null
 	automation_controller = p_automation_controller
 	survey_probe_mission_controller = p_survey_probe_mission_controller
 	base_sensor_pulse_controller = p_base_sensor_pulse_controller
@@ -80,11 +88,8 @@ func setup(
 	if object_info_panel != null:
 		object_info_panel.visible = false
 
-	if base_management_panel != null:
-		if base_management_panel.has_method("hide_panel"):
-			base_management_panel.call("hide_panel")
-		else:
-			base_management_panel.visible = false
+	if is_instance_valid(base_management_panel):
+		base_management_panel.hide_panel()
 
 	_connect_ui_signals()
 	_hide_base_subpanels()
@@ -124,8 +129,8 @@ func _session_primary_base_established() -> bool:
 
 func _apply_session_economy_gate() -> void:
 	var ok := _session_primary_base_established()
-	if base_management_panel != null and base_management_panel.has_method("set_economy_actions_enabled"):
-		base_management_panel.call("set_economy_actions_enabled", ok)
+	if is_instance_valid(base_management_panel):
+		base_management_panel.set_economy_actions_enabled(ok)
 	if not ok:
 		if production_panel != null:
 			production_panel.visible = false
@@ -210,36 +215,25 @@ func update_base_panel() -> void:
 
 	var selected_node := selection.get_selected_node()
 
-	var hold_open: bool = false
-	if base_management_panel.has_method("is_hold_open_across_selection"):
-		hold_open = bool(base_management_panel.call("is_hold_open_across_selection"))
+	var hold_open: bool = base_management_panel.is_hold_open_across_selection()
 
 	if selected_node is SystemBody:
 		var body := selected_node as SystemBody
 
 		if _selected_body_has_established_base(body):
-			if base_management_panel.has_method("show_for_base"):
-				base_management_panel.call(
-					"show_for_base",
-					system_definition.id,
-					body.body_id,
-					"%s Base" % body.display_name,
-					true
-				)
-			else:
-				base_management_panel.visible = true
-
+			base_management_panel.show_for_base(
+				system_definition.id,
+				body.body_id,
+				"%s Base" % body.display_name,
+				true
+			)
 			return
 
 	if hold_open:
-		if base_management_panel.has_method("refresh_while_hold_open"):
-			base_management_panel.call("refresh_while_hold_open")
+		base_management_panel.refresh_while_hold_open()
 		return
 
-	if base_management_panel.has_method("hide_panel"):
-		base_management_panel.call("hide_panel")
-	else:
-		base_management_panel.visible = false
+	base_management_panel.hide_panel()
 
 	_hide_base_subpanels()
 
@@ -765,9 +759,8 @@ func _refresh_economy_panels() -> void:
 			if sid.is_empty():
 				sid = _economy_body_id_for_ui()
 			storage_panel.call("refresh", sid)
-	if base_management_panel != null and base_management_panel.visible:
-		if base_management_panel.has_method("refresh_from_game_session"):
-			base_management_panel.call("refresh_from_game_session")
+	if is_instance_valid(base_management_panel) and base_management_panel.visible:
+		base_management_panel.refresh_from_game_session()
 
 
 func _on_colonization_requested(object_id: String) -> void:
@@ -1232,8 +1225,8 @@ func _on_base_open_storage() -> void:
 	if upgrade_panel != null:
 		upgrade_panel.visible = false
 
-	if base_management_panel != null and base_management_panel.has_method("get_managed_base_id"):
-		_storage_context_base_id = str(base_management_panel.call("get_managed_base_id"))
+	if is_instance_valid(base_management_panel):
+		_storage_context_base_id = base_management_panel.get_managed_base_id()
 	else:
 		_storage_context_base_id = BaseStore.BASE_EARTH
 

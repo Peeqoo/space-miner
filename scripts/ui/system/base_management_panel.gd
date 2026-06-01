@@ -1,5 +1,6 @@
 ## BaseManagementPanel — shows base hub info and opens sub-panels.
 ## Production and upgrade logic is now in ProductionPanel / UpgradePanel.
+class_name BaseManagementPanel
 extends PanelContainer
 
 signal open_production_requested
