@@ -318,7 +318,7 @@ layout_mode = 2
 text = "In progress..."
 label_settings = ExtResource("6_oi0nm")
 
-[node name="ColonizationNoShipTooltipTemplate" type="Label" parent="Margin/Root" unique_id=1781138010]
+[node name="ColonizationNoShipBlockTemplate" type="Label" parent="Margin/Root" unique_id=1781138010]
 visible = false
 layout_mode = 2
 text = "No Colony Ship available"

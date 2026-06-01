@@ -60,7 +60,7 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var no_description_lore_template: Label = $Margin/Root/NoDescriptionLoreTemplate
 @onready var mining_button_depleted_template: Label = $Margin/Root/MiningButtonDepletedTemplate
 @onready var colonization_running_template: Label = $Margin/Root/ColonizationRunningTemplate
-@onready var colonization_no_ship_tooltip_template: Label = $Margin/Root/ColonizationNoShipTooltipTemplate
+@onready var colonization_no_ship_block_template: Label = $Margin/Root/ColonizationNoShipBlockTemplate
 @onready var automation_drone_supporting_template: Label = $Margin/Root/AutomationDroneSupportingTemplate
 @onready var automation_drone_on_mission_template: Label = $Margin/Root/AutomationDroneOnMissionTemplate
 
@@ -114,7 +114,7 @@ var _scan_button_text_default: String = ""
 var _mining_button_text_depleted: String = ""
 var _colonization_button_text_default: String = ""
 var _colonization_button_text_running: String = ""
-var _colonization_no_ship_tooltip: String = ""
+var _colonization_no_ship_block_text: String = ""
 var _automation_drone_supporting_format: String = ""
 var _automation_drone_on_mission_format: String = ""
 var _unknown_display_name_fallback: String = ""
@@ -207,8 +207,8 @@ func _capture_editor_text_templates() -> void:
 	_no_description_lore = no_description_lore_template.text.strip_edges()
 	_mining_button_text_depleted = mining_button_depleted_template.text.strip_edges()
 	_colonization_button_text_running = colonization_running_template.text.strip_edges()
-	var colonization_no_ship_template := colonization_no_ship_tooltip_template.text.strip_edges()
-	_colonization_no_ship_tooltip = GameSession.get_gate_text(
+	var colonization_no_ship_template := colonization_no_ship_block_template.text.strip_edges()
+	_colonization_no_ship_block_text = GameSession.get_gate_text(
 		GateUiTextDefinition.KEY_COLONY_NO_SHIP,
 		colonization_no_ship_template,
 	)
@@ -743,8 +743,8 @@ func _apply_colonization_controls() -> void:
 	var can_start: bool = bool(_live_action_cache.get("colonization_can_start", false))
 	colonization_button.disabled = not can_start
 	colonization_button.text = _colonization_button_text_default
-	if not can_start and is_instance_valid(economy_block_label) and not _colonization_no_ship_tooltip.is_empty():
-		economy_block_label.text = _colonization_no_ship_tooltip
+	if not can_start and is_instance_valid(economy_block_label) and not _colonization_no_ship_block_text.is_empty():
+		economy_block_label.text = _colonization_no_ship_block_text
 		economy_block_label.visible = true
 
 

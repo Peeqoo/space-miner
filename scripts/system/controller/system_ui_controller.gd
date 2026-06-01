@@ -171,7 +171,7 @@ func _process(_delta: float) -> void:
 		return
 
 	var dist: float = base_node.global_position.distance_to((selected as Node2D).global_position)
-	object_info_panel.call("set_distance_text", "%.0f u" % dist)
+	object_info_panel.set_distance_text("%.0f u" % dist)
 
 
 func update_object_info() -> void:
