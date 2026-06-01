@@ -1,4 +1,5 @@
 ## UpgradePanel — buy permanent upgrades for storage, scan drones, and mining ships (Phase 5.5 tiers).
+class_name UpgradePanel
 extends PanelContainer
 
 signal close_requested

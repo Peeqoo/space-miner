@@ -1,5 +1,6 @@
 ## ProductionPanel — build ScanDrones, MiningShips, Survey Probes, and ColonyShip inventory.
 ## Emits build_*_requested for AutomationController spawning where applicable.
+class_name ProductionPanel
 extends PanelContainer
 
 signal build_scan_drone_requested

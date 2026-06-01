@@ -1,5 +1,6 @@
 ## TopHUD — compact status bar for the active system's primary base (body id = `base_id` in BaseStore).
 ## Emits hover_requested and hover_cleared signals for the TopHudHoverPanel.
+class_name TopHUD
 extends PanelContainer
 
 signal hover_requested(kind: String, source_control: Control)

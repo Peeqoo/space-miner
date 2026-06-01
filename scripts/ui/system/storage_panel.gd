@@ -1,4 +1,5 @@
 ## StoragePanel — manual discard of base storage (player-initiated only).
+class_name StoragePanel
 extends PanelContainer
 
 signal close_requested

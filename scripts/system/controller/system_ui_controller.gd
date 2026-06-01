@@ -13,10 +13,10 @@ var automation_controller: AutomationController = null
 var survey_probe_mission_controller: SurveyProbeMissionController = null
 var base_sensor_pulse_controller: BaseSensorPulseController = null
 
-var production_panel: Control = null
-var upgrade_panel: Control = null
-var storage_panel: Control = null
-var top_hud: Control = null
+var production_panel: ProductionPanel = null
+var upgrade_panel: UpgradePanel = null
+var storage_panel: StoragePanel = null
+var top_hud: TopHUD = null
 var top_hud_hover_panel: Control = null
 
 ## Primary celestial body id for fleet/storage TopHUD hovers (= `BaseStore` key).
@@ -74,16 +74,48 @@ func setup(
 	survey_probe_mission_controller = p_survey_probe_mission_controller
 	base_sensor_pulse_controller = p_base_sensor_pulse_controller
 
-	production_panel = p_production_panel
-	upgrade_panel = p_upgrade_panel
-	top_hud = p_top_hud
+	if p_production_panel != null:
+		var typed_production_panel := p_production_panel as ProductionPanel
+		if typed_production_panel == null:
+			push_warning(
+				"SystemUIController: production_panel node is not a ProductionPanel."
+			)
+		production_panel = typed_production_panel
+	else:
+		production_panel = null
+	if p_upgrade_panel != null:
+		var typed_upgrade_panel := p_upgrade_panel as UpgradePanel
+		if typed_upgrade_panel == null:
+			push_warning(
+				"SystemUIController: upgrade_panel node is not an UpgradePanel."
+			)
+		upgrade_panel = typed_upgrade_panel
+	else:
+		upgrade_panel = null
+	if p_top_hud != null:
+		var typed_top_hud := p_top_hud as TopHUD
+		if typed_top_hud == null:
+			push_warning(
+				"SystemUIController: top_hud node is not a TopHUD."
+			)
+		top_hud = typed_top_hud
+	else:
+		top_hud = null
 	top_hud_hover_panel = p_top_hud_hover_panel
-	storage_panel = p_storage_panel
+	if p_storage_panel != null:
+		var typed_storage_panel := p_storage_panel as StoragePanel
+		if typed_storage_panel == null:
+			push_warning(
+				"SystemUIController: storage_panel node is not a StoragePanel."
+			)
+		storage_panel = typed_storage_panel
+	else:
+		storage_panel = null
 	_primary_base_body_id = p_primary_base_body_id.strip_edges()
 	add_to_group(&"system_ui_controller")
 
-	if top_hud != null and top_hud.has_method("set_primary_base_body_id"):
-		top_hud.call("set_primary_base_body_id", _primary_base_body_id)
+	if is_instance_valid(top_hud):
+		top_hud.set_primary_base_body_id(_primary_base_body_id)
 
 	if object_info_panel != null:
 		object_info_panel.visible = false
@@ -144,10 +176,10 @@ func _sync_production_upgrade_economy_body_ids() -> void:
 	var bid := _economy_body_id_for_ui().strip_edges()
 	if bid.is_empty():
 		return
-	if production_panel != null and production_panel.has_method("set_economy_body_id"):
-		production_panel.call("set_economy_body_id", bid)
-	if upgrade_panel != null and upgrade_panel.has_method("set_economy_body_id"):
-		upgrade_panel.call("set_economy_body_id", bid)
+	if is_instance_valid(production_panel):
+		production_panel.set_economy_body_id(bid)
+	if is_instance_valid(upgrade_panel):
+		upgrade_panel.set_economy_body_id(bid)
 
 
 func _process(_delta: float) -> void:
@@ -747,18 +779,15 @@ func _on_base_upgrades_changed_ui_refresh(_base_id: String) -> void:
 
 
 func _refresh_economy_panels() -> void:
-	if production_panel != null and production_panel.visible:
-		if production_panel.has_method("refresh_from_game_session"):
-			production_panel.call("refresh_from_game_session")
-	if upgrade_panel != null and upgrade_panel.visible:
-		if upgrade_panel.has_method("refresh_from_game_session"):
-			upgrade_panel.call("refresh_from_game_session")
-	if storage_panel != null and storage_panel.visible:
-		if storage_panel.has_method("refresh"):
-			var sid := _storage_context_base_id.strip_edges()
-			if sid.is_empty():
-				sid = _economy_body_id_for_ui()
-			storage_panel.call("refresh", sid)
+	if is_instance_valid(production_panel) and production_panel.visible:
+		production_panel.refresh_from_game_session()
+	if is_instance_valid(upgrade_panel) and upgrade_panel.visible:
+		upgrade_panel.refresh_from_game_session()
+	if is_instance_valid(storage_panel) and storage_panel.visible:
+		var sid := _storage_context_base_id.strip_edges()
+		if sid.is_empty():
+			sid = _economy_body_id_for_ui()
+		storage_panel.refresh(sid)
 	if is_instance_valid(base_management_panel) and base_management_panel.visible:
 		base_management_panel.refresh_from_game_session()
 
@@ -1156,27 +1185,25 @@ func _get_mining_bonus_for_object(object_id: String) -> float:
 
 
 func _update_top_hud() -> void:
-	if top_hud != null and top_hud.has_method("set_primary_base_body_id"):
-		top_hud.call("set_primary_base_body_id", _economy_body_id_for_ui())
+	if not is_instance_valid(top_hud):
+		return
 
-	if top_hud != null and top_hud.has_method("refresh_from_game_session"):
-		top_hud.call("refresh_from_game_session")
+	top_hud.set_primary_base_body_id(_economy_body_id_for_ui())
+	top_hud.refresh_from_game_session()
 
-	if top_hud != null and top_hud.has_method("set_survey_probe_counts"):
-		var bid_sp: String = _economy_body_id_for_ui().strip_edges()
-		var available_sp: int = 0
-		if not bid_sp.is_empty():
-			available_sp = GameSession.get_available_survey_probe_count(bid_sp)
-		var active_sp: int = 0
-		if survey_probe_mission_controller != null:
-			active_sp = survey_probe_mission_controller.get_active_investigate_count()
-		top_hud.call("set_survey_probe_counts", available_sp, active_sp)
+	var bid_sp: String = _economy_body_id_for_ui().strip_edges()
+	var available_sp: int = 0
+	if not bid_sp.is_empty():
+		available_sp = GameSession.get_available_survey_probe_count(bid_sp)
+	var active_sp: int = 0
+	if survey_probe_mission_controller != null:
+		active_sp = survey_probe_mission_controller.get_active_investigate_count()
+	top_hud.set_survey_probe_counts(available_sp, active_sp)
 
-	if top_hud != null and top_hud.has_method("set_jobs_count"):
-		var job_n: int = 0
-		if automation_controller != null:
-			job_n = automation_controller.get_active_job_count_for_base(_economy_body_id_for_ui().strip_edges())
-		top_hud.call("set_jobs_count", job_n)
+	var job_n: int = 0
+	if automation_controller != null:
+		job_n = automation_controller.get_active_job_count_for_base(_economy_body_id_for_ui().strip_edges())
+	top_hud.set_jobs_count(job_n)
 
 
 func _clear_top_hud_hover_panel() -> void:
@@ -1194,10 +1221,9 @@ func _on_base_open_production() -> void:
 	if storage_panel != null:
 		storage_panel.visible = false
 		_storage_context_base_id = ""
-	if production_panel != null:
+	if is_instance_valid(production_panel):
 		production_panel.visible = true
-		if production_panel.has_method("refresh_from_game_session"):
-			production_panel.call("refresh_from_game_session")
+		production_panel.refresh_from_game_session()
 
 
 func _on_base_open_upgrades() -> void:
@@ -1210,10 +1236,9 @@ func _on_base_open_upgrades() -> void:
 	if storage_panel != null:
 		storage_panel.visible = false
 		_storage_context_base_id = ""
-	if upgrade_panel != null:
+	if is_instance_valid(upgrade_panel):
 		upgrade_panel.visible = true
-		if upgrade_panel.has_method("refresh_from_game_session"):
-			upgrade_panel.call("refresh_from_game_session")
+		upgrade_panel.refresh_from_game_session()
 
 
 func _on_base_open_storage() -> void:
@@ -1230,12 +1255,10 @@ func _on_base_open_storage() -> void:
 	else:
 		_storage_context_base_id = BaseStore.BASE_EARTH
 
-	if storage_panel != null:
+	if is_instance_valid(storage_panel):
 		storage_panel.visible = true
-		if storage_panel.has_method("set_base_id"):
-			storage_panel.call("set_base_id", _storage_context_base_id)
-		if storage_panel.has_method("refresh"):
-			storage_panel.call("refresh", _storage_context_base_id)
+		storage_panel.set_base_id(_storage_context_base_id)
+		storage_panel.refresh(_storage_context_base_id)
 
 
 func _on_storage_panel_close_requested() -> void:
