@@ -7,7 +7,7 @@ var system_definition: SystemDefinition
 var selection: SystemSelectionController
 var spawner: SystemSpawner = null
 
-var object_info_panel: PanelContainer
+var object_info_panel: ObjectInfoPanel = null
 var base_management_panel: PanelContainer
 var automation_controller: AutomationController = null
 var survey_probe_mission_controller: SurveyProbeMissionController = null
@@ -52,7 +52,15 @@ func setup(
 	selection = p_selection
 	spawner = p_spawner
 
-	object_info_panel = p_object_info_panel
+	if p_object_info_panel != null:
+		var typed_object_info := p_object_info_panel as ObjectInfoPanel
+		if typed_object_info == null:
+			push_warning(
+				"SystemUIController: object_info_panel node is not an ObjectInfoPanel."
+			)
+		object_info_panel = typed_object_info
+	else:
+		object_info_panel = null
 	base_management_panel = p_base_management_panel
 	automation_controller = p_automation_controller
 	survey_probe_mission_controller = p_survey_probe_mission_controller
@@ -175,8 +183,8 @@ func update_object_info() -> void:
 	if selected_node == null:
 		var was_object_info_visible := object_info_panel.visible
 
-		if was_object_info_visible and object_info_panel.has_method("show_empty"):
-			object_info_panel.call("show_empty")
+		if was_object_info_visible and is_instance_valid(object_info_panel):
+			object_info_panel.show_empty()
 
 		object_info_panel.visible = false
 		return
@@ -946,8 +954,8 @@ func _on_investigation_progress_changed(object_id: String, progress: float) -> v
 	if (selected as SignalMarker).object_id.strip_edges() != oid:
 		return
 
-	if object_info_panel.has_method("apply_investigate_progress"):
-		object_info_panel.call("apply_investigate_progress", progress)
+	if is_instance_valid(object_info_panel):
+		object_info_panel.apply_investigate_progress(progress)
 
 
 func _on_object_scan_requested(object_id: String) -> void:
