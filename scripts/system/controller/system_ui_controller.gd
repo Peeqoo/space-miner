@@ -194,14 +194,14 @@ func update_object_info() -> void:
 	var info: Dictionary = _build_selected_object_info(selected_node)
 
 	if selected_node is SignalMarker:
-		if object_info_panel.has_method("show_body_info"):
-			object_info_panel.call("show_body_info", info)
+		if is_instance_valid(object_info_panel):
+			object_info_panel.show_body_info(info)
 	elif selected_node is SystemBody:
-		if object_info_panel.has_method("show_body_info"):
-			object_info_panel.call("show_body_info", info)
+		if is_instance_valid(object_info_panel):
+			object_info_panel.show_body_info(info)
 	elif selected_node is PointOfInterest:
-		if object_info_panel.has_method("show_poi_info"):
-			object_info_panel.call("show_poi_info", info)
+		if is_instance_valid(object_info_panel):
+			object_info_panel.show_poi_info(info)
 
 
 func update_base_panel() -> void:
