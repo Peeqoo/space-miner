@@ -7,7 +7,7 @@ script = ExtResource("1")
 id = "colony_ship"
 unit_key = "colony_ships"
 cost = {
-"Ice": 350,
+"Water": 350,
 "Iron": 1500,
 "Silicon": 300,
 "SurveyData": 150
