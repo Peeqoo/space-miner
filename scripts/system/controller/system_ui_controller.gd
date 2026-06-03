@@ -472,6 +472,18 @@ func _build_signal_marker_info(marker: SignalMarker) -> Dictionary:
 	return info
 
 
+func _build_world_object_info(
+	selected_node: Node,
+	scan_state: String,
+	unlocked_scan_layer: int,
+) -> Dictionary:
+	if selected_node is SystemBody:
+		return (selected_node as SystemBody).build_scan_info(scan_state, unlocked_scan_layer)
+	if selected_node is PointOfInterest:
+		return (selected_node as PointOfInterest).build_scan_info(scan_state, unlocked_scan_layer)
+	return {}
+
+
 func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	if selected_node is SignalMarker:
 		return _build_signal_marker_info(selected_node as SignalMarker)
@@ -480,12 +492,7 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	var scan_state := GameSession.get_object_scan_state(system_definition.id, object_id)
 	var unlocked_scan_layer := GameSession.get_unlocked_scan_layer_for_base(_economy_body_id_for_ui())
 
-	var info: Dictionary = {}
-
-	if selected_node.has_method("build_scan_info"):
-		info = selected_node.call("build_scan_info", scan_state, unlocked_scan_layer)
-	elif selected_node.has_method("get_info"):
-		info = selected_node.call("get_info")
+	var info: Dictionary = _build_world_object_info(selected_node, scan_state, unlocked_scan_layer)
 
 	info["scan_state"] = scan_state
 	info["preview_texture"] = _get_preview_texture(selected_node)
