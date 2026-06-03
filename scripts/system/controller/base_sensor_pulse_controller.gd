@@ -161,15 +161,25 @@ func _complete_pulse() -> void:
 
 	var candidates: Array[Dictionary] = _build_sorted_candidates(bid)
 	var reveal_count: int = mini(reveal_budget, candidates.size())
+	var revealed_ids: Array[StringName] = []
 
 	for i in range(reveal_count):
 		var oid: String = str(candidates[i].get("object_id", "")).strip_edges()
 		if oid.is_empty():
 			continue
 		GameSession.set_object_discovery_state(_system_id, oid, GameSession.DISCOVERY_SIGNAL)
+		revealed_ids.append(StringName(oid))
 
-	if discovery_controller != null and system_definition != null:
-		discovery_controller.apply_for_system(system_definition)
+	if discovery_controller != null and not revealed_ids.is_empty():
+		var refreshed_count: int = discovery_controller.refresh_objects(revealed_ids)
+		if refreshed_count < revealed_ids.size():
+			var id_labels: PackedStringArray = PackedStringArray()
+			for id_sn: StringName in revealed_ids:
+				id_labels.append(String(id_sn))
+			push_warning(
+				"BaseSensorPulseController: discovery refresh applied %d/%d (ids=%s)."
+				% [refreshed_count, revealed_ids.size(), ", ".join(id_labels)]
+			)
 
 	sensor_pulse_changed.emit()
 	sensor_pulse_progress_changed.emit(1.0)
