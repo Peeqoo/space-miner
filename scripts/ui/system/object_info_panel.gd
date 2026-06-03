@@ -852,13 +852,26 @@ func _refresh_resource_rows_from_cache() -> void:
 		if entry is Dictionary:
 			_apply_resource_dict_to_row(row, entry as Dictionary)
 		else:
-			row.set_row_data(_format_title(str(entry)), "--")
+			var entry_id := str(entry).strip_edges()
+			row.set_row_data(_resolve_resource_label_for_id(entry_id), "--")
 
 
 func _apply_resource_dict_to_row(row: ResourceInfoRow, resource_entry: Dictionary) -> void:
-	var resource_name: String = _get_resource_display_name(resource_entry)
 	var detail_text: String = _build_resource_detail_text(resource_entry)
-	row.set_row_data(_format_title(resource_name), detail_text)
+	row.set_row_data(_resolve_resource_label_for_entry(resource_entry), detail_text)
+
+
+func _resolve_resource_label_for_id(resource_id: String) -> String:
+	var cleaned := resource_id.strip_edges()
+	var title_fallback := _format_title(cleaned)
+	return GameSession.get_resource_display_name(StringName(cleaned), title_fallback)
+
+
+func _resolve_resource_label_for_entry(resource_entry: Dictionary) -> String:
+	var resource_id_r: String = _get_resource_store_id(resource_entry)
+	if resource_id_r.is_empty():
+		resource_id_r = _get_resource_display_name(resource_entry)
+	return _resolve_resource_label_for_id(resource_id_r)
 
 
 func _get_resource_display_name(resource_entry: Dictionary) -> String:

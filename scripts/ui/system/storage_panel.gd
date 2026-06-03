@@ -69,16 +69,24 @@ func _apply_refresh() -> void:
 		c.free()
 
 	var resources: Dictionary = GameSession.get_base_resources(_base_id)
-	var keys: Array = resources.keys()
-	keys.sort()
+	var amounts_by_rid: Dictionary = {}
+	var resource_ids: Array[StringName] = []
 
+	for res_key: Variant in resources.keys():
+		var rid := str(res_key).strip_edges()
+		var amt := int(resources.get(res_key, 0))
+		if amt <= 0 or rid.is_empty():
+			continue
+		amounts_by_rid[rid] = amt
+		resource_ids.append(StringName(rid))
+
+	var sorted_ids: Array[StringName] = GameSession.get_storage_resource_ids_sorted(resource_ids)
 	var any_row := false
 
-	for res_key: Variant in keys:
-		var rid := str(res_key)
-		var amt := int(resources.get(res_key, 0))
-
-		if amt <= 0 or rid.is_empty():
+	for rid_sn: StringName in sorted_ids:
+		var rid := String(rid_sn)
+		var amt: int = int(amounts_by_rid.get(rid, 0))
+		if amt <= 0:
 			continue
 
 		any_row = true
@@ -91,7 +99,8 @@ func _apply_refresh() -> void:
 		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		name_l.size_flags_stretch_ratio = 1.0
-		name_l.text = "%s: %s" % [rid.capitalize(), NumberFormat.format_compact(amt)]
+		var display_name := GameSession.get_resource_display_name(rid_sn, rid.capitalize())
+		name_l.text = "%s: %s" % [display_name, NumberFormat.format_compact(amt)]
 		name_l.label_settings = _TEXT_SMALL_LS
 		name_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 		name_l.clip_text = true
