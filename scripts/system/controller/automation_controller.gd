@@ -57,6 +57,8 @@ var _automation_state_emit_scheduled: bool = false
 
 var _unit_catalog: UnitCatalog = null
 
+var _audio_service: AutomationAudioService = AutomationAudioService.new()
+
 
 func _ensure_unit_catalog() -> UnitCatalog:
 	if _unit_catalog == null:
@@ -2891,43 +2893,27 @@ func _emit_automation_state_changed_deferred() -> void:
 
 
 func _play_automation_sfx(event_id: StringName, source: Node2D) -> void:
-	if source == null or not is_instance_valid(source):
-		return
-	AudioManager.play_world_sfx_optional(event_id, source.global_position)
+	_audio_service.play_automation_sfx(event_id, source)
 
 
 func _play_unit_travel_sfx(event_id: StringName, unit: AutomationUnit, fallback: Node2D = null) -> void:
-	var source: Node2D = _audio_source_node(unit, fallback)
-
-	if source == null:
-		return
-
-	var cooldown_key: StringName = event_id
-
-	if unit != null and is_instance_valid(unit):
-		cooldown_key = StringName("%s_%d" % [String(event_id), unit.get_instance_id()])
-
-	AudioManager.play_world_sfx_with_cooldown_optional(
-		event_id,
-		source.global_position,
-		cooldown_key,
-	)
+	_audio_service.play_unit_travel_sfx(event_id, unit, fallback)
 
 
 func _play_scan_drone_launch_audio(unit: AutomationUnit) -> void:
-	_play_unit_travel_sfx(&"scan_drone_launch", unit)
+	_audio_service.play_scan_drone_launch(unit)
 
 
 func _play_scan_drone_arrive_audio(unit: AutomationUnit, fallback: Node2D = null) -> void:
-	_play_unit_travel_sfx(&"scan_drone_arrive", unit, fallback)
+	_audio_service.play_scan_drone_arrive(unit, fallback)
 
 
 func _play_mining_ship_launch_audio(unit: AutomationUnit) -> void:
-	_play_unit_travel_sfx(&"mining_ship_launch", unit)
+	_audio_service.play_mining_ship_launch(unit)
 
 
 func _play_mining_ship_arrive_audio(unit: AutomationUnit, fallback: Node2D = null) -> void:
-	_play_unit_travel_sfx(&"mining_ship_arrive", unit, fallback)
+	_audio_service.play_mining_ship_arrive(unit, fallback)
 
 
 func _begin_scan_drone_return_travel(unit: AutomationUnit) -> void:
@@ -2987,50 +2973,24 @@ func _mining_ship_recall_to_base(unit: AutomationUnit, home_base_node: Node2D) -
 
 
 func _play_mining_resource_tick_sfx(unit: AutomationUnit) -> void:
-	if unit == null or not is_instance_valid(unit):
-		return
-	var cooldown_key := StringName("mining_resource_tick_%d" % unit.get_instance_id())
-	AudioManager.play_world_sfx_with_cooldown_optional(
-		&"mining_resource_tick",
-		unit.global_position,
-		cooldown_key,
-	)
+	_audio_service.play_mining_resource_tick(unit)
 
 
 func _scan_orbit_loop_id(unit: AutomationUnit) -> StringName:
-	return StringName("scan_orbit_%d" % unit.get_instance_id())
+	return _audio_service.scan_orbit_loop_id(unit)
 
 
 func _start_scan_orbit_audio(unit: AutomationUnit, target_node: Node2D) -> void:
-	var audio_source := _audio_source_node(unit, target_node)
-	if audio_source == null:
-		return
-	_play_scan_drone_arrive_audio(unit, target_node)
-	AudioManager.play_world_loop_optional(
-		&"scan_loop",
-		_scan_orbit_loop_id(unit),
-		audio_source,
-	)
+	_audio_service.start_scan_orbit_audio(unit, target_node)
 
 
 func _stop_scan_orbit_audio(unit: AutomationUnit) -> void:
-	if unit == null or not is_instance_valid(unit):
-		return
-	AudioManager.stop_world_loop_optional(_scan_orbit_loop_id(unit))
+	_audio_service.stop_scan_orbit_audio(unit)
 
 
 func _audio_source_node(unit: Node2D, fallback: Node2D) -> Node2D:
-	if unit != null and is_instance_valid(unit):
-		return unit
-	if fallback != null and is_instance_valid(fallback):
-		return fallback
-	return null
+	return _audio_service.audio_source_node(unit, fallback) as Node2D
 
 
 func _audio_node_for_base(base_id: String, unit: AutomationUnit) -> Node2D:
-	var base_node := _get_target_node(base_id.strip_edges())
-	if base_node != null:
-		return base_node
-	if unit != null and is_instance_valid(unit):
-		return unit
-	return null
+	return _audio_service.audio_node_for_base(spawner, base_id, unit) as Node2D
