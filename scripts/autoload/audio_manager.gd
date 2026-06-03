@@ -12,27 +12,7 @@
 ## World loops: distance/zoom only mute/pause (-80 dB); logical stop via stop_world_loop() or invalid source.
 extends Node
 
-const SFX_EVENTS: Dictionary = {
-	&"ui_click": "res://assets/audio/sfx/ui/ui_click.ogg",
-	&"ui_hover": "res://assets/audio/sfx/ui/ui_hover.ogg",
-	&"ui_blocked": "res://assets/audio/sfx/ui/ui_blocked.ogg",
-	&"not_enough_resources": "res://assets/audio/sfx/ui/not_enough_resources.ogg",
-	&"scan_start": "res://assets/audio/sfx/scan/scan_start.ogg",
-	&"scan_complete": "res://assets/audio/sfx/scan/scan_complete.ogg",
-	&"resource_revealed": "res://assets/audio/sfx/scan/resource_revealed.ogg",
-	&"scan_drone_launch": "res://assets/audio/sfx/ships/scan_drone_launch.ogg",
-	&"scan_drone_arrive": "res://assets/audio/sfx/ships/scan_drone_arrive.ogg",
-	&"scan_loop": "res://assets/audio/sfx/scan/scan_loop.ogg",
-	&"mining_start": "res://assets/audio/sfx/mining/mining_start.ogg",
-	&"mining_ship_launch": "res://assets/audio/sfx/ships/mining_ship_launch.ogg",
-	&"mining_ship_arrive": "res://assets/audio/sfx/ships/mining_ship_arrive.ogg",
-	&"mining_resource_tick": "res://assets/audio/sfx/mining/mining_resource_tick.ogg",
-	&"mining_complete": "res://assets/audio/sfx/mining/mining_complete.ogg",
-	&"ship_return": "res://assets/audio/sfx/ships/ship_return.ogg",
-	&"cargo_unload": "res://assets/audio/sfx/base/cargo_unload.ogg",
-	&"build_success": "res://assets/audio/sfx/base/build_success.ogg",
-	&"object_selected": "res://assets/audio/sfx/world/object_selected.ogg",
-}
+const AUDIO_EVENT_TABLE_PATH := "res://data/audio/audio_event_table.tres"
 
 const DEFAULT_SYSTEM_MUSIC_TRACK_ID: StringName = &"music_system_default"
 
@@ -42,19 +22,6 @@ const MUSIC_TRACK_CANONICAL: Dictionary = {
 	&"galaxy_ambient": &"music_galaxy_map",
 	&"system_ambient_01": &"music_system_default",
 	&"system_ambient": &"music_system_default",
-}
-
-const MUSIC_TRACKS: Dictionary = {
-	&"music_main_menu": "res://assets/audio/music/music_main_menu.ogg",
-	&"music_galaxy_map": "res://assets/audio/music/music_galaxy_map.ogg",
-	&"music_system_default": "res://assets/audio/music/music_system_default.ogg",
-	&"music_solar_system": "res://assets/audio/music/music_solar_system.ogg",
-	&"music_proxima_system": "res://assets/audio/music/music_proxima_system.ogg",
-	## Legacy aliases (paths match canonical tracks above).
-	&"menu_theme": "res://assets/audio/music/music_main_menu.ogg",
-	&"galaxy_ambient": "res://assets/audio/music/music_galaxy_map.ogg",
-	&"system_ambient_01": "res://assets/audio/music/music_system_default.ogg",
-	&"system_ambient": "res://assets/audio/music/music_system_default.ogg",
 }
 
 const UI_EVENT_IDS: Array[StringName] = [
@@ -91,26 +58,6 @@ const AMBIENT_MUSIC_TRACK_IDS: Array[StringName] = [
 	&"music_solar_system",
 	&"music_proxima_system",
 ]
-
-const EVENT_COOLDOWN_SEC: Dictionary = {
-	&"ui_hover": 0.03,
-	&"ui_blocked": 0.15,
-	
-	&"scan_start": 0.15,
-	&"scan_drone_launch": 0.15,
-	&"scan_drone_arrive": 0.15,
-	&"scan_complete": 0.2,
-	&"resource_revealed": 0.35,
-	
-	&"mining_start": 0.2,
-	&"mining_ship_launch": 0.15,
-	&"mining_ship_arrive": 0.15,
-	&"mining_resource_tick": 0.1,
-	&"mining_complete": 0.25,
-	
-	&"ship_return": 0.3,
-	&"cargo_unload": 0.4,
-}
 
 const EVENT_VOLUME_DB: Dictionary[StringName, float] = {
 	&"ui_click": -10.0,
@@ -165,9 +112,12 @@ const FALLBACK_SFX: Array[StringName] = [&"Master"]
 const FALLBACK_AMBIENT: Array[StringName] = [&"Music", &"Master"]
 const FALLBACK_MUSIC: Array[StringName] = [&"Master"]
 
+var audio_event_table: AudioEventTableDefinition = null
+
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _music_player: AudioStreamPlayer
 var _stream_cache: Dictionary = {}
+var _audio_table_load_warned: bool = false
 var _music_fade_tween: Tween
 var _current_music_track: StringName = &""
 var _last_played_msec_by_event: Dictionary = {}
@@ -175,6 +125,7 @@ var _world_loops: Dictionary = {}
 
 
 func _ready() -> void:
+	_load_audio_event_table()
 	set_process(true)
 	_build_sfx_pool()
 	_music_player = AudioStreamPlayer.new()
@@ -223,12 +174,7 @@ func play_world_loop(event_id: StringName, loop_id: StringName, source_node: Nod
 
 	stop_world_loop(loop_id)
 
-	var path := String(SFX_EVENTS.get(event_id, "")).strip_edges()
-	if path.is_empty():
-		push_warning("AudioManager.play_world_loop: unknown event '%s'" % String(event_id))
-		return
-
-	var stream := _load_stream(path)
+	var stream := _resolve_world_loop_stream(event_id)
 	if stream == null:
 		return
 
@@ -305,7 +251,7 @@ func resolve_music_track_id(track_id: StringName) -> StringName:
 		return DEFAULT_SYSTEM_MUSIC_TRACK_ID
 
 	var canonical_id := _canonical_music_track_id(track_id)
-	if MUSIC_TRACKS.has(track_id) or MUSIC_TRACKS.has(canonical_id):
+	if _has_music_track(track_id) or _has_music_track(canonical_id):
 		return canonical_id
 
 	push_warning(
@@ -321,12 +267,10 @@ func play_music(track_id: StringName, fade_time: float = 0.5) -> void:
 	if canonical_id == _canonical_music_track_id(_current_music_track) and _music_player.playing:
 		return
 
-	var path := String(MUSIC_TRACKS.get(canonical_id, "")).strip_edges()
-	if path.is_empty():
-		push_warning("AudioManager.play_music: no path for track '%s'" % String(resolved_id))
+	var stream := _resolve_music_stream(canonical_id)
+	if stream == null:
+		push_warning("AudioManager.play_music: no stream for track '%s'" % String(resolved_id))
 		return
-
-	var stream := _load_stream(path)
 	if stream == null:
 		return
 
@@ -498,12 +442,10 @@ func _play_event(event_id: StringName, bus: StringName, volume_factor: float = 1
 		push_warning("AudioManager: empty event_id")
 		return
 
-	var path := String(SFX_EVENTS.get(event_id, "")).strip_edges()
-	if path.is_empty():
-		push_warning("AudioManager: unknown event '%s'" % String(event_id))
+	var stream := _resolve_sfx_stream(event_id)
+	if stream == null:
+		push_warning("AudioManager: unknown or missing event '%s'" % String(event_id))
 		return
-
-	var stream := _load_stream(path)
 	if stream == null:
 		return
 
@@ -517,8 +459,78 @@ func _play_event(event_id: StringName, bus: StringName, volume_factor: float = 1
 	player.play()
 
 
+func _load_audio_event_table() -> void:
+	if not ResourceLoader.exists(AUDIO_EVENT_TABLE_PATH):
+		_warn_audio_table_once(
+			"AudioManager: audio event table missing at '%s'" % AUDIO_EVENT_TABLE_PATH
+		)
+		return
+
+	var loaded: Resource = load(AUDIO_EVENT_TABLE_PATH)
+	if loaded == null or not (loaded is AudioEventTableDefinition):
+		_warn_audio_table_once(
+			"AudioManager: invalid audio event table at '%s'" % AUDIO_EVENT_TABLE_PATH
+		)
+		return
+
+	audio_event_table = loaded as AudioEventTableDefinition
+
+
+func _warn_audio_table_once(message: String) -> void:
+	if _audio_table_load_warned:
+		return
+	_audio_table_load_warned = true
+	push_warning(message)
+
+
+func _resolve_sfx_stream(event_id: StringName) -> AudioStream:
+	if audio_event_table != null:
+		var embedded := audio_event_table.get_sfx_stream(event_id)
+		if embedded != null:
+			return embedded
+		var path := audio_event_table.get_sfx_path(event_id)
+		if not path.is_empty():
+			return _load_stream(path)
+	return null
+
+
+func _resolve_world_loop_stream(event_id: StringName) -> AudioStream:
+	if audio_event_table != null:
+		var loop_stream := audio_event_table.get_world_loop_stream(event_id)
+		if loop_stream != null:
+			return loop_stream
+	return _resolve_sfx_stream(event_id)
+
+
+func _resolve_music_stream(track_id: StringName) -> AudioStream:
+	if audio_event_table != null:
+		var embedded := audio_event_table.get_music_stream(track_id)
+		if embedded != null:
+			return embedded
+		var path := audio_event_table.get_music_path(track_id)
+		if not path.is_empty():
+			return _load_stream(path)
+	return null
+
+
+func _has_music_track(track_id: StringName) -> bool:
+	if track_id.is_empty():
+		return false
+	if audio_event_table == null:
+		return false
+	if audio_event_table.get_music_stream(track_id) != null:
+		return true
+	return not audio_event_table.get_music_path(track_id).is_empty()
+
+
+func _event_cooldown_seconds(event_id: StringName) -> float:
+	if audio_event_table != null:
+		return audio_event_table.get_cooldown_seconds(event_id, 0.0)
+	return 0.0
+
+
 func _can_play_event(event_id: StringName, cooldown_key: StringName = &"") -> bool:
-	var cooldown_sec := float(EVENT_COOLDOWN_SEC.get(event_id, 0.0))
+	var cooldown_sec := _event_cooldown_seconds(event_id)
 	if cooldown_sec <= 0.0:
 		return true
 

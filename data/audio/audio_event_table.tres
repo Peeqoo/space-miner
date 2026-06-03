@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="AudioEventTableDefinition" load_steps=23 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/audio_event_table_definition.gd" id="1"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ui/ui_click.ogg" id="2"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ui/ui_hover.ogg" id="3"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ui/ui_blocked.ogg" id="4"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ui/not_enough_resources.ogg" id="5"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/scan/scan_start.ogg" id="6"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/scan/scan_complete.ogg" id="7"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/scan/resource_revealed.ogg" id="8"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ships/scan_drone_launch.ogg" id="9"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ships/scan_drone_arrive.ogg" id="10"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/scan/scan_loop.ogg" id="11"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ships/mining_ship_launch.ogg" id="12"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/ships/mining_ship_arrive.ogg" id="13"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/mining/mining_resource_tick.ogg" id="14"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/mining/mining_complete.ogg" id="15"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/base/cargo_unload.ogg" id="16"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/base/build_success.ogg" id="17"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/sfx/world/object_selected.ogg" id="18"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/music/music_main_menu.ogg" id="19"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/music/music_galaxy_map.ogg" id="20"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/music/music_solar_system.ogg" id="21"]
+[ext_resource type="AudioStreamOgg" path="res://assets/audio/music/music_proxima_system.ogg" id="22"]
+
+[resource]
+script = ExtResource("1")
+sfx_streams = {
+&"ui_click": ExtResource("2"),
+&"ui_hover": ExtResource("3"),
+&"ui_blocked": ExtResource("4"),
+&"not_enough_resources": ExtResource("5"),
+&"scan_start": ExtResource("6"),
+&"scan_complete": ExtResource("7"),
+&"resource_revealed": ExtResource("8"),
+&"scan_drone_launch": ExtResource("9"),
+&"scan_drone_arrive": ExtResource("10"),
+&"scan_loop": ExtResource("11"),
+&"mining_ship_launch": ExtResource("12"),
+&"mining_ship_arrive": ExtResource("13"),
+&"mining_resource_tick": ExtResource("14"),
+&"mining_complete": ExtResource("15"),
+&"cargo_unload": ExtResource("16"),
+&"build_success": ExtResource("17"),
+&"object_selected": ExtResource("18"),
+}
+music_streams = {
+&"music_main_menu": ExtResource("19"),
+&"music_galaxy_map": ExtResource("20"),
+&"music_solar_system": ExtResource("21"),
+&"music_proxima_system": ExtResource("22"),
+&"menu_theme": ExtResource("19"),
+&"galaxy_ambient": ExtResource("20"),
+}
+world_sfx_streams = {}
+world_loop_streams = {
+&"scan_loop": ExtResource("11"),
+}
+sfx_paths = {
+&"mining_start": "res://assets/audio/sfx/mining/mining_start.ogg",
+&"ship_return": "res://assets/audio/sfx/ships/ship_return.ogg",
+}
+music_paths = {
+&"music_system_default": "res://assets/audio/music/music_system_default.ogg",
+&"system_ambient_01": "res://assets/audio/music/music_system_default.ogg",
+&"system_ambient": "res://assets/audio/music/music_system_default.ogg",
+}
+cooldown_seconds_by_id = {
+&"ui_hover": 0.03,
+&"ui_blocked": 0.15,
+&"scan_start": 0.15,
+&"scan_drone_launch": 0.15,
+&"scan_drone_arrive": 0.15,
+&"scan_complete": 0.2,
+&"resource_revealed": 0.35,
+&"mining_start": 0.2,
+&"mining_ship_launch": 0.15,
+&"mining_ship_arrive": 0.15,
+&"mining_resource_tick": 0.1,
+&"mining_complete": 0.25,
+&"ship_return": 0.3,
+&"cargo_unload": 0.4,
+}
