@@ -1,8 +1,8 @@
 # Per-object Discovery Refresh Design v0.1
 
-**Status:** Design only — no implementation in this phase.  
-**Engine:** Godot 4.6.1 / GDScript (strict typing in future code).  
-**Related:** Full Project Cleanup Audit (Phase 3 architecture); `docs/ui/object_info_panel_signal_layout_v0_1.md`; `docs/ui/system_ui_controller_selection_polymorphism_v0_1.md`.
+**Status:** Implemented (Phase 3.4 Steps 2–5 + follow-ups). This document remains the architecture reference.  
+**Engine:** Godot 4.6.1 / GDScript (strict typing).  
+**Related:** `docs/audits/phase_3_4_discovery_refresh_smoketest_v0_1.md`; `docs/ui/object_info_panel_signal_layout_v0_1.md`; `docs/save_behavior_v0_1.md`.
 
 ---
 
@@ -22,13 +22,19 @@ It is **broader than necessary** when only one or a few `object_id` values chang
 - **Survey Probe investigate complete:** `SIGNAL` → `KNOWN` for one `object_id`.
 - Future single-object discovery events (POI reveal, scripted reveals).
 
-Goals of a future **per-object refresh** API:
+**Per-object refresh** (`refresh_object` / `refresh_objects`) is implemented for runtime visibility. Goals achieved:
 
-- **Performance / robustness:** avoid tearing down every marker and re-walking the full definition list.
+- **Performance / robustness:** avoid tearing down every marker on small state changes (sensor pulse, survey probe, colony establish).
 - **No new discovery rules:** store semantics stay in `GameSession` / `ObjectScanStore`; controllers only apply visibility.
 - **No mixing concerns:** `discovery_state` (`hidden` / `signal` / `known`) remains independent of `scan_state` (`unknown` / `basic` / `deep` / `special`).
 
-This document designs a safe path; it does **not** change gameplay, save format, or mission FSMs.
+**Store-driven apply pattern (v0.1):**
+
+1. Caller sets `GameSession.set_object_discovery_state(system_id, object_id, state)` (or establish path sets KNOWN via `_apply_established_base_record`).
+2. Caller or listener invokes `SystemDiscoveryController.refresh_object(object_id)` or `refresh_objects(ids)`.
+3. Controller reads `GameSession.get_object_discovery_state` and runs `_apply_discovery_to_world_object()` — **no** `_clear_all_markers()` in this path.
+
+**Removed:** `reveal_object()` — legacy parallel path that forced visibility without reading store; **no** callers in `scripts/`.
 
 ---
 
@@ -76,30 +82,29 @@ apply_for_system(system_definition)
 
 See `docs/ui/object_info_panel_signal_layout_v0_1.md` for panel layout rules.
 
-### 5. Partial path today: `reveal_object(object_id)`
+### 5. Runtime per-object paths (implemented)
 
-Used by **Survey Probe** after `set_object_discovery_state(..., KNOWN)`:
-
-- `_remove_marker(oid)`
-- If spawned body/POI exists: force `set_discovery_surface_visible(true)` and `set_discovery_interactable(true)`
-- Does **not** read discovery state again; does **not** use `_apply_discovery_to_world_object()`
-- Does **not** affect other objects
-
-Survey Probe then calls `_refresh_selection_after_reveal()`: if selected node is `SignalMarker` with matching `object_id`, **`selection.select_world_node(revealed)`** — intentional transfer to the real object (documented exception to “no auto-switch” for this mission complete path).
+| Flow | State write | Visual apply | Notes |
+|------|-------------|--------------|-------|
+| **Survey Probe** complete | `set_object_discovery_state(..., KNOWN)` | `discovery_controller.refresh_object(oid)` | Then reward + `_refresh_selection_after_reveal()` (may `select_world_node` if marker was selected) |
+| **Sensor Pulse** complete | Per candidate: `set_object_discovery_state(..., SIGNAL)` | `discovery_controller.refresh_objects(revealed_ids)` | No `apply_for_system` on completion |
+| **Colony / base establish** | `_apply_established_base_record` → KNOWN | `established_body_discovery_visual_refresh_requested` → `SystemUIController` → `refresh_object(body_id)` if `system_id` matches active system | No `apply_for_system`; signal avoids `GameSession` touching scene nodes |
+| **System enter / load** | `ensure_default_discovery_for_system` (data) | `system_scene.gd` → `apply_for_system(system_definition)` | Full reconciliation only here |
 
 ---
 
-## Current Full Refresh Use Cases
+## Full vs per-object call sites (current)
 
-| Call site | Trigger | Why full / partial today | Per-object later? | Risk if only full refresh |
-|-----------|---------|---------------------------|-------------------|---------------------------|
-| `system_scene.gd` `_ready()` | After `spawn_from_definition` + `ensure_default_discovery_for_system` | Initial sync for entire system | **No** — keep `apply_for_system` | N/A |
-| `base_sensor_pulse_controller.gd` `_complete_pulse()` | 1–N × `set_object_discovery_state(..., SIGNAL)` then `apply_for_system` | Simplest guarantee all new SIGNAL markers exist | **Yes** — `refresh_objects(revealed_ids)` | Flicker; clears **all** markers briefly; drops selection on any selected marker |
-| `survey_probe_mission_controller.gd` `_complete_mission()` | `KNOWN` + `reveal_object(oid)` | Already per-object (special case) | **Unify** with `refresh_object` reading store | `reveal_object` bypasses state machine; drift if store ≠ visual |
-| `game_session.gd` `apply_save_data()` | `ensure_default_discovery_for_system` only (no direct `apply_for_system`) | Data seed; visual sync on next `SystemScene` enter | **No** on load path | Entering system must still full-apply |
-| `game_session.gd` `mark_base_established` | `set_object_discovery_state(..., KNOWN)` only | **No** `discovery_controller` call | **Yes** — `refresh_object(body_id)` when colony base visible | Colony body may stay hidden until next full apply (latent gap today) |
+| Call site | Trigger | Mechanism |
+|-----------|---------|-----------|
+| `system_scene.gd` `_ready()` | After spawn + `ensure_default_discovery_for_system` | **`apply_for_system`** — keep |
+| `base_sensor_pulse_controller.gd` `_complete_pulse()` | HIDDEN → SIGNAL for 1–N ids | **`refresh_objects(revealed_ids)`** |
+| `survey_probe_mission_controller.gd` `_complete_mission()` | SIGNAL → KNOWN | **`refresh_object(oid)`** |
+| `game_session.gd` `_apply_established_base_record()` | Colony/base KNOWN | **Signal** → `SystemUIController.refresh_object` when in same system |
+| `game_session.gd` `apply_save_data()` | Data only | **`ensure_default_discovery_for_system`**; visual sync on next `SystemScene` enter via **`apply_for_system`** |
 
-No other `apply_for_system` / `reveal_object` call sites exist in `scripts/` (grep v0.1).
+**`apply_for_system` external callers in `scripts/`:** `system_scene.gd` only.  
+**`reveal_object`:** removed — **0** references in `scripts/`.
 
 ---
 
@@ -122,9 +127,9 @@ No other `apply_for_system` / `reveal_object` call sites exist in `scripts/` (gr
 
 ---
 
-## Proposed API (design only)
+## API (`SystemDiscoveryController` — implemented)
 
-Add to **`SystemDiscoveryController`** (names align with existing project style):
+Implemented on **`SystemDiscoveryController`**:
 
 ```gdscript
 ## Re-applies discovery visibility for one object from GameSession store. Returns false if object not spawned.
@@ -160,14 +165,9 @@ func _refresh_object_from_store(object_id: String) -> bool
 - **If spawn missing:** log once (`push_warning`), return `false`; **do not** auto-call `apply_for_system`.
 - **Optional dev-only recovery:** documented manual `apply_for_system` when `_markers_by_object_id` size ≠ expected SIGNAL count (debug menu) — not v0.1 gameplay.
 
-### Relationship to `reveal_object()`
+### `reveal_object()` (removed)
 
-Long term, **`reveal_object` should become a thin wrapper** or be deprecated in favor of:
-
-1. Caller sets `GameSession.set_object_discovery_state(..., KNOWN)`.
-2. `refresh_object(object_id)`.
-
-That keeps one code path and avoids store/visual drift.
+Former shortcut removed in Phase 3.4 follow-up. All gameplay paths use store state + `refresh_object` / `refresh_objects` / `_apply_discovery_to_world_object`.
 
 ---
 
@@ -210,7 +210,7 @@ Per-object refresh must implement the same semantics as `_apply_discovery_to_wor
 | Scenario | Required behavior |
 |----------|-------------------|
 | Selected **SignalMarker** revealed to KNOWN | `_remove_marker` clears selection (`clear_selection(true)`); panel goes empty until user clicks again |
-| Survey probe complete (current) | Mission controller may **`select_world_node(revealed)`** after `reveal_object` — keep this **outside** `refresh_object` unless product asks to centralize |
+| Survey probe complete (current) | Mission controller may **`select_world_node(revealed)`** after **`refresh_object`** — keep this **outside** `refresh_object` unless product asks to centralize |
 | Selected **known body** hidden (debug) | `clear_selection` if pickable removed |
 | Per-object refresh during pulse | Other objects’ markers must **not** be destroyed — selection on another signal preserved |
 | ObjectInfoPanel | Must never hold reference to freed marker; `SystemUIController` listens to selection cleared / changed |
@@ -244,9 +244,9 @@ Per-object refresh must implement the same semantics as `_apply_discovery_to_wor
 ## When Per-object Refresh Is Better
 
 - Base sensor pulse: **1–N** `HIDDEN` → `SIGNAL` (N = `base_sensor_reveal_count`, typically small).
-- Survey probe: **1** `SIGNAL` → `KNOWN` (replace `reveal_object` with store-driven `refresh_object`).
+- Survey probe: **1** `SIGNAL` → `KNOWN` — **`refresh_object`** (done).
+- Colony / establish base: **`refresh_object`** via signal when player is in target system (done).
 - Future scripted POI / anomaly reveals.
-- Colony / establish base: `KNOWN` on **one** `body_id` without full system pass.
 - Editor/debug “reveal this object” tools.
 
 ---
@@ -271,43 +271,28 @@ Per-object refresh must implement the same semantics as `_apply_discovery_to_wor
 | Wrong id (POI vs body) | **Medium** | Resolve via `spawner.get_spawned_object` + definition lookup by id |
 | Confuse discovery with scan | **Medium** | Code review: refresh file must not call scan APIs |
 | Sensor pulse only updates subset visually | **Medium** | `refresh_objects` only for ids whose store state changed |
-| `reveal_object` vs store drift | **Medium** | Deprecate duplicate path; one store-driven apply |
-| Full apply during pulse clears unrelated selection | **Medium** | Switch pulse to per-object (motivation for this design) |
-| Colony KNOWN without controller call | **Low** | Optional `refresh_object` when establishing base |
+| `reveal_object` vs store drift | ~~Medium~~ | **Resolved** — `reveal_object` removed; single store-driven path |
+| Full apply during pulse clears unrelated selection | ~~Medium~~ | **Resolved** — pulse uses `refresh_objects` only |
+| Colony KNOWN without visual refresh | ~~Low~~ | **Resolved** — `established_body_discovery_visual_refresh_requested` + `SystemUIController` |
+| `refresh_object` returns false | **Low** | `push_warning` only; store state still correct; full apply on system enter heals edge cases |
 | Orbit/automation visibility side effects | **Low** | Only use existing `set_discovery_surface_visible` |
 | Save/load inconsistency | **Low** | Full apply on scene enter unchanged |
 
 ---
 
-## Implementation Plan Later
+## Implementation status (Phase 3.4)
 
-### Step 1 — Read-only audit (done by this doc)
+| Step | Status |
+|------|--------|
+| 1 — Design / audit | **Done** (this doc) |
+| 2 — `refresh_object` / `refresh_objects` internal | **Done** |
+| 3 — Survey Probe → `refresh_object` | **Done** |
+| 4 — Sensor Pulse → `refresh_objects` | **Done** |
+| 5 — Full `apply_for_system` on setup/enter only | **Done** (`system_scene.gd`) |
+| Follow-up — Remove `reveal_object` | **Done** |
+| Follow-up — Colony establish visual refresh | **Done** (GameSession signal + `SystemUIController`) |
 
-- Map call sites, marker dict, selection hooks.
-- **No code changes.**
-
-### Step 2 — `refresh_object` internal
-
-- Implement `refresh_object` / `_find_world_object_and_definition` using existing `_apply_discovery_to_world_object`.
-- **No call-site changes.**
-- Manual test: temporarily call from debug key on one id.
-
-### Step 3 — Survey probe
-
-- After `set_object_discovery_state(KNOWN)`, call `refresh_object` instead of `reveal_object`.
-- Keep `_refresh_selection_after_reveal` in mission controller.
-- Smoke: SIGNAL → KNOWN, panel, reward, no duplicate markers.
-
-### Step 4 — Sensor pulse
-
-- Replace `apply_for_system` with `refresh_objects(revealed_ids)` for pulse reveals only.
-- Smoke: multiple pulses, selection on another signal preserved, no duplicates.
-
-### Step 5 — Keep full apply for setup/load
-
-- Document in `system_scene.gd` comment why full apply remains on `_ready`.
-
-Each step: separate commit + smoke checklist below.
+Manual runtime smoke: see `docs/audits/phase_3_4_discovery_refresh_smoketest_v0_1.md` (static PASS; editor playtest recommended).
 
 ---
 
@@ -341,19 +326,9 @@ Each step: separate commit + smoke checklist below.
 
 ---
 
-## Recommended First Implementation Prompt
+## Recommended next step
 
-Use verbatim for the next coding task (**not** part of this document PR):
+Phase 3.4 implementation is complete. Optional:
 
-> Implement Phase 3.4 Step 2 only: add `refresh_object(object_id: String) -> bool` and private lookup helpers to `SystemDiscoveryController`, reusing `_apply_discovery_to_world_object` and **without** calling `_clear_all_markers()`. Read discovery state from `GameSession` for `GameSession.current_system_id`. Do **not** change call sites (`apply_for_system`, `reveal_object`, sensor pulse, survey probe, `SystemScene`). Godot 4.6.1, strictly typed GDScript. Verify project parses; manual test via temporary debug invocation optional but no shipped debug UI required.
-
----
-
-## Acceptance (this document only)
-
-1. Only `docs/architecture/per_object_discovery_refresh_design_v0_1.md` created (folder exists or was created).
-2. No code, `.tscn`, or `.tres` changes.
-3. Document explains when full refresh stays vs per-object refresh fits.
-4. DiscoveryState and ScanState are clearly separated.
-5. Marker, selection, and save/load risks documented.
-6. Exactly one small follow-up implementation prompt provided above.
+- Run editor manual smoke (checklist in audit doc) and mark manual rows PASS.
+- Future save v0.2: persist in-flight probe/pulse if product requires (see `docs/save_behavior_v0_1.md`).

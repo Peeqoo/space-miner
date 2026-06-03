@@ -180,7 +180,7 @@ All in `scripts/ui/system/object_info_panel.gd` unless noted.
 |----------|------|
 | `_apply_discovery_to_world_object()` | HIDDEN / SIGNAL / KNOWN visibility + marker spawn |
 | `_spawn_or_refresh_marker()` | Instantiates `SignalMarker` |
-| `reveal_object()` | Removes marker, shows real object |
+| `refresh_object()` | Reads store state; applies KNOWN/SIGNAL/HIDDEN — removes marker and shows real object when KNOWN |
 
 **Marker data (`scripts/system/signal_marker.gd`)**
 
@@ -216,10 +216,11 @@ sequenceDiagram
     Mission-->>UI: investigate_mission_changed / progress
     UI->>Panel: apply_investigate_progress
 
-    Mission->>Discovery: reveal (on complete)
-    Discovery->>SignalMarker: queue_free marker
-    Discovery->>World: set_discovery_surface_visible true
-    Note over Selection: selection cleared if marker was selected
+    Mission->>GameSession: set_object_discovery_state KNOWN
+    Mission->>Discovery: refresh_object (on complete)
+    Discovery->>SignalMarker: queue_free marker via KNOWN apply
+    Discovery->>World: visible + interactable per store
+    Mission->>Selection: select_world_node if marker was selected
     Player->>World: click known object
     UI->>Panel: show_body_info (KNOWN layout)
 ```
@@ -230,7 +231,7 @@ sequenceDiagram
 4. **ObjectInfoPanel.show_body_info()** → `_apply_info()` → SIGNAL layout.
 5. **Investigate** → `investigate_requested` → **SurveyProbeMissionController**.
 6. Progress → `_on_investigation_progress_changed()` → `apply_investigate_progress()`.
-7. On reveal, **SystemDiscoveryController.reveal_object()** removes marker; if it was selected, selection clears.
+7. On complete, **GameSession** sets discovery **KNOWN**; **SystemDiscoveryController.refresh_object()** applies visibility (marker removed, real object shown). **SurveyProbeMissionController** may transfer selection to the world node if the marker was selected; otherwise selection may clear when marker is freed.
 8. Player selects revealed **SystemBody** / **POI** → normal KNOWN panel with scan/mine/resources.
 
 ---
@@ -299,5 +300,5 @@ Manual checks in system scene:
 | `scenes/ui/system/object_info_panel.tscn` | Node tree and editor minimum sizes |
 | `scripts/system/controller/system_ui_controller.gd` | Info dict, distance, investigate wiring |
 | `scripts/system/signal_marker.gd` | Signal info dict |
-| `scripts/system/controller/system_discovery_controller.gd` | Marker spawn / reveal |
+| `scripts/system/controller/system_discovery_controller.gd` | Marker spawn; `refresh_object` / store-driven apply |
 | `scenes/system/system_scene.tscn` | Panel placement and anchor height |

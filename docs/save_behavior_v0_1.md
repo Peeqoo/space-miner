@@ -34,8 +34,10 @@ Short reference for how **Space Mining v0.1** handles **active operations** when
 **Save path:** `SaveManager.build_save_data()` → `GameSession.cancel_active_survey_probe_missions_before_save()` → `SurveyProbeMissionController.cancel_all_active_investigations_refund()`.
 
 - Each active mission: `_abort_mission_with_refund()` — removes mission, frees unit, **`GameSession.add_survey_probe(1, base_id)`**.
-- Does **not** call `reveal_object` or set discovery to KNOWN (comment in code: tear down without revealing signals).
+- Does **not** call `refresh_object` or set discovery to KNOWN (tear down without revealing signals).
 - Survey Data reward from a **completed** investigate is never applied on save-cancel (only on normal completion).
+
+**Normal completion (not save-cancel):** `set_object_discovery_state(KNOWN)` → `discovery_controller.refresh_object(oid)` → reward + selection refresh.
 
 **Load:** No investigate mission records in save. Player sees the same signal as before the aborted run.
 
@@ -44,7 +46,9 @@ Short reference for how **Space Mining v0.1** handles **active operations** when
 **Save path:** `GameSession.cancel_active_base_sensor_pulse_before_save()` → `BaseSensorPulseController.cancel_pulse_before_save()`.
 
 - If `_pulse_active`: pulse stopped, **`_refund_paid_pulse_cost_if_any()`** (resources paid at start via `_spend_pulse_cost`).
-- Does **not** run `_complete_pulse()` (no HIDDEN→SIGNAL reveal from a cancelled save).
+- Does **not** run `_complete_pulse()` (no HIDDEN→SIGNAL reveal from a cancelled save; no `refresh_objects`).
+
+**Normal completion (not save-cancel):** per candidate `set_object_discovery_state(SIGNAL)` → `discovery_controller.refresh_objects(revealed_ids)` (no `apply_for_system` on pulse end).
 
 **Load:** No pulse state in save. Player must start a new pulse (pay cost again unless refunded path already ran at save).
 
@@ -72,6 +76,8 @@ Scan progression / Survey Data rewards already applied during play remain in `ob
 **Runtime:** `GameSession._process()` calls `process_colonization_operations()` when `ColonizationDefinition.allow_auto_complete` is true (`data/colonization/default_colonization.tres`: **60s**, auto-complete **on**). Expired pending ops complete without a separate scene mission.
 
 No colony ship travel visuals in v0.1; state is UI/session only.
+
+**Establish / complete (runtime, same system):** `_apply_established_base_record` sets discovery **KNOWN** in save data and emits `established_body_discovery_visual_refresh_requested`. **SystemUIController** (when system scene is active) calls `discovery_controller.refresh_object(body_id)` if the established body is in the **current** system — **no** `apply_for_system` on establish. Save JSON shape unchanged; if player is on galaxy map when op completes, visuals sync on next system enter via `apply_for_system`.
 
 ### Camera state
 
