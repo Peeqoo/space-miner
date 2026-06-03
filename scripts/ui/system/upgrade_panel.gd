@@ -216,11 +216,57 @@ func _build_upgrade_hover_description(category: StringName, button: Button) -> S
 	var cur: UpgradeDefinition = GameSession.get_current_upgrade_definition(base_id, category)
 	var nxt: UpgradeDefinition = GameSession.get_next_upgrade_definition(base_id, category)
 	var has_next := GameSession.has_next_base_upgrade(base_id, category)
-	var lines := UpgradeDefinition.build_panel_hover_lines(cur, nxt, has_next, _hover_section_labels())
+	var lines: PackedStringArray
+	if has_next and nxt != null:
+		lines = _build_upgrade_hover_lines_with_next(cur, nxt)
+	else:
+		lines = UpgradeDefinition.build_panel_hover_lines(cur, nxt, has_next, _hover_section_labels())
 	var reason := _blocked_reason_for_category(category)
 	if not reason.is_empty():
 		lines.append(reason)
 	return "\n".join(lines)
+
+
+func _build_upgrade_hover_lines_with_next(
+	current: UpgradeDefinition,
+	next: UpgradeDefinition,
+) -> PackedStringArray:
+	var lines: PackedStringArray = []
+	var section_labels := _hover_section_labels()
+	var cost_header := str(section_labels.get("cost", "")).strip_edges()
+	var effects_header := str(section_labels.get("effects", "")).strip_edges()
+
+	var desc := next.short_description.strip_edges()
+	if not desc.is_empty():
+		lines.append(desc)
+	if not cost_header.is_empty():
+		lines.append(cost_header)
+	lines.append_array(_format_resource_cost_lines_for_display(next.cost))
+	if not effects_header.is_empty():
+		lines.append(effects_header)
+	lines.append_array(UpgradeDefinition.build_delta_effect_lines(current, next))
+	var note_next := next.note.strip_edges()
+	if not note_next.is_empty():
+		lines.append(note_next)
+	return lines
+
+
+func _format_resource_cost_lines_for_display(p_cost: Dictionary) -> PackedStringArray:
+	var lines: PackedStringArray = []
+	var keys: Array = p_cost.keys()
+	keys.sort_custom(
+		func(a: Variant, b: Variant) -> bool:
+			return str(a).to_lower() < str(b).to_lower()
+	)
+	for res_id: Variant in keys:
+		var need := int(p_cost.get(res_id, 0))
+		var res_key := str(res_id).strip_edges()
+		var title := GameSession.get_resource_display_name(
+			StringName(res_key),
+			UpgradeDefinition.format_resource_title(res_key)
+		)
+		lines.append("%s: %s" % [title, NumberFormat.format_compact(need)])
+	return lines
 
 
 func _blocked_reason_for_category(category: StringName) -> String:

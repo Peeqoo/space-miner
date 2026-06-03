@@ -259,7 +259,7 @@ func _build_cost_text(production_id: String) -> String:
 		var colony_cost := GameSession.get_colony_ship_build_cost()
 		if not colony_cost.is_empty():
 			cost = colony_cost
-	var lines := ProductionDefinition.format_cost_lines_with_availability(cost, resources)
+	var lines := _format_cost_lines_with_availability_for_display(cost, resources)
 	if lines.is_empty():
 		return _hover_cost_header
 
@@ -267,6 +267,35 @@ func _build_cost_text(production_id: String) -> String:
 	if _hover_cost_header.is_empty():
 		return body
 	return "%s\n%s" % [_hover_cost_header, body]
+
+
+func _format_cost_lines_with_availability_for_display(
+	p_cost: Dictionary,
+	available: Dictionary,
+) -> PackedStringArray:
+	var lines: PackedStringArray = []
+	var keys: Array = p_cost.keys()
+	keys.sort_custom(
+		func(a: Variant, b: Variant) -> bool:
+			return str(a).to_lower() < str(b).to_lower()
+	)
+	for res_id: Variant in keys:
+		var need := int(p_cost.get(res_id, 0))
+		var have := int(available.get(res_id, 0))
+		var res_key := str(res_id).strip_edges()
+		var title := GameSession.get_resource_display_name(
+			StringName(res_key),
+			ProductionDefinition.format_resource_title(res_key)
+		)
+		lines.append(
+			"%s: %s / %s"
+			% [
+				title,
+				NumberFormat.format_compact(have),
+				NumberFormat.format_compact(need),
+			]
+		)
+	return lines
 
 
 func _connect_button(button: Button, callback: Callable) -> void:
