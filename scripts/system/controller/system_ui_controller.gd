@@ -12,6 +12,7 @@ var base_management_panel: BaseManagementPanel = null
 var automation_controller: AutomationController = null
 var survey_probe_mission_controller: SurveyProbeMissionController = null
 var base_sensor_pulse_controller: BaseSensorPulseController = null
+var discovery_controller: SystemDiscoveryController = null
 
 var production_panel: ProductionPanel = null
 var upgrade_panel: UpgradePanel = null
@@ -41,6 +42,7 @@ func setup(
 	p_spawner: SystemSpawner = null,
 	p_survey_probe_mission_controller: SurveyProbeMissionController = null,
 	p_base_sensor_pulse_controller: BaseSensorPulseController = null,
+	p_discovery_controller: SystemDiscoveryController = null,
 	p_production_panel: Control = null,
 	p_upgrade_panel: Control = null,
 	p_top_hud: Control = null,
@@ -73,6 +75,7 @@ func setup(
 	automation_controller = p_automation_controller
 	survey_probe_mission_controller = p_survey_probe_mission_controller
 	base_sensor_pulse_controller = p_base_sensor_pulse_controller
+	discovery_controller = p_discovery_controller
 
 	if p_production_panel != null:
 		var typed_production_panel := p_production_panel as ProductionPanel
@@ -178,6 +181,44 @@ func _apply_session_economy_gate() -> void:
 			upgrade_panel.visible = false
 	else:
 		_sync_production_upgrade_economy_body_ids()
+
+	if not GameSession.established_body_discovery_visual_refresh_requested.is_connected(
+		_on_established_body_discovery_visual_refresh_requested
+	):
+		GameSession.established_body_discovery_visual_refresh_requested.connect(
+			_on_established_body_discovery_visual_refresh_requested
+		)
+
+
+func _exit_tree() -> void:
+	if GameSession.established_body_discovery_visual_refresh_requested.is_connected(
+		_on_established_body_discovery_visual_refresh_requested
+	):
+		GameSession.established_body_discovery_visual_refresh_requested.disconnect(
+			_on_established_body_discovery_visual_refresh_requested
+		)
+
+
+func _on_established_body_discovery_visual_refresh_requested(
+	system_id: String,
+	body_id: String,
+) -> void:
+	_try_refresh_discovery_for_established_body(system_id, body_id)
+
+
+func _try_refresh_discovery_for_established_body(system_id: String, body_id: String) -> void:
+	var sid := system_id.strip_edges()
+	var bod := body_id.strip_edges()
+	if sid.is_empty() or bod.is_empty():
+		return
+	if sid != _current_system_definition_id():
+		return
+	if discovery_controller == null:
+		return
+	if not discovery_controller.refresh_object(bod):
+		push_warning(
+			"SystemUIController: discovery refresh failed for established body '%s'." % bod
+		)
 
 
 func _sync_production_upgrade_economy_body_ids() -> void:

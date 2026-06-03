@@ -160,6 +160,7 @@ func _setup_controllers() -> void:
 		spawner,
 		survey_probe_mission_controller,
 		base_sensor_pulse_controller,
+		discovery_controller,
 		$UI/ProductionPanel,
 		$UI/UpgradePanel,
 		$UI/TopHUD,

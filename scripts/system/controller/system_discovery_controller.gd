@@ -48,28 +48,6 @@ func apply_for_system(system_definition: SystemDefinition) -> void:
 		_apply_discovery_to_world_object(system_id, poi_def.id, poi, poi_def)
 
 
-func reveal_object(object_id: String) -> void:
-	var oid := object_id.strip_edges()
-	if oid.is_empty():
-		return
-
-	_remove_marker(oid)
-
-	if spawner == null:
-		return
-
-	var world_object := spawner.get_spawned_object(oid) as Node2D
-	if world_object == null:
-		return
-
-	if world_object is SystemBody:
-		(world_object as SystemBody).set_discovery_surface_visible(true)
-		(world_object as SystemBody).set_discovery_interactable(true)
-	elif world_object is PointOfInterest:
-		(world_object as PointOfInterest).set_discovery_surface_visible(true)
-		(world_object as PointOfInterest).set_discovery_interactable(true)
-
-
 func get_signal_marker(object_id: String) -> SignalMarker:
 	return _markers_by_object_id.get(object_id.strip_edges()) as SignalMarker
 

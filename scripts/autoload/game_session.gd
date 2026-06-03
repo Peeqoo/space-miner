@@ -86,6 +86,8 @@ signal base_resources_changed(base_id: String)
 signal base_upgrades_changed(base_id: String)
 ## Emitted when `discovered_system_ids` or `unlocked_system_ids` change (not during initial seed).
 signal galaxy_progression_changed()
+## Runtime-only: established body set to KNOWN — scene may call `SystemDiscoveryController.refresh_object`.
+signal established_body_discovery_visual_refresh_requested(system_id: String, body_id: String)
 
 
 # --------------------------------------------------
@@ -904,6 +906,7 @@ func _apply_established_base_record(base_id: String, system_id: String, body_id:
 	_established_base_records[base_id] = rec
 	set_object_discovery_state(sid, bod, DISCOVERY_KNOWN)
 	ensure_basic_intel_for_established_base(sid, bod)
+	established_body_discovery_visual_refresh_requested.emit(sid, bod)
 
 
 func _has_established_base_at_body(system_id: String, body_id: String) -> bool:
