@@ -74,6 +74,115 @@ func get_signal_marker(object_id: String) -> SignalMarker:
 	return _markers_by_object_id.get(object_id.strip_edges()) as SignalMarker
 
 
+## Re-applies discovery visibility for one object from GameSession store (no state writes).
+func refresh_object(object_id: String) -> bool:
+	var oid := object_id.strip_edges()
+	if oid.is_empty():
+		return false
+
+	if spawner == null:
+		push_warning("SystemDiscoveryController.refresh_object: spawner not set.")
+		return false
+
+	var system_definition := GameSession.current_system_definition
+	if system_definition == null:
+		push_warning("SystemDiscoveryController.refresh_object: no current system definition.")
+		return false
+
+	var system_id := GameSession.current_system_id.strip_edges()
+	if system_id.is_empty():
+		system_id = system_definition.id.strip_edges()
+	if system_id.is_empty():
+		push_warning("SystemDiscoveryController.refresh_object: empty system id.")
+		return false
+
+	var lookup := _find_world_object_and_definition(oid, system_definition)
+	if lookup.is_empty():
+		push_warning(
+			"SystemDiscoveryController.refresh_object: object '%s' not found in active system."
+			% oid
+		)
+		return false
+
+	var world_object := lookup.get(&"world_object") as Node2D
+	var definition := lookup.get(&"definition") as Resource
+	if world_object == null or definition == null:
+		push_warning(
+			"SystemDiscoveryController.refresh_object: invalid lookup for '%s'." % oid
+		)
+		return false
+
+	_apply_discovery_to_world_object(system_id, oid, world_object, definition)
+	return true
+
+
+func refresh_objects(object_ids: Array[StringName]) -> int:
+	var seen: Dictionary = {}
+	var success_count := 0
+
+	for id_variant: Variant in object_ids:
+		var id_sn: StringName
+		if id_variant is StringName:
+			id_sn = id_variant as StringName
+		else:
+			id_sn = StringName(str(id_variant))
+		if id_sn.is_empty():
+			continue
+
+		var id_key := String(id_sn)
+		if seen.has(id_key):
+			continue
+		seen[id_key] = true
+
+		if refresh_object(id_key):
+			success_count += 1
+
+	return success_count
+
+
+func _find_world_object_and_definition(
+	object_id: String,
+	system_definition: SystemDefinition,
+) -> Dictionary:
+	var oid := object_id.strip_edges()
+	if oid.is_empty() or system_definition == null or spawner == null:
+		return {}
+
+	for body_def_variant: Variant in system_definition.bodies:
+		var body_def := body_def_variant as SystemBodyDefinition
+		if body_def == null:
+			continue
+		if String(body_def.id).strip_edges() != oid:
+			continue
+
+		var body := spawner.get_spawned_object(body_def.id) as SystemBody
+		if body == null:
+			return {}
+
+		return {
+			&"world_object": body,
+			&"definition": body_def,
+		}
+
+	for poi_def_variant: Variant in system_definition.pois:
+		var poi_def := poi_def_variant as PointOfInterestDefinition
+		if poi_def == null:
+			continue
+		if String(poi_def.id).strip_edges() != oid:
+			continue
+
+		var poi := spawner.get_spawned_object(poi_def.id) as PointOfInterest
+		if poi == null:
+			return {}
+
+		return {
+			&"world_object": poi,
+			&"definition": poi_def,
+		}
+
+	return {}
+
+
 func _apply_discovery_to_world_object(
 	system_id: String,
 	object_id: String,
