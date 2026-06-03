@@ -1,0 +1,29 @@
+{
+	"system_id": "solar-system",
+	"primary_base_id": "earth",
+	"scan_missions": [
+		{
+			"target_id": "moon",
+			"base_id": "earth",
+			"mission_id": 1,
+			"orbit_anchor_id": "earth",
+			"unit_state": 2,
+			"work_timer": 0.0,
+			"work_duration": 2.0,
+			"travel_progress": 0.35,
+			"scan_reveal_done": false,
+			"global_position": {
+				"x": 1200.0,
+				"y": 400.0
+			},
+			"orbit_angle": 0.0,
+			"orbit_direction": 1.0,
+			"orbit_radius_x": 80.0,
+			"orbit_radius_y": 80.0,
+			"orbit_speed": 1.0,
+			"orbit_rotation": 0.0,
+			"travel_curve_side_sign": 1.0
+		}
+	],
+	"mining_missions": []
+}

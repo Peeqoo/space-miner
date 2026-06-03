@@ -1,0 +1,35 @@
+{
+	"system_id": "solar-system",
+	"primary_base_id": "earth",
+	"scan_missions": [],
+	"mining_missions": [
+		{
+			"system_id": "solar-system",
+			"base_id": "earth",
+			"target_id": "asteroid_a",
+			"cargo_resources": {
+				"iron": 12
+			},
+			"mining_extract_remainders": {},
+			"cargo_resource_id": "",
+			"current_cargo": 12.0,
+			"cargo_capacity": 20,
+			"mining_rate_per_second": 2.0,
+			"unload_duration": 2.0,
+			"unload_timer": 0.0,
+			"unload_xfer_buffers": {},
+			"loop_active": true,
+			"status": 1,
+			"extract_remainder": 0.25,
+			"unit_state": 4,
+			"work_timer": 3.5,
+			"work_duration": 999999.0,
+			"travel_progress": 1.0,
+			"global_position": {
+				"x": 1800.0,
+				"y": 600.0
+			},
+			"orbit_anchor_id": "asteroid_a"
+		}
+	]
+}
