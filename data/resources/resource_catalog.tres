@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="ResourceCatalogDefinition" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/resource_catalog_definition.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://resources/definitions/resource_definition.gd" id="2_def"]
+
+[sub_resource type="Resource" id="ResourceDefinition_survey_data"]
+script = ExtResource("2_def")
+id = &"SurveyData"
+display_name = "Survey Data"
+short_label = "Surv"
+sort_order = 0
+category = &"science"
+is_storable = true
+is_deposit_resource = false
+is_abstract_currency = true
+show_in_top_hud = false
+show_in_storage_panel = true
+
+[sub_resource type="Resource" id="ResourceDefinition_iron"]
+script = ExtResource("2_def")
+id = &"Iron"
+display_name = "Iron"
+short_label = "Fe"
+sort_order = 10
+category = &"metal"
+is_storable = true
+is_deposit_resource = true
+is_abstract_currency = false
+show_in_top_hud = false
+show_in_storage_panel = true
+
+[sub_resource type="Resource" id="ResourceDefinition_silicon"]
+script = ExtResource("2_def")
+id = &"Silicon"
+display_name = "Silicon"
+short_label = "Si"
+sort_order = 20
+category = &"metal"
+is_storable = true
+is_deposit_resource = true
+is_abstract_currency = false
+show_in_top_hud = false
+show_in_storage_panel = true
+
+[sub_resource type="Resource" id="ResourceDefinition_copper"]
+script = ExtResource("2_def")
+id = &"Copper"
+display_name = "Copper"
+short_label = "Cu"
+sort_order = 30
+category = &"metal"
+is_storable = true
+is_deposit_resource = true
+is_abstract_currency = false
+show_in_top_hud = false
+show_in_storage_panel = true
+
+[sub_resource type="Resource" id="ResourceDefinition_carbon"]
+script = ExtResource("2_def")
+id = &"Carbon"
+display_name = "Carbon"
+short_label = "C"
+sort_order = 40
+category = &"element"
+is_storable = true
+is_deposit_resource = true
+is_abstract_currency = false
+show_in_top_hud = false
+show_in_storage_panel = true
+
+[sub_resource type="Resource" id="ResourceDefinition_ice"]
+script = ExtResource("2_def")
+id = &"Ice"
+display_name = "Ice"
+short_label = "Ice"
+sort_order = 50
+category = &"volatiles"
+is_storable = true
+is_deposit_resource = false
+is_abstract_currency = false
+show_in_top_hud = false
+show_in_storage_panel = true
+
+[resource]
+script = ExtResource("1_catalog")
+resources = [SubResource("ResourceDefinition_survey_data"), SubResource("ResourceDefinition_iron"), SubResource("ResourceDefinition_silicon"), SubResource("ResourceDefinition_copper"), SubResource("ResourceDefinition_carbon"), SubResource("ResourceDefinition_ice")]
