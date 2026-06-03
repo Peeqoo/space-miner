@@ -58,6 +58,7 @@ var _automation_state_emit_scheduled: bool = false
 var _unit_catalog: UnitCatalog = null
 
 var _audio_service: AutomationAudioService = AutomationAudioService.new()
+var _save_service: AutomationSaveService = AutomationSaveService.new()
 
 
 func _ensure_unit_catalog() -> UnitCatalog:
@@ -2301,12 +2302,22 @@ func _list_mining_weighted_candidates(
 
 
 func to_save_data() -> Dictionary:
-	return {
-		"system_id": GameSession.current_system_id,
-		"primary_base_id": _session_primary_base_body_id,
-		"scan_missions": _scan_missions_to_save_array(),
-		"mining_missions": _mining_missions_to_save_array(),
-	}
+	return _save_service.build_runtime_save_data(
+		GameSession.current_system_id,
+		_session_primary_base_body_id,
+		_get_session_base_id(),
+		scan_drone_target_by_unit_id,
+		active_units_by_mission_id,
+		mining_ship_runtime_by_unit_id,
+		Callable(self, "_resolve_automation_unit_from_instance_id"),
+		Callable(self, "_get_object_id_from_node"),
+		Callable(self, "_runtime_base_id_with_session_fallback"),
+	)
+
+
+func _resolve_automation_unit_from_instance_id(unit_id: int) -> AutomationUnit:
+	var instance := instance_from_id(unit_id)
+	return instance as AutomationUnit
 
 
 func apply_automation_save_if_pending() -> void:
@@ -2419,160 +2430,6 @@ func _clear_automation_visuals_and_mission_state() -> void:
 			child.queue_free()
 
 
-func _scan_missions_to_save_array() -> Array:
-	var jobs: Array = []
-	var mission_id_by_unit: Dictionary = {}
-	var saved_unit_ids: Dictionary = {}
-
-	for mission_id_variant: Variant in active_units_by_mission_id.keys():
-		var mission_id := int(mission_id_variant)
-		var unit_variant: Variant = active_units_by_mission_id[mission_id_variant]
-		var unit := unit_variant as AutomationUnit
-
-		if unit == null or not is_instance_valid(unit):
-			continue
-
-		mission_id_by_unit[unit.get_instance_id()] = mission_id
-
-	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
-		var unit_id := int(unit_id_variant)
-		var unit := instance_from_id(unit_id) as AutomationUnit
-
-		if unit == null or not is_instance_valid(unit):
-			continue
-
-		var target_id: String = str(scan_drone_target_by_unit_id.get(unit_id, "")).strip_edges()
-
-		if target_id.is_empty():
-			continue
-
-		var mission_id_saved: int = int(mission_id_by_unit.get(unit_id, 0))
-		var job := _build_scan_job_save_dict(unit, target_id, mission_id_saved)
-
-		if not job.is_empty():
-			jobs.append(job)
-			saved_unit_ids[unit_id] = true
-
-	for mission_id_variant: Variant in active_units_by_mission_id.keys():
-		var unit := active_units_by_mission_id[mission_id_variant] as AutomationUnit
-
-		if unit == null or not is_instance_valid(unit):
-			continue
-
-		if unit.unit_type != AutomationUnit.UnitType.DRONE:
-			continue
-
-		var unit_id := unit.get_instance_id()
-
-		if saved_unit_ids.has(unit_id):
-			continue
-
-		var target_id_fallback: String = str(scan_drone_target_by_unit_id.get(unit_id, "")).strip_edges()
-
-		if target_id_fallback.is_empty():
-			continue
-
-		var job_fallback := _build_scan_job_save_dict(
-			unit,
-			target_id_fallback,
-			int(mission_id_variant),
-		)
-
-		if not job_fallback.is_empty():
-			jobs.append(job_fallback)
-
-	return jobs
-
-
-func _mining_missions_to_save_array() -> Array:
-	var jobs: Array = []
-
-	for unit_id_variant: Variant in mining_ship_runtime_by_unit_id.keys():
-		var unit_id := int(unit_id_variant)
-		var runtime_variant: Variant = mining_ship_runtime_by_unit_id[unit_id_variant]
-
-		if not runtime_variant is Dictionary:
-			continue
-
-		var unit := instance_from_id(unit_id) as AutomationUnit
-
-		if unit == null or not is_instance_valid(unit):
-			continue
-
-		var job := _build_mining_job_save_dict(unit, runtime_variant as Dictionary)
-
-		if not job.is_empty():
-			jobs.append(job)
-
-	return jobs
-
-
-func _build_scan_job_save_dict(
-	unit: AutomationUnit,
-	target_id: String,
-	mission_id: int,
-) -> Dictionary:
-	var home_base_id: String = _get_session_base_id()
-	var orbit_anchor_id: String = home_base_id
-
-	if unit.base_node != null and is_instance_valid(unit.base_node):
-		var anchor_id: String = _get_object_id_from_node(unit.base_node).strip_edges()
-
-		if not anchor_id.is_empty():
-			orbit_anchor_id = anchor_id
-
-	var scan_reveal_done := mission_id <= 0
-
-	if not scan_reveal_done:
-		scan_reveal_done = not active_units_by_mission_id.has(mission_id)
-
-	var job := {
-		"target_id": target_id,
-		"base_id": home_base_id,
-		"mission_id": mission_id,
-		"orbit_anchor_id": orbit_anchor_id,
-		"unit_state": int(unit.state),
-		"work_timer": float(unit.work_timer),
-		"work_duration": float(unit.work_duration),
-		"travel_progress": float(unit.travel_progress),
-		"scan_reveal_done": scan_reveal_done,
-		"global_position": _global_position_to_save_dict(unit.global_position),
-		"orbit_angle": float(unit.orbit_angle),
-		"orbit_direction": float(unit.orbit_direction),
-		"orbit_radius_x": float(unit.orbit_radius_x),
-		"orbit_radius_y": float(unit.orbit_radius_y),
-		"orbit_speed": float(unit.orbit_speed),
-		"orbit_rotation": float(unit.orbit_rotation),
-		"travel_curve_side_sign": float(unit.travel_curve_side_sign),
-	}
-
-	return job
-
-
-func _build_mining_job_save_dict(unit: AutomationUnit, runtime: Dictionary) -> Dictionary:
-	var job: Dictionary = _sanitize_dictionary_for_save(runtime)
-	job["target_id"] = str(runtime.get("target_id", ""))
-	job["base_id"] = _runtime_base_id_with_session_fallback(runtime)
-	job["orbit_anchor_id"] = _get_session_base_id()
-
-	if unit.base_node != null and is_instance_valid(unit.base_node):
-		var anchor_id: String = _get_object_id_from_node(unit.base_node).strip_edges()
-
-		if not anchor_id.is_empty():
-			job["orbit_anchor_id"] = anchor_id
-
-	job["unit_state"] = int(unit.state)
-	job["work_timer"] = float(unit.work_timer)
-	job["work_duration"] = float(unit.work_duration)
-	job["travel_progress"] = float(unit.travel_progress)
-	job["global_position"] = _global_position_to_save_dict(unit.global_position)
-	return job
-
-
-func _global_position_to_save_dict(position: Vector2) -> Dictionary:
-	return {"x": position.x, "y": position.y}
-
-
 func _global_position_from_save_dict(job: Dictionary) -> Vector2:
 	var pos_variant: Variant = job.get("global_position", null)
 
@@ -2584,52 +2441,6 @@ func _global_position_from_save_dict(job: Dictionary) -> Vector2:
 		return Vector2(float(pos_dict.get("x", 0.0)), float(pos_dict.get("y", 0.0)))
 
 	return Vector2.INF
-
-
-func _sanitize_dictionary_for_save(source: Dictionary) -> Dictionary:
-	var out: Dictionary = {}
-
-	for key_variant: Variant in source.keys():
-		var key_str: String = str(key_variant)
-		var value_variant: Variant = source[key_variant]
-		var sanitized: Variant = _sanitize_value_for_save(value_variant)
-
-		if sanitized != null:
-			out[key_str] = sanitized
-
-	return out
-
-
-func _sanitize_value_for_save(value: Variant) -> Variant:
-	if value == null:
-		return null
-
-	if value is String or value is int or value is float or value is bool:
-		return value
-
-	if value is Dictionary:
-		var out_dict: Dictionary = {}
-
-		for nested_key: Variant in (value as Dictionary).keys():
-			var nested_value: Variant = _sanitize_value_for_save((value as Dictionary)[nested_key])
-
-			if nested_value != null:
-				out_dict[str(nested_key)] = nested_value
-
-		return out_dict
-
-	if value is Array:
-		var out_arr: Array = []
-
-		for item: Variant in value as Array:
-			var sanitized_item: Variant = _sanitize_value_for_save(item)
-
-			if sanitized_item != null:
-				out_arr.append(sanitized_item)
-
-		return out_arr
-
-	return null
 
 
 func _restore_scan_mission(job: Dictionary) -> void:
@@ -2746,7 +2557,7 @@ func _restore_mining_mission(job: Dictionary) -> void:
 
 	_ensure_returned_to_base_connected(unit)
 
-	var runtime: Dictionary = _sanitize_dictionary_for_save(job)
+	var runtime: Dictionary = _save_service.sanitize_dictionary_for_save(job)
 	runtime.erase("unit_state")
 	runtime.erase("work_timer")
 	runtime.erase("work_duration")
