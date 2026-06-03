@@ -282,8 +282,10 @@ func _complete_mission(object_id: String, unit: SurveyProbeUnit) -> void:
 
 	GameSession.set_object_discovery_state(_system_id, oid, GameSession.DISCOVERY_KNOWN)
 
-	if discovery_controller != null:
-		discovery_controller.reveal_object(oid)
+	if discovery_controller != null and not discovery_controller.refresh_object(oid):
+		push_warning(
+			"SurveyProbeMissionController: discovery refresh failed for '%s'." % oid
+		)
 
 	var base_id: String = _resolve_base_id(_primary_base_body_id)
 	_grant_survey_data_reward(base_id)
