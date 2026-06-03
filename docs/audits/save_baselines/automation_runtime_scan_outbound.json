@@ -1,29 +1,29 @@
 {
-	"system_id": "solar-system",
-	"primary_base_id": "earth",
-	"scan_missions": [
-		{
-			"target_id": "moon",
-			"base_id": "earth",
-			"mission_id": 1,
-			"orbit_anchor_id": "earth",
-			"unit_state": 2,
-			"work_timer": 0.0,
-			"work_duration": 2.0,
-			"travel_progress": 0.35,
-			"scan_reveal_done": false,
-			"global_position": {
-				"x": 1200.0,
-				"y": 400.0
-			},
-			"orbit_angle": 0.0,
-			"orbit_direction": 1.0,
-			"orbit_radius_x": 80.0,
-			"orbit_radius_y": 80.0,
-			"orbit_speed": 1.0,
-			"orbit_rotation": 0.0,
-			"travel_curve_side_sign": 1.0
-		}
-	],
-	"mining_missions": []
-}
+		"mining_missions": [],
+		"primary_base_id": "earth",
+		"scan_missions": [
+			{
+				"base_id": "earth",
+				"global_position": {
+					"x": -164.519454956055,
+					"y": 374.103118896484
+				},
+				"mission_id": 1,
+				"orbit_anchor_id": "earth",
+				"orbit_angle": 0.352949523362603,
+				"orbit_direction": 1.0,
+				"orbit_radius_x": 37.0556643911952,
+				"orbit_radius_y": 10.3505397966261,
+				"orbit_rotation": 1.95369985044455,
+				"orbit_speed": 0.876125090224849,
+				"scan_reveal_done": false,
+				"target_id": "venus",
+				"travel_curve_side_sign": 1.0,
+				"travel_progress": 0.551291583881202,
+				"unit_state": 2,
+				"work_duration": 35.0,
+				"work_timer": 0.0
+			}
+		],
+		"system_id": "solar-system"
+	}

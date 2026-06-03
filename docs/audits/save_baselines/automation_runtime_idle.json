@@ -1,6 +1,6 @@
 {
-	"system_id": "solar-system",
+	"mining_missions": [],
 	"primary_base_id": "earth",
 	"scan_missions": [],
-	"mining_missions": []
+	"system_id": "solar-system"
 }

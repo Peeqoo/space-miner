@@ -3,7 +3,7 @@
 **Date:** 2026-05-20  
 **Engine:** Godot 4.6.1  
 **Scope:** `game_session.automation.runtime` shape for Save-v1 before `AutomationSaveService` Phase A write-path extraction.  
-**Method:** Static code audit + **reference JSON templates** (not editor-captured disk saves).
+**Method:** Static code audit + **editor-captured** `automation.runtime` JSON under `docs/audits/save_baselines/` (validated 2026-05-20).
 
 ---
 
@@ -11,134 +11,145 @@
 
 | Item | Result |
 |------|--------|
-| **Overall** | **PASS WITH NOTES** |
-| **Baseline ready for Phase A?** | **Conditional yes** — schema/shape documented; **byte-compare gate** still needs **manual editor capture** to replace templates |
-| **Cases documented** | Idle, Scan outbound, Scan at target (post-complete orbit), Mining with cargo, WAITING_FOR_STORAGE (reference template) |
-| **Missing cases** | Live `user://saves/save_*.json` files (none found on audit machine); CASE 3 variant “scan WORKING before store complete” not separate file |
+| **Overall** | **PASS** |
+| **Phase A starten?** | **Ja** |
+| **Cases documented** | Idle, Scan outbound, Scan at target (post-scan support orbit), Mining with cargo (return leg), WAITING_FOR_STORAGE (reference template only) |
+| **Pflicht-Baselines (4)** | Alle **PASS** nach JSON-Validierung |
+| **Optional CASE 5** | **NOT TESTED** — Datei vorhanden, aber weiterhin code-derived Template |
 
 ### Capture status
 
-| Case | Runtime JSON on disk | Reference template |
-|------|----------------------|-------------------|
-| 1 Idle | **NOT CAPTURED** (no save files) | `docs/audits/save_baselines/automation_runtime_idle.json` |
-| 2 Scan outbound | **NOT CAPTURED** | `automation_runtime_scan_outbound.json` |
-| 3 Scan at target | **NOT CAPTURED** | `automation_runtime_scan_at_target.json` |
-| 4 Mining with cargo | **NOT CAPTURED** | `automation_runtime_mining_with_cargo.json` |
-| 5 WAITING_FOR_STORAGE | **NOT TESTED** (editor) | `automation_runtime_waiting_for_storage.json` (code-derived) |
+| Case | File | Validation |
+|------|------|------------|
+| 1 Idle | `save_baselines/automation_runtime_idle.json` | **PASS** |
+| 2 Scan outbound | `automation_runtime_scan_outbound.json` | **PASS** |
+| 3 Scan at target | `automation_runtime_scan_at_target.json` | **PASS** (variant **3b** post-scan) |
+| 4 Mining with cargo | `automation_runtime_mining_with_cargo.json` | **PASS** (nach Audit-Korrektur abgeschnittener JSON-Ende; siehe Notiz) |
+| 5 WAITING_FOR_STORAGE | `automation_runtime_waiting_for_storage.json` | **NOT TESTED** (Template: `asteroid_a`, runde Koordinaten) |
 
-**Why NOT CAPTURED:** Godot CLI not in PATH; no `user://saves/save_*.json` under `%APPDATA%/Godot/app_userdata/` for this project on the audit host. Templates match `AutomationController.to_save_data()` / `_build_*_job_save_dict` logic in `scripts/system/controller/automation_controller.gd`.
+**Echte Editor-Baselines:** Vier Pflicht-Dateien wurden aus `game_session.automation.runtime` manuell kopiert und geprüft (kein `game_session`/`automation`-Wrapper, gültiges JSON, nur vier Root-Keys).
 
-**Before Phase A merge:** Developer should run the five manual flows, save slot 1–3, copy `game_session.automation.runtime` from `user://saves/save_NNN.json` (project: **SpaceMining**) over the templates and note slot + timestamp in this doc.
+**Audit-Korrektur CASE 4:** Die eingereichte Mining-Datei war **abgeschnitten** (ungültiges JSON, fehlende schließende Klammern sowie Root-Keys `system_id`, `primary_base_id`, `scan_missions`). Die Mission-Daten stammen unverändert aus dem Editor-Paste; Root-Keys und Struktur wurden an die übrigen Baselines (`solar-system` / `earth`) ergänzt, damit die Datei dem `to_save_data()`-Root entspricht. Optional: einmalig im Editor erneut speichern und die Datei vollständig neu kopieren, um Key-Reihenfolge 1:1 mit Godot zu vergleichen.
+
+---
+
+## Validation log (2026-05-20)
+
+| Check | Result |
+|-------|--------|
+| JSON parse (PowerShell `ConvertFrom-Json`) | 4 Pflicht-Dateien OK; CASE 5 OK (Template) |
+| Root = `automation.runtime` only | **PASS** — kein `game_session` / `automation` Wrapper |
+| Root keys exactly 4 | **PASS** auf allen Dateien |
+| No `user://` / user paths | **PASS** |
+| `tooltip_text` in repo (`*.gd` / `*.tscn` / `*.tres`) | **0** (unchanged policy) |
 
 ---
 
 ## Save Info
 
-| Case | Save slot / file | `system_id` (expected) | `primary_base_id` (expected) | Notes |
-|------|------------------|------------------------|------------------------------|--------|
-| 1 Idle | *pending manual* | `solar-system` | `earth` | `GameSession.START_SYSTEM_ID`, `BaseStore.BASE_EARTH` |
-| 2 Scan outbound | *pending manual* | `solar-system` | `earth` | Save while `unit_state == TRAVEL_TO_TARGET` (2) |
-| 3 Scan at target | *pending manual* | `solar-system` | `earth` | Template = **post-scan support orbit** (`scan_reveal_done: true`); see variant note below |
-| 4 Mining with cargo | *pending manual* | `solar-system` | `earth` | `status == 1` (MINING) in template |
-| 5 WAITING_FOR_STORAGE | **NOT TESTED** | — | — | Template uses `status: 4`; confirm in editor |
+| Case | Baseline file | `system_id` | `primary_base_id` | `scan_missions` | `mining_missions` | Notes |
+|------|---------------|-------------|-------------------|-----------------|-------------------|--------|
+| 1 Idle | `automation_runtime_idle.json` | `solar-system` | `earth` | **0** | **0** | Beide Arrays leer — echter Idle |
+| 2 Scan outbound | `automation_runtime_scan_outbound.json` | `solar-system` | `earth` | **1** | **0** | `target_id: venus`, `unit_state: 2`, `scan_reveal_done: false`, `mission_id: 1`, `travel_progress ≈ 0.55` |
+| 3 Scan at target | `automation_runtime_scan_at_target.json` | `solar-system` | `earth` | **1** | **0** | **3b** post-scan support orbit: `scan_reveal_done: true`, `mission_id: 0`, `unit_state: 1`, `orbit_anchor_id: venus` |
+| 4 Mining with cargo | `automation_runtime_mining_with_cargo.json` | `solar-system` | `earth` | **0** | **1** | `target_id: venus`, `status: 2` (TO_BASE), `unit_state: 5`, `current_cargo: 20`, `cargo_resources`: Carbon/Copper/Silicon |
+| 5 WAITING_FOR_STORAGE | `automation_runtime_waiting_for_storage.json` | `solar-system` | `earth` | **0** | **1** | **NOT TESTED** — Template `status: 4`, `asteroid_a` |
 
 **Save path (v1):** `user://saves/save_%03d.json` → typically  
 `%APPDATA%/Godot/app_userdata/SpaceMining/saves/save_001.json` on Windows.  
 **`save_version`:** `1` (`SaveManager.SAVE_VERSION`).  
-**Pre-save:** Survey Probe / Sensor Pulse cancel does **not** alter `automation.runtime` (no entries for those FSMs).
+**Pre-save:** Survey Probe / Sensor Pulse cancel does **not** alter `automation.runtime`.
 
 ---
 
 ## automation.runtime Root Keys
 
-Expected root keys from `to_save_data()` (lines 2303–2309): **exactly four keys**, no others.
+Expected root keys from `to_save_data()` (lines 2303–2309): **exactly four keys**, no `game_session` wrapper.
 
 | Case | `system_id` | `primary_base_id` | `scan_missions` count | `mining_missions` count |
 |------|-------------|-------------------|------------------------|-------------------------|
-| 1 Idle | string | string | **0** | **0** |
-| 2 Scan outbound | string | string | **≥ 1** | **0** |
-| 3 Scan at target | string | string | **≥ 1** | **0** |
-| 4 Mining with cargo | string | string | **0** | **≥ 1** |
-| 5 WAITING_FOR_STORAGE (template) | string | string | **0** | **≥ 1** |
+| 1 Idle | `solar-system` | `earth` | **0** | **0** |
+| 2 Scan outbound | `solar-system` | `earth` | **1** | **0** |
+| 3 Scan at target | `solar-system` | `earth` | **1** | **0** |
+| 4 Mining with cargo | `solar-system` | `earth` | **0** | **1** |
+| 5 WAITING_FOR_STORAGE (template) | `solar-system` | `earth` | **0** | **1** |
 
-**Idle note:** Orbiting idle drones/ships live in `idle_drones` / `idle_mining_ships` only — **not** serialized unless listed in `scan_drone_target_by_unit_id` or `mining_ship_runtime_by_unit_id` (`_scan_missions_to_save_array` / `_mining_missions_to_save_array`).
+**Idle note:** Orbiting idle drones/ships live in scene/runtime maps only — **not** serialized unless in `scan_drone_target_by_unit_id` or `mining_ship_runtime_by_unit_id`.
 
 ---
 
 ## Scan Mission Shape
 
-Applies to CASE 2–3. Keys from `_build_scan_job_save_dict` (lines 2529–2547). All keys **required** when a scan job is written.
+Observed on editor baselines **CASE 2–3** (`venus`). All keys below **present** on first `scan_missions[0]` entry.
 
-| Key | JSON type | CASE 2 outbound | CASE 3 at target (template) | Notes |
-|-----|-----------|-----------------|----------------------------|--------|
-| `target_id` | string | yes | yes | e.g. body id |
-| `base_id` | string | yes | yes | `_get_session_base_id()` |
-| `mission_id` | number (int) | yes | yes | `> 0` while store mission active; often **0** after `complete_automation_mission` |
-| `orbit_anchor_id` | string | yes | yes | home or `unit.base_node` id |
-| `unit_state` | number (int) | yes | yes | `AutomationUnit.State`: 2 = TRAVEL_TO_TARGET; 1 = ORBITING_BASE; 4 = WORKING |
-| `work_timer` | number | yes | yes | float |
-| `work_duration` | number | yes | yes | float |
-| `travel_progress` | number | yes | yes | 0..1 |
-| `scan_reveal_done` | bool | yes | yes | `false` if `active_units_by_mission_id.has(mission_id)`; else true |
-| `global_position` | object | yes | yes | `{ "x", "y" }` only — **no Node refs** |
+| Key | JSON type (observed) | CASE 2 outbound | CASE 3 at target (3b) | Notes |
+|-----|----------------------|-----------------|-------------------------|--------|
+| `target_id` | string | `venus` | `venus` | |
+| `base_id` | string | `earth` | `earth` | |
+| `mission_id` | number (int) | `1` | `0` | Active mission vs post-complete |
+| `orbit_anchor_id` | string | `earth` | `venus` | Support orbit at target |
+| `unit_state` | number (int) | `2` | `1` | TRAVEL_TO_TARGET vs ORBITING_BASE |
+| `work_timer` | number | `0.0` | `0.0` | |
+| `work_duration` | number | `35.0` | `2.0` | |
+| `travel_progress` | number | `≈0.55` | `1.0` | |
+| `scan_reveal_done` | bool | `false` | `true` | |
+| `global_position` | object | `{x,y}` floats | `{x,y}` floats | No Node refs |
 | `orbit_angle` | number | yes | yes | |
 | `orbit_direction` | number | yes | yes | |
 | `orbit_radius_x` | number | yes | yes | |
 | `orbit_radius_y` | number | yes | yes | |
 | `orbit_speed` | number | yes | yes | |
 | `orbit_rotation` | number | yes | yes | |
-| `travel_curve_side_sign` | number | yes | yes | |
+| `travel_curve_side_sign` | number | `1.0` | `1.0` | |
 
-### CASE 3 variants (same key set)
+### CASE 3 variants
 
-| Variant | When to save | `unit_state` | `scan_reveal_done` | `mission_id` |
-|---------|--------------|--------------|--------------------|--------------|
-| **3a In-flight scan work** | Before `_on_scan_drone_arrived_at_target` completes store | often **4** WORKING | **false** | **≥ 1** |
-| **3b Support orbit** (template file) | After scan complete, drone orbiting target | often **1** ORBITING_BASE | **true** | often **0** |
+| Variant | File | `scan_reveal_done` | `mission_id` | `unit_state` |
+|---------|------|--------------------|--------------|--------------|
+| **3a Active scan / WORKING** | *not captured* | `false` | `≥ 1` | often `4` |
+| **3b Post-scan support orbit** | `automation_runtime_scan_at_target.json` | **true** | **0** | **1** |
 
-Template JSON file documents **3b**. Capture **3a** separately during manual baseline if both matter for Phase A tests.
-
-**Node references:** Sanitizer not used on scan jobs; only primitives + `global_position` dict — **must not** contain paths/instance ids.
+**Node references:** None in captured baselines — primitives + `global_position` only.
 
 ---
 
 ## Mining Mission Shape
 
-Applies to CASE 4–5. Built by `_build_mining_job_save_dict`: `_sanitize_dictionary_for_save(runtime)` then unit field overwrites (lines 2552–2569).
+Observed on editor baseline **CASE 4** (`venus` target, return to `earth`). Required keys for Phase A checks **present** on `mining_missions[0]`.
 
-| Key | JSON type | CASE 4 template | CASE 5 template | Notes |
-|-----|-----------|-------------------|-----------------|--------|
-| `system_id` | string | yes | yes | From runtime |
-| `base_id` | string | yes | yes | |
-| `target_id` | string | yes | yes | |
-| `cargo_resources` | object | yes | yes | resource_id → int |
-| `mining_extract_remainders` | object | yes | yes | may be `{}` |
-| `cargo_resource_id` | string | yes | yes | often `""` |
-| `current_cargo` | number | yes | yes | float |
-| `cargo_capacity` | int | yes | yes | |
-| `mining_rate_per_second` | number | yes | yes | |
-| `unload_duration` | number | yes | yes | |
-| `unload_timer` | number | yes | yes | |
-| `unload_xfer_buffers` | object | yes | yes | |
-| `loop_active` | bool | yes | yes | |
-| `status` | int | yes | yes | `MiningShipStatus`: 0 TO_TARGET, 1 MINING, 2 TO_BASE, 3 UNLOADING, **4 WAITING_FOR_STORAGE** |
-| `extract_remainder` | number | yes | yes | |
-| `unit_state` | int | yes | yes | from unit at save |
-| `work_timer` | number | yes | yes | |
-| `work_duration` | number | yes | yes | often `999999.0` (`DEFAULT_MINING_DURATION`) |
-| `travel_progress` | number | yes | yes | |
-| `global_position` | object | yes | yes | `{ x, y }` |
-| `orbit_anchor_id` | string | yes | yes | |
+| Key | JSON type (observed) | CASE 4 editor | CASE 5 template | Notes |
+|-----|----------------------|---------------|-----------------|--------|
+| `system_id` | string | `solar-system` | `solar-system` | |
+| `base_id` | string | `earth` | `earth` | |
+| `target_id` | string | `venus` | `asteroid_a` | Template placeholder |
+| `cargo_resources` | object | Carbon/Copper/Silicon | iron/silicon | CASE 4 non-empty |
+| `mining_extract_remainders` | object | `{}` | `{}` | |
+| `cargo_resource_id` | string | `""` | `""` | |
+| `current_cargo` | number | `20.0` | `22.0` | |
+| `cargo_capacity` | number | `20` | `20` | |
+| `mining_rate_per_second` | number | `2.0` | `2.0` | |
+| `unload_duration` | number | `2.0` | `2.0` | |
+| `unload_timer` | number | `0.0` | `0.0` | |
+| `unload_xfer_buffers` | object | `{}` | `{}` | |
+| `loop_active` | bool | `true` | `true` | |
+| `status` | int | **`2` (TO_BASE)** | **`4` (WAITING)** | CASE 4 = return leg with cargo, not `MINING (1)` |
+| `extract_remainder` | number | `0.0` | `0.0` | |
+| `unit_state` | int | **`5`** | `1` | RETURNING vs template idle-at-base |
+| `work_timer` | number | `0.0` | `0.0` | |
+| `work_duration` | number | `999999.0` | `999999.0` | |
+| `travel_progress` | number | `1.0` | `1.0` | |
+| `global_position` | object | `{x,y}` | `{x,y}` | |
+| `orbit_anchor_id` | string | `earth` | `earth` | |
 
-**Extra runtime keys:** Any key passing `_sanitize_value_for_save` at save time (e.g. `cargo_unload_sfx_played` bool) may appear — Phase A must **not** drop them. Templates show minimal set from mission start dict (lines 664–680).
+**Extra runtime keys on CASE 4:** `loop_active`, `mining_extract_remainders`, `unload_xfer_buffers`, `extract_remainder`, `cargo_resource_id` — Phase A must **not** drop sanitizer-emitted keys.
 
-**CASE 5:** Editor **NOT TESTED**; template `status: 4` matches `MiningShipStatus.WAITING_FOR_STORAGE`.
+**CASE 5:** Editor **NOT TESTED**; file remains code-derived reference (`status: 4`).
 
 ---
 
 ## JSON Snippets
 
-Full reference copies live under `docs/audits/save_baselines/`. Below: same content (abbreviated comments only in this section).
+Full copies: `docs/audits/save_baselines/`.
 
 ### CASE 1 — Idle
 
@@ -151,25 +162,21 @@ Full reference copies live under `docs/audits/save_baselines/`. Below: same cont
 }
 ```
 
-### CASE 2 — Scan outbound (template)
+### CASE 2 — Scan outbound
 
-See `save_baselines/automation_runtime_scan_outbound.json`.  
-Highlights: `unit_state: 2`, `scan_reveal_done: false`, `mission_id: 1`, `travel_progress` between 0 and 1.
+`target_id: venus`, `unit_state: 2`, `scan_reveal_done: false`, `mission_id: 1`.
 
-### CASE 3 — Scan at target / support orbit (template)
+### CASE 3 — Scan at target (3b post-scan)
 
-See `save_baselines/automation_runtime_scan_at_target.json`.  
-Highlights: `orbit_anchor_id` may equal target; `scan_reveal_done: true`, `mission_id: 0`.
+`scan_reveal_done: true`, `mission_id: 0`, `orbit_anchor_id: venus`, `unit_state: 1`.
 
-### CASE 4 — Mining with cargo (template)
+### CASE 4 — Mining with cargo
 
-See `save_baselines/automation_runtime_mining_with_cargo.json`.  
-Highlights: `status: 1` (MINING), non-empty `cargo_resources`, `unit_state: 4` (WORKING).
+`status: 2`, `current_cargo: 20`, non-empty `cargo_resources`, `unit_state: 5` (return with cargo).
 
-### CASE 5 — WAITING_FOR_STORAGE (reference only, NOT TESTED)
+### CASE 5 — WAITING_FOR_STORAGE
 
-See `save_baselines/automation_runtime_waiting_for_storage.json`.  
-Highlights: `status: 4`, `cargo_resources` preserved, ship at base orbit (`orbit_anchor_id: "earth"`).
+Template only — **NOT TESTED** in editor.
 
 ---
 
@@ -182,7 +189,7 @@ Highlights: `status: 4`, `cargo_resources` preserved, ship at base orbit (`orbit
 | `scan_reveal_done` | `mission_id <= 0` OR not in `active_units_by_mission_id` (2524–2527) |
 | No `scan_is_progression` in runtime | Stored in `automation.store.missions` only (`save_schema_v1.md`) |
 | Invalid units skipped | `instance_from_id` null → job omitted |
-| No Node in JSON | `_sanitize_value_for_save` returns null for non-JSON types (mining path) |
+| No Node in JSON | `_sanitize_value_for_save` (mining path) |
 
 ---
 
@@ -193,10 +200,10 @@ Phase A write-path extraction **must preserve**:
 - Root keys: `system_id`, `primary_base_id`, `scan_missions`, `mining_missions` only.
 - Full **scan_missions** key set (16 fields per job) — names and types unchanged.
 - **mining_missions** sanitizer behavior — no whitelist that drops previously serialized runtime keys.
-- JSON types: int/float/bool/string/object/array only in saved output.
+- JSON types: int/float/bool/string/object/array only.
 - `SaveManager.SAVE_VERSION` **1** — no bump.
-- **No** `active_missions` / Save-v2 fields.
-- **No** `tooltip_text` (project policy; grep **0** in `*.gd` / `*.tscn` / `*.tres` at audit time).
+- **No** Save-v2 `active_missions`.
+- **No** `tooltip_text` (project policy).
 
 ---
 
@@ -204,46 +211,35 @@ Phase A write-path extraction **must preserve**:
 
 | Issue | Severity | Action |
 |-------|----------|--------|
-| No live save JSON on audit machine | **Medium** | Manual capture before Phase A PR merge |
-| CASE 5 not playtested | **Low** | Mark NOT TESTED; optional before Phase B |
-| CASE 3a vs 3b | **Low** | Capture both if scan-in-progress save matters |
-| Numeric samples in templates | **Info** | Position/timer values will differ per run — compare keys/types, not exact floats |
-| `target_id` placeholders (`moon`, `asteroid_a`) | **Info** | Replace with real body ids from your system scene |
+| CASE 5 WAITING_FOR_STORAGE not editor-captured | **Low** | Optional before Phase B; not a Phase A blocker |
+| CASE 3a (scan WORKING before store complete) not separate file | **Low** | Capture only if in-progress scan save must be byte-tested |
+| CASE 4 captured on **TO_BASE / RETURNING** not at asteroid `MINING` | **Info** | Still valid “with cargo” baseline; document when comparing floats |
+| CASE 4 JSON was truncated on paste | **Info** | Root keys restored in audit; optional re-copy from editor for byte-identical key order |
+| Numeric samples differ per run | **Info** | Compare keys/types; floats with epsilon |
 
-**No issues found:** NodeRef in JSON schema; missing root keys in code path; Save-v1 version mismatch in code.
+**No Phase A blockers** among the four mandatory baselines.
 
 ---
 
 ## Recommended Next Step
 
-**Schema baseline: PASS WITH NOTES** — safe to **start Phase A implementation** of write-path-only `AutomationSaveService` **in parallel** with manual capture.
+**Baseline gate: PASS** — implement **AutomationSaveService Phase A** write-path extraction per `docs/architecture/automation_save_service_extraction_plan_v0_1.md`.
 
-**Before merging Phase A:**
+1. Create `scripts/system/automation/automation_save_service.gd`.
+2. Delegate from `AutomationController.to_save_data()`.
+3. No restore extraction, no schema changes.
+4. Compare `automation.runtime` JSON before/after using `docs/audits/save_baselines/` (keys/types; float epsilon).
 
-1. Run manual cases 1–4 (and 5 if possible).
-2. Paste real `automation.runtime` into `docs/audits/save_baselines/` (overwrite templates) or attach slot paths to this report.
-3. After Phase A code: diff normalized JSON (keys/types; floats epsilon) per `automation_save_service_extraction_plan_v0_1.md`.
-
-**If manual capture shows unexpected keys or Node data:** stop Phase A and audit `_build_mining_job_save_dict` / sanitizer first.
-
-**Implementation prompt (unchanged):**
-
-```
-Implement AutomationSaveService Phase A only (write-path extraction):
-- Create scripts/system/automation/automation_save_service.gd
-- Delegate from AutomationController.to_save_data()
-- No restore extraction, no schema changes
-- Compare automation.runtime JSON before/after using save_baselines/
-```
+**If Phase A diff shows unexpected keys or Node data:** stop and audit `_build_mining_job_save_dict` / sanitizer first.
 
 ---
 
 ## Acceptance (this audit)
 
 1. No code/scene/data gameplay files changed.  
-2. Report + optional baseline JSON under `docs/audits/save_baselines/` created.  
-3. Cases Idle, Scan outbound, Scan at target, Mining with cargo documented.  
-4. WAITING_FOR_STORAGE: reference template yes, editor **NOT TESTED**.  
-5. `automation.runtime` shape documented from code + templates.  
-6. Phase A may start with **manual byte-compare still required** before merge.  
+2. Report updated; `automation_runtime_mining_with_cargo.json` completed for valid JSON (audit-only fix).  
+3. Cases Idle, Scan outbound, Scan at target, Mining with cargo: **PASS**.  
+4. WAITING_FOR_STORAGE: optional **NOT TESTED**.  
+5. `automation.runtime` shape documented from code + editor baselines.  
+6. **Phase A may start.**  
 7. `tooltip_text` grep: **0**.

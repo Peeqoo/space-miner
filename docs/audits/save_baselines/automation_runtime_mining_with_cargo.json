@@ -1,35 +1,37 @@
 {
-	"system_id": "solar-system",
-	"primary_base_id": "earth",
-	"scan_missions": [],
 	"mining_missions": [
 		{
-			"system_id": "solar-system",
 			"base_id": "earth",
-			"target_id": "asteroid_a",
-			"cargo_resources": {
-				"iron": 12
-			},
-			"mining_extract_remainders": {},
-			"cargo_resource_id": "",
-			"current_cargo": 12.0,
 			"cargo_capacity": 20,
+			"cargo_resource_id": "",
+			"cargo_resources": {
+				"Carbon": 10,
+				"Copper": 5,
+				"Silicon": 5
+			},
+			"current_cargo": 20.0,
+			"extract_remainder": 0.0,
+			"global_position": {
+				"x": -307.309661865234,
+				"y": 151.780334472656
+			},
+			"loop_active": true,
+			"mining_extract_remainders": {},
 			"mining_rate_per_second": 2.0,
+			"orbit_anchor_id": "earth",
+			"status": 2,
+			"system_id": "solar-system",
+			"target_id": "venus",
+			"travel_progress": 1.0,
+			"unit_state": 5,
 			"unload_duration": 2.0,
 			"unload_timer": 0.0,
 			"unload_xfer_buffers": {},
-			"loop_active": true,
-			"status": 1,
-			"extract_remainder": 0.25,
-			"unit_state": 4,
-			"work_timer": 3.5,
 			"work_duration": 999999.0,
-			"travel_progress": 1.0,
-			"global_position": {
-				"x": 1800.0,
-				"y": 600.0
-			},
-			"orbit_anchor_id": "asteroid_a"
+			"work_timer": 0.0
 		}
-	]
+	],
+	"primary_base_id": "earth",
+	"scan_missions": [],
+	"system_id": "solar-system"
 }
