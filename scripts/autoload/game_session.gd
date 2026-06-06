@@ -28,6 +28,8 @@ const DEFAULT_DISCOVERY_SIGNAL_UI_TEXTS_PATH := (
 const DEFAULT_GATE_UI_TEXTS_PATH := "res://data/ui_text/gate_ui_texts.tres"
 ## Safety fallback only when `ColonizationDefinition` fails to load — not the primary data source.
 const COLONIZATION_OPERATION_DURATION_MS_FALLBACK := 60000
+## v0.1 colony systems: initial signal markers (matches solar new-game intent).
+const COLONY_SYSTEM_START_SIGNAL_COUNT := 2
 
 const SCANNER_BASIC := ScannerStore.SCANNER_BASIC
 const SCANNER_DEEP := ScannerStore.SCANNER_DEEP
@@ -410,6 +412,9 @@ func establish_base_at_body(system_id: String, body_id: String) -> bool:
 
 	bases.get_base(base_id)
 	mark_base_established_at(base_id, sid, bod)
+	_initialize_colony_system_discovery(sid, bod)
+	_apply_colony_base_start_kit(base_id)
+	base_resources_changed.emit(base_id)
 	return true
 
 
@@ -821,6 +826,195 @@ func get_established_base_id_for_system(system_id: String) -> String:
 			return bid
 
 	return ""
+
+
+func _resolve_v01_start_kit(include_colony_ships: bool) -> Dictionary:
+	var def := _get_game_start_definition()
+	var start_resources: Dictionary = {}
+	var start_population: int = 1
+	var start_drones: int = 1
+	var start_mining_ships: int = 1
+	var start_colony_ships: int = 0
+	var start_survey_probes: int = 2
+	if def != null:
+		start_resources = def.start_resources.duplicate(true)
+		if start_resources.is_empty():
+			var start_balance := def.load_balance_profile()
+			if start_balance != null:
+				start_resources = start_balance.build_start_resources_dictionary()
+		start_population = def.start_population
+		start_drones = def.start_drones
+		start_mining_ships = def.start_mining_ships
+		if include_colony_ships:
+			start_colony_ships = def.start_colony_ships
+		start_survey_probes = maxi(0, def.start_survey_probes)
+	else:
+		var balance_fallback := get_game_balance()
+		if balance_fallback != null:
+			start_survey_probes = maxi(0, balance_fallback.survey_probe_start_count)
+			if start_resources.is_empty():
+				start_resources = balance_fallback.build_start_resources_dictionary()
+			start_drones = maxi(1, balance_fallback.scan_drone_start_count)
+			start_mining_ships = maxi(1, balance_fallback.mining_ship_start_count)
+
+	var start_storage_capacity: int = -1
+	if def != null and def.start_storage_capacity >= 0:
+		start_storage_capacity = def.start_storage_capacity
+	else:
+		var balance_storage := get_game_balance()
+		if balance_storage != null:
+			start_storage_capacity = balance_storage.get_storage_capacity_for_upgrade_level(0)
+
+	return {
+		"population": start_population,
+		"drones": start_drones,
+		"mining_ships": start_mining_ships,
+		"colony_ships": start_colony_ships,
+		"survey_probes": start_survey_probes,
+		"resources": start_resources,
+		"storage_capacity": start_storage_capacity,
+	}
+
+
+func _apply_colony_base_start_kit(base_id: String) -> void:
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		return
+	var kit: Dictionary = _resolve_v01_start_kit(false)
+	bases.apply_start_kit_to_base(
+		bid,
+		int(kit.get("population", 1)),
+		int(kit.get("drones", 1)),
+		int(kit.get("mining_ships", 1)),
+		0,
+		kit.get("resources", {}) as Dictionary,
+		int(kit.get("storage_capacity", -1)),
+		int(kit.get("survey_probes", 0)),
+	)
+
+
+func _initialize_colony_system_discovery(system_id: String, colony_body_id: String) -> void:
+	var sid := system_id.strip_edges()
+	var colony_bod := colony_body_id.strip_edges()
+	if sid.is_empty() or colony_bod.is_empty():
+		return
+
+	var system_def := get_system_definition_by_id(sid)
+	if system_def == null:
+		push_warning(
+			"GameSession._initialize_colony_system_discovery: missing SystemDefinition for '%s'."
+			% sid
+		)
+		return
+
+	set_object_discovery_state(sid, SYSTEM_STAR_OBJECT_ID, DISCOVERY_KNOWN)
+	set_object_discovery_state(sid, colony_bod, DISCOVERY_KNOWN)
+
+	var signal_budget: int = maxi(0, COLONY_SYSTEM_START_SIGNAL_COUNT)
+	var signal_candidates: Array[Dictionary] = []
+
+	signal_budget = _collect_colony_discovery_signal_candidates(
+		sid,
+		colony_bod,
+		system_def.bodies,
+		signal_candidates,
+		true,
+		signal_budget,
+	)
+	signal_budget = _collect_colony_discovery_signal_candidates(
+		sid,
+		colony_bod,
+		system_def.pois,
+		signal_candidates,
+		false,
+		signal_budget,
+	)
+
+	signal_candidates.sort_custom(_compare_colony_discovery_signal_candidates)
+
+	for row: Dictionary in signal_candidates:
+		if signal_budget <= 0:
+			set_object_discovery_state(sid, str(row.get("object_id", "")), DISCOVERY_HIDDEN)
+			continue
+		set_object_discovery_state(sid, str(row.get("object_id", "")), DISCOVERY_SIGNAL)
+		signal_budget -= 1
+
+
+func _collect_colony_discovery_signal_candidates(
+	system_id: String,
+	colony_body_id: String,
+	definitions: Array,
+	signal_candidates: Array[Dictionary],
+	read_orbit_radius: bool,
+	signal_budget: int,
+) -> int:
+	var budget: int = signal_budget
+	for def_variant: Variant in definitions:
+		var object_id := _colony_discovery_object_id(def_variant)
+		if object_id.is_empty() or object_id == colony_body_id:
+			continue
+
+		var default_state := _colony_discovery_default_state(def_variant)
+		if not default_state.is_empty():
+			set_object_discovery_state(system_id, object_id, default_state)
+			if default_state == DISCOVERY_SIGNAL:
+				budget -= 1
+			continue
+
+		if not _colony_discovery_is_sensor_eligible(def_variant):
+			set_object_discovery_state(system_id, object_id, DISCOVERY_HIDDEN)
+			continue
+
+		var row: Dictionary = {
+			"object_id": object_id,
+			"priority": _colony_discovery_sensor_priority(def_variant),
+		}
+		if read_orbit_radius and def_variant is SystemBodyDefinition:
+			row["orbit_radius"] = (def_variant as SystemBodyDefinition).orbit_radius
+		else:
+			row["orbit_radius"] = 0.0
+		signal_candidates.append(row)
+	return budget
+
+
+func _colony_discovery_object_id(definition: Variant) -> String:
+	if definition is SystemBodyDefinition:
+		return str((definition as SystemBodyDefinition).id).strip_edges()
+	if definition is PointOfInterestDefinition:
+		return str((definition as PointOfInterestDefinition).id).strip_edges()
+	return ""
+
+
+func _colony_discovery_default_state(definition: Variant) -> String:
+	if definition is SystemBodyDefinition:
+		return (definition as SystemBodyDefinition).get_normalized_default_discovery_state()
+	if definition is PointOfInterestDefinition:
+		return (definition as PointOfInterestDefinition).get_normalized_default_discovery_state()
+	return ""
+
+
+func _colony_discovery_is_sensor_eligible(definition: Variant) -> bool:
+	if definition is SystemBodyDefinition:
+		return (definition as SystemBodyDefinition).discoverable_by_base_sensor
+	if definition is PointOfInterestDefinition:
+		return (definition as PointOfInterestDefinition).discoverable_by_base_sensor
+	return true
+
+
+func _colony_discovery_sensor_priority(definition: Variant) -> int:
+	if definition is SystemBodyDefinition:
+		return (definition as SystemBodyDefinition).base_sensor_reveal_priority
+	if definition is PointOfInterestDefinition:
+		return (definition as PointOfInterestDefinition).base_sensor_reveal_priority
+	return 100
+
+
+func _compare_colony_discovery_signal_candidates(a: Dictionary, b: Dictionary) -> bool:
+	var priority_a: int = int(a.get("priority", 0))
+	var priority_b: int = int(b.get("priority", 0))
+	if priority_a != priority_b:
+		return priority_a > priority_b
+	return float(a.get("orbit_radius", 0.0)) < float(b.get("orbit_radius", 0.0))
 
 
 func _apply_established_base_record(base_id: String, system_id: String, body_id: String) -> void:
@@ -2156,45 +2350,17 @@ func reset_for_new_game() -> void:
 	_established_base_ids.clear()
 	_established_base_records.clear()
 
-	var start_resources: Dictionary = {}
-	var start_population: int = 1
-	var start_drones: int = 1
-	var start_mining_ships: int = 1
-	var start_colony_ships: int = 0
-	var start_survey_probes: int = 2
-	if def != null:
-		start_resources = def.start_resources.duplicate(true)
-		if start_resources.is_empty():
-			var start_balance := def.load_balance_profile()
-			if start_balance != null:
-				start_resources = start_balance.build_start_resources_dictionary()
-		start_population = def.start_population
-		start_drones = def.start_drones
-		start_mining_ships = def.start_mining_ships
-		start_colony_ships = def.start_colony_ships
-		start_survey_probes = maxi(0, def.start_survey_probes)
-	else:
-		var balance_fallback := get_game_balance()
-		if balance_fallback != null:
-			start_survey_probes = maxi(0, balance_fallback.survey_probe_start_count)
-
-	var start_storage_capacity: int = -1
-	if def != null and def.start_storage_capacity >= 0:
-		start_storage_capacity = def.start_storage_capacity
-	else:
-		var balance_storage := get_game_balance()
-		if balance_storage != null:
-			start_storage_capacity = balance_storage.get_storage_capacity_for_upgrade_level(0)
+	var kit: Dictionary = _resolve_v01_start_kit(true)
 
 	bases.bases = {
 		primary_base_id: bases.create_new_game_base_entry(
-			start_population,
-			start_drones,
-			start_mining_ships,
-			start_colony_ships,
-			start_resources,
-			start_storage_capacity,
-			start_survey_probes,
+			int(kit.get("population", 1)),
+			int(kit.get("drones", 1)),
+			int(kit.get("mining_ships", 1)),
+			int(kit.get("colony_ships", 0)),
+			kit.get("resources", {}) as Dictionary,
+			int(kit.get("storage_capacity", -1)),
+			int(kit.get("survey_probes", 0)),
 		),
 	}
 

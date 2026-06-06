@@ -287,6 +287,14 @@ func _resolve_start_body_id() -> String:
 	if system_definition == null:
 		return ""
 
+	var system_id: String = system_definition.id.strip_edges()
+	if not system_id.is_empty():
+		var established_base_id: String = GameSession.get_established_base_id_for_system(
+			system_id
+		).strip_edges()
+		if not established_base_id.is_empty() and _has_body_id(established_base_id):
+			return established_base_id
+
 	var explicit_id: String = system_definition.start_body_id.strip_edges()
 	if not explicit_id.is_empty():
 		if _has_body_id(explicit_id):

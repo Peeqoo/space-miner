@@ -747,6 +747,31 @@ func create_new_game_base_entry(
 	return base_entry
 
 
+## Replaces a base slot with the v0.1 new-game kit (colonization start package).
+func apply_start_kit_to_base(
+	base_id: String,
+	population: int,
+	drones: int,
+	mining_ships: int,
+	colony_ships: int,
+	resources: Dictionary,
+	storage_capacity: int,
+	survey_probes: int,
+) -> void:
+	var bid := base_id.strip_edges()
+	if bid.is_empty():
+		return
+	bases[bid] = create_new_game_base_entry(
+		population,
+		drones,
+		mining_ships,
+		colony_ships,
+		resources,
+		storage_capacity,
+		survey_probes,
+	)
+
+
 func to_save_data() -> Dictionary:
 	return bases.duplicate(true)
 
