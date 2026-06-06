@@ -1,12 +1,24 @@
 # Core Loop Balance Colony Water Recheck v0.1
 
 **Date:** 2026-05-20  
+**Last updated:** 2026-05-20 (live run from capture sheet)  
 **Engine:** Godot 4.6.1  
 **Scope:** Recheck after ColonyShip cost **Ice → Water** (`data/production/colony_ship.tres`).  
-**Method:** Static repo verification + functional checklist (Editor playtest **not executed in audit environment**).  
+**Live source:** `space_miner_45min_live_run_capture_sheet_v2_kommentiert.pdf` (commented capture sheet)  
 **References:** `docs/audits/core_loop_balance_full_run_v0_1.md`, `docs/audits/phase_3_mining_loop_proof_v0_1.md`
 
 **No code, scene, data, or balance changes in this step.**
+
+---
+
+## Live run — execution status
+
+| Item | Status |
+|------|--------|
+| **Procedure** | New Game → stopwatch → normal play (no debug cheats) → ColonyShip build → colonize Proxima |
+| **Executed** | **YES** — live Editor session documented in capture sheet PDF |
+| **Session length** | **~51:53** to ColonyShip build (continued past 45:00 target window) |
+| **Water-Fix build** | Post **Ice → Water** (`350 Water` cost) |
 
 ---
 
@@ -15,11 +27,15 @@
 | Item | Result |
 |------|--------|
 | **Overall** | **PASS WITH NOTES** |
-| **Water-Fix valid?** | **Yes (static)** — active production cost is **350 Water**; Water is mineable on Earth/Mars |
-| **Impossible Ice blocker removed?** | **Yes (static)** — no **Ice** in active `ProductionDefinition` cost; spend path uses `can_afford` / `spend_cost` on **Water** id |
-| **ColonyShip realistic in 35–45 min after fix?** | **Partially** — **Water 350** is achievable in-session; **Fe 1500 / Si 300 / SurveyData 150** still likely block **build by 45:00** (per Round 2 modeled economy; live run **NOT TESTED**) |
-| **New blockers after Water-Fix** | **None for impossible resources**; remaining gates: **bulk costs**, **prereqs**, **MS2 pacing** (unchanged) |
-| **Balance changes allowed after this step?** | **Yes** — only after live **45:00** confirmation; do **not** bundle MS2/Fe/Si/SD changes with this fix |
+| **Water-Fix valid?** | **PASS** — Water mined, stored, spent on build; no Ice `blocked_reason` |
+| **Impossible Ice blocker removed?** | **PASS** — functional confirmation; build used **Water**, not Ice |
+| **Functional Check** | **PASS** — Water path + ColonyShip build verified live |
+| **ColonyShip built?** | **PASS (late)** — built **~51:53** vs design target **35–45 min** |
+| **ColonyShip realistic in 35–45 min?** | **No** — reachable only after **~52 min** in this run |
+| **Expansion after ColonyShip** | **FAIL / BLOCKER** — Proxima / new system incorrectly initialized after colonization |
+| **New blockers after Water-Fix** | **(1)** Post-colony **new-system init** (bug). **(2)** **Iron** still dominant colony cost gate until ~52 min (balance). **(3)** **Storage full @ ~42 min** stalled upgrades (balance/state) |
+| **Most important next fix** | **New colony system initialization** (start package + playable state on Proxima) |
+| **Balance changes allowed after this step?** | **No** — fix colonization init first; defer Fe/SD/MS2 cost tuning |
 
 ---
 
@@ -27,138 +43,157 @@
 
 | Check | Expected | Result | Notes |
 |-------|----------|--------|-------|
-| ColonyShip cost uses **Water** | `colony_ship.tres` → `"Water": 350` | **PASS** | Verified in repo |
-| No active ColonyShip **Ice** cost | No Ice key in `data/production/colony_ship.tres` | **PASS** | Only production file defines active build cost (`get_colony_ship_build_cost()` prefers production) |
-| Water deposit exists | Body `scan_resources` with `Water` | **PASS** | `earth.tres` (12k deposit, 70% richness), `mars.tres` |
-| Water mineable / storable | Mining → `BaseStore.add_resource`; no catalog block on spend | **PASS** | `add_resource` / `can_afford` / `spend_cost` use string id; no `is_deposit_resource` check on spend |
-| Prereq accepts Water source | `colony_ship_ice_resource_ids` includes **Water** | **PASS** | `GameBalanceDefinition` default `["Ice", "Water"]`; `has_discovered_ice_source()` matches Water on scanned Earth |
-| Save/Load not touched | No save schema change for this fix | **PASS** | Cost id change only affects new spends |
-| No `data/planet_resources/survey_data.tres` | File absent | **PASS** | Glob: **0** files |
-| `tooltip_text` = 0 | No tooltips in gd/tscn/tres | **PASS** | Repo grep: **0** |
-
-### Static detail — active cost source
-
-```9:14:data/production/colony_ship.tres
-cost = {
-"Water": 350,
-"Iron": 1500,
-"Silicon": 300,
-"SurveyData": 150
-}
-```
-
-**Fallback (inactive in normal play):** `GameBalanceDefinition.colony_ship_build_cost` still lists **350 Ice** in script defaults. Used only if `get_production_cost("colony_ship")` is empty. Production catalog is bound at runtime → **Water** is authoritative.
-
-**Ice in catalog:** `resource_catalog.tres` still defines **Ice** with `is_deposit_resource = false` (not a deposit). Irrelevant to Colony build after fix; no solar-body Ice deposits found.
+| ColonyShip cost uses **Water** | `"Water": 350` | **PASS** | `data/production/colony_ship.tres` |
+| No active ColonyShip **Ice** cost | No Ice in production cost | **PASS** | Live: no Ice block observed |
+| Water deposit exists | Earth / Mars bodies | **PASS** | Mined in session |
+| Water mineable / storable | Mining → BaseStorage | **PASS** | **354 Water @ 32:34** |
+| Prereq accepts Water source | Ice-source prereq + Water discovery | **PASS** | Prereqs met before build |
+| Save/Load not touched (this audit) | — | **PASS** | Doc-only update |
+| No `survey_data.tres` in planet_resources | Absent | **PASS** | — |
+| `tooltip_text` = 0 | Grep 0 | **PASS** | Verified 2026-05-20 |
 
 ---
 
 ## Functional Check
 
-**Status:** **NOT TESTED** in this audit (Godot Editor not available in audit shell).  
-**Does not downgrade static PASS** — live confirmation required.
+**Live status:** **PASS** (capture sheet).
 
 | Step | Expected | Result | Notes |
 |------|----------|--------|-------|
-| Water source scanned | Earth basic scan shows Water | **NOT TESTED** | Static: Water in `earth.tres` `scan_resources` |
-| Water mined | Cargo / storage gains Water | **NOT TESTED** | Code path: finite extract → unload |
-| Storage shows Water > 0 | Base storage panel | **NOT TESTED** | — |
-| ColonyShip panel shows **Water** cost | Hover/cost line lists Water **350** | **NOT TESTED** | `production_panel` uses `get_colony_ship_build_cost()` |
-| No **Ice** `blocked_reason` | Never “missing Ice” when Water mined | **NOT TESTED** | Block key `colony_not_enough_resources` if any cost short |
-| Build succeeds when all met | `build_colony_ship` true | **NOT TESTED** | Needs Fe/Si/SD/prereqs + **350 Water** |
-| Water deducted on build | Water −350 | **NOT TESTED** | `spend_cost` iterates cost dict |
-| ColonyShip count +1 | `colony_ships` += 1 | **NOT TESTED** | `base_store.build_colony_ship` |
+| Water source scanned | Earth basic scan shows Water | **PASS** | — |
+| Water mined | Storage gains Water | **PASS** | ≥350 by **32:34** |
+| Storage shows Water > 0 | Base storage panel | **PASS** | **354** @ 32:34 |
+| ColonyShip panel shows **Water** cost | **350 Water** in cost | **PASS** | No Ice in cost display |
+| No **Ice** `blocked_reason` | Never missing Ice | **PASS** | Water-Fix confirmed |
+| Build succeeds when all met | ColonyShip built | **PASS** | **~51:53** |
+| Water deducted on build | Water −350 | **PASS** | Implied by successful build after 354 stored |
+| ColonyShip count +1 | Inventory +1 | **PASS** | Ship consumed on colonization |
 
-### Editor retest checklist (human)
+### ColonyShip end state (live)
 
-1. New Game → investigate + basic scan **Earth**.  
-2. Mine until **Water ≥ 350** (log time).  
-3. Open Production → Colony Ship: cost shows **Water**, not Ice.  
-4. With debug or grind: meet **1500 Fe, 300 Si, 150 SD** + all prereqs → build once.  
-5. Confirm storage **Water −350**, **colony_ships +1**, no errors.
+| Field | Value |
+|-------|--------|
+| **ColonyShip built?** | **Yes** @ **~51:53** |
+| **ColonyShip buildable @ 45:00?** | **No** — still grinding **Iron**; build **~7 min late** |
+| **`blocked_reason` before build** | Resource shortfall (**Iron** primary); not Ice/Water |
+| **Missing resources @ 32:34** | **Water OK (354)**; **Iron ~700 short** of colony need (1500 total) |
+| **Prereqs all met before build?** | **Yes** (player note @ 19:40: only resources missing) |
+| **New base established?** | **Yes** — **Proxima** after colonization |
+| **Proxima playable after switch?** | **No** — see Expansion blocker |
 
 ---
 
-## Optional Full Run Timeline
+## Mandatory milestones (live)
 
-**NOT TESTED** — no live 35–45 min stopwatch session after Water-Fix.
+| Time | Event | Fe | Si | Water | SD | Notes |
+|------|--------|----|----|-------|-----|-------|
+| | Early loop (prior proof ref.) | 100 | — | 0 | 15 | Reveal ~0:30, delivery ~0:53 (other session) |
+| **12:14** | Checkpoint / MS2 area | *(sheet)* | *(sheet)* | *(sheet)* | *(sheet)* | Resource stand; **MS2 band** per capture comments |
+| **19:40** | Colony prep | — | — | — | — | Player: **„brauche nur noch genug Ressourcen“** — prereqs done, bulk costs remain |
+| **32:34** | Water threshold | low vs 1500 | — | **354** | — | **Water ≥ 350**; **Iron still ~700 short** |
+| **41:53** | Storage pressure | — | — | — | — | **Storage full**; **no further upgrades** possible |
+| **51:53** | ColonyShip + colonize | — | — | spent | — | **ColonyShip built**; **new base in Proxima** |
+| After **51:53** | Proxima session | **0 / none** | — | — | — | **All objects visible**; **no start resources**; **cannot act** |
+
+*(Exact Fe/Si/SD at 12:14 from PDF capture — fill from sheet screenshots if transcribing later.)*
+
+---
+
+## Full Run Timeline (post–Water-Fix, live)
 
 | Time | Event | Fe | Si | Water | SurveyData | Notes |
 |------|--------|----|----|-------|------------|-------|
-| — | — | — | — | — | — | Run in Editor and paste rows here |
-
-**Pre-fix reference (MODELED, Round 2):** @ 45:00 Fe ~900, Si ~200, SD ~125, **Ice 0** → colony not built.  
-**Post-fix expectation (MODELED, not measured):** Water **≥350** achievable by ~25–35 min with Earth water mining; colony build still blocked by **Fe / SD** unless pacing improves.
+| **12:14** | Mid-run checkpoint | — | — | — | — | MS2 / economy band; see capture sheet |
+| **19:40** | Colony resource grind | — | — | growing | — | Only **resources** blocking colony |
+| **32:34** | Water target met | **~800** (est. ~700 short) | — | **354** | — | **Iron** main colony gate |
+| **41:53** | Storage ceiling | — | — | — | — | **Storage full**; upgrades blocked |
+| **45:00** | Design target window | — | — | ≥350 | — | **Colony not yet built** |
+| **51:53** | ColonyShip built | met | met | **−350** | met | **Proxima base established** |
+| **Post-51:53** | Proxima broken state | **0** | — | — | — | Visible bodies, **no start kit**, **no actions** |
 
 ---
 
 ## Target vs Actual After Water Fix
 
-Ratings use Round 2 **MODELED** early/mid curve + static post-fix analysis. **Live 45:00 not run.**
+| Target | Actual (live) | Rating |
+|--------|---------------|--------|
+| MS2 **7–9 min** | **~12:14 band** (MS2 area per sheet) | **Late** |
+| First upgrade **10–12 min** | Earlier than target (prior rounds) | **Early** |
+| Deep Scan **15–18 min** | Met before colony grind | **On Target / Early** |
+| Storage/Control **20–25 min** | **41:53 storage full** — relevant | **On Target** (pressure real) |
+| Colony prep **30–35 min** | **19:40** prereqs done; resources lag | **On Target** (prep) |
+| ColonyShip buildable **35–45 min** | **Not @ 45:00**; built **51:53** | **Late** |
 
-| Target | Actual (post Water-Fix) | Rating |
-|--------|-------------------------|--------|
-| MS2 **7–9 min** | **~12–14 min** (unchanged) | **Late** |
-| First upgrade **10–12 min** | Storage I **~3:25** (unchanged) | **Early** |
-| Deep Scan **15–18 min** | First deep **~9:55** (unchanged) | **Early** |
-| Storage/Control **20–25 min** | Light pressure ~20 min (unchanged) | **On Target** |
-| Colony prep **30–35 min** | Prereqs **~19–30 min** (unchanged) | **On Target** |
-| ColonyShip buildable **35–45 min** | **Ice blocker removed**; **Fe/SD wall** likely remains @ 45 | **Late / Partial** — Water no longer hard-impossible |
+---
+
+## Friction Log
+
+| Zeit | Problem | Kategorie | Schwere | Kleinster Fix |
+|------|---------|-----------|---------|---------------|
+| Post-**51:53** | Proxima: all objects visible, **no start resources**, player **cannot act** | **Bug / Blocker** | **Blocker** | **New colony system initialization** — start package + gating on new base |
+| **51:53** | ColonyShip only after **~52 min** vs **35–45** design | **Balance** | Medium | Defer cost tuning until Proxima init fixed; then consider **Fe** only |
+| — | SensorPulse **cost not visible** before pulse | **UI** | Low | Show SD cost on pulse control |
+| — | **„Scan already in progress“** while drone only **orbiting** | **UI / State** | Medium | Align scan-busy state with actual scan phase |
+| — | Resources feel **random**; bodies lack clear **main resource** identity | **Design / Balance** | Medium | Deposit plan / richness review (separate pass) |
+| — | **Remaining resources** / live panel values stale while panel open | **UI** | Low | Refresh open ObjectInfo on resource signals |
+| — | Storage **delete** button awkward | **UI** | Low | UX pass on discard control |
+| — | Label **„Earth Base“** should read **„Earth“** | **UI Copy** | Low | Copy-only rename |
+| **41:53** | **Storage full** blocks upgrades mid-run | **Balance / State** | Medium | Intentional capacity; clarify limits + upgrade path — **not** remove all control limits |
+
+### Control limits (v0.1 design note)
+
+- **Control limits** (max drones / mining ships / probes) are **intentional in v0.1**.
+- The problem is **not** “remove all production limits.”
+- Issues are: **unclear or over-blocking limits**, **storage full without clear relief**, and **missing new-base start package** after colonization.
+- **Do not** remove all limits without a separate balance design pass.
 
 ---
 
 ## Remaining Balance Issues
 
-Max **3** — evidence-based; **no changes in this step**.
+Max **3** — live evidence from capture sheet. **No cost changes in this step.**
 
-### 1. Colony bulk cost (Fe / SurveyData) vs 45 min
-
-| Field | Detail |
-|-------|--------|
-| **Evidence** | Round 2 MODELED @ 45:00: Fe **~900** / need **1500**; SD **~125** / need **150**; Water fix does not change these keys |
-| **Smallest fix** | Separate data pass: e.g. Fe **1500→1100** *or* SD **150→100** (pick one after live 45:00) |
-| **Risk** | Shortens endgame; validate colony loop intent |
-
-### 2. MS2 pacing (unchanged)
+### 1. Colony Iron cost vs session length
 
 | Field | Detail |
 |-------|--------|
-| **Evidence** | Round 1/2: **240 Fe + 40 Si**; affordable **~12 min** vs target **7–9** |
-| **Smallest fix** | Si **40→28** or Fe **240→180** in `mining_ship.tres` only |
-| **Risk** | Faster dual-ship snowball |
+| **Evidence** | **32:34**: Water **354**, Iron still **~700 short**; build **51:53** |
+| **Smallest fix** | After Proxima fix: consider **Fe 1500→1200** only — **one** knob |
+| **Risk** | Shortens Earth endgame; validate with second live run |
 
-### 3. Storage Upgrade I early (unchanged)
+### 2. MS2 pacing
 
 | Field | Detail |
 |-------|--------|
-| **Evidence** | **~3:25** vs **10–12** target; **30 Fe + 10 Cu** |
-| **Smallest fix** | **30→50 Fe** in `storage_1_upgrade.tres` |
-| **Risk** | Low |
+| **Evidence** | MS2 band **~12:14** vs target **7–9 min** |
+| **Smallest fix** | Defer until post-Proxima; optional **Si 40→28** in `mining_ship.tres` |
+| **Risk** | Faster dual-ship economy |
 
-**Not listed:** Water amount **350** — obtainable from Earth deposit; no evidence it blocks 45 min once mining runs.
+### 3. Storage full @ 41:53
+
+| Field | Detail |
+|-------|--------|
+| **Evidence** | **41:53** full storage → **no upgrades**; intentional capacity met |
+| **Smallest fix** | UX: clearer **storage full** + upgrade affordance; not blanket limit removal |
+| **Risk** | Raising caps without design pass blunts mid-game tension |
+
+**Water 350:** **PASS** — reached **32:34**; **not** the colony blocker after Water-Fix.
 
 ---
 
 ## Recommendation
 
-**One next step:** Run a **live 45:00 New Game** after Water-Fix and fill **Functional Check** + **Optional Full Run Timeline** in this doc (or update `core_loop_balance_full_run_v0_1.md`).
+**One next step:** **Fix new colony system initialization** — after colonization, Proxima (or any new base) must receive a **v0.1 start package** (resources, units, signals/gating) and a **playable loop** (not all bodies visible with zero actions).
 
-**PASS WITH NOTES — if live 45:00 confirms Fe/SD gap, consider at most 1–3 data-only tweaks in a separate step (not combined with Water fix):**
-
-1. Colony **SurveyData 150→100** *or* raise deep-scan SD reward (pick one).  
-2. Colony **Iron 1500→1200** (only if build still unreachable @ 45).  
-3. MS2 **Si 40→28** (only if MS2 pacing still priority).
-
-**Do not** re-open Ice cost unless Ice deposits are added to bodies intentionally.
+Do **not** tune Colony **Fe / Si / SurveyData** or MS2 costs until Proxima is verified playable in a second live run.
 
 ---
 
-## Acceptance (this report)
+## Acceptance (this report update)
 
 1. No code, scene, or data files changed.  
-2. Only `docs/audits/core_loop_balance_colony_water_recheck_v0_1.md` created.  
-3. Water-Fix statically verified.  
-4. Report states: **Ice impossible-cost blocker removed** (active production path).  
-5. Report states: **ColonyShip can still be blocked by Fe / Si / SurveyData / prereqs** — not by missing Ice.  
-6. No MS2 or colony bulk cost changes in this step.  
-7. `tooltip_text` remains **0**.
+2. Only `docs/audits/core_loop_balance_colony_water_recheck_v0_1.md` updated.  
+3. Live-run results from capture sheet PDF incorporated.  
+4. Issues classified **Bug / UI / Balance / Design**.  
+5. Exactly **one** next recommendation: **new colony system initialization**.  
+6. `tooltip_text` remains **0**.
