@@ -18,9 +18,9 @@ const KEY_MINE_NO_SHIP := &"mine_no_ship"
 const KEY_MINE_STORAGE_FULL := &"mine_storage_full"
 
 const KEY_BUILD_NOT_ENOUGH_RESOURCES := &"build_not_enough_resources"
-## Deprecated (Step 2a): SD/MS build gates no longer emit this key. Kept as string id for tests only.
+## Deprecated after unlimited production Step 2a; kept for old logs/debug compatibility.
 const KEY_BUILD_SCAN_DRONE_LIMIT := &"build_scan_drone_limit"
-## Deprecated (Step 2a): MS build gates no longer emit this key. Kept as string id for tests only.
+## Deprecated after unlimited production Step 2a; kept for old logs/debug compatibility.
 const KEY_BUILD_MINING_SHIP_LIMIT := &"build_mining_ship_limit"
 
 const KEY_UPGRADE_NOT_ENOUGH_RESOURCES := &"upgrade_not_enough_resources"

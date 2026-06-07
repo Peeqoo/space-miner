@@ -104,7 +104,9 @@ const RESOURCE_SURVEY_DATA := &"SurveyData"
 # --- CONTROL LIMITS ----------------------------------------------------------
 
 @export_group("Control Limits")
+## Legacy reference only; no SD build cap after unlimited production Step 2a.
 @export var max_scan_drones_start: int = 2
+## Legacy reference only; no MS build cap after unlimited production Step 2a.
 @export var max_mining_ships_start: int = 2
 @export var max_active_probes_start: int = 2
 

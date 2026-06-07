@@ -428,7 +428,8 @@ This validates the economic curve before removing caps or touching scan mission 
 | **Step 1b** — `production_lifetime_counts` per base | **Done** | Stable count source for preview; increments on `build_*`; save-v1 compatible lazy migrate |
 | **Step 2a** — remove SD/MS hard build limits | **Done** | Cost-only gating; telemetry `hard_limit_removed_for_build` |
 | **Step 2b** — activate scaled costs for SD/MS/SP spend | **Done** | BaseStore gates + spend; ProductionPanel + telemetry show actual scaled cost; CS excluded |
-| **Step 3+** | **Pending** | Multi-scan, multi-MS hardening, multiplier .tres migration |
+| **Step 2c** — stale production-limit cleanup | **Done** | Legacy gate keys deprecated; `.tres` limit text removed; telemetry `balance_reference_max_count` + `build_hard_limit_active: false`; see `docs/audits/stale_production_limit_cleanup_v0_1.md` |
+| **Step 3+** | **Pending** | Multi-scan (SharedScanJob), multi-MS hardening, multiplier .tres migration |
 
 ---
 

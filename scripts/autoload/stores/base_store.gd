@@ -64,14 +64,14 @@ func set_game_balance(balance: GameBalanceDefinition) -> void:
 	_game_balance = balance
 
 
-## Legacy v0.1 balance reference (`max_scan_drones_start`). Not used for build gates — telemetry/diagnostics only.
+## Deprecated build cap reference (`max_scan_drones_start`); not used for build gating after Step 2a.
 func get_max_scan_drone_count() -> int:
 	if _game_balance != null:
 		return maxi(1, _game_balance.max_scan_drones_start)
 	return FALLBACK_MAX_SCAN_DRONES
 
 
-## Legacy v0.1 balance reference (`max_mining_ships_start`). Not used for build gates — telemetry/diagnostics only.
+## Deprecated build cap reference (`max_mining_ships_start`); not used for build gating after Step 2a.
 func get_max_mining_ship_count() -> int:
 	if _game_balance != null:
 		return maxi(1, _game_balance.max_mining_ships_start)
