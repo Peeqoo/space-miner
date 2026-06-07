@@ -338,6 +338,7 @@ func _snap_units(base_id: String) -> Dictionary:
 				base_id, BaseStore.PRODUCTION_SCAN_DRONE
 			),
 			"max_count": GameSession.get_max_base_scan_drone_count(),
+			"hard_limit_removed_for_build": true,
 		},
 		"mining_ship": {
 			"count": GameSession.get_base_mining_ship_count(base_id),
@@ -346,6 +347,7 @@ func _snap_units(base_id: String) -> Dictionary:
 				base_id, BaseStore.PRODUCTION_MINING_SHIP
 			),
 			"max_count": GameSession.get_max_base_mining_ship_count(),
+			"hard_limit_removed_for_build": true,
 		},
 		"survey_probe": sp_snap,
 		"colony_ship": {
@@ -366,21 +368,18 @@ func _snap_production_gates(base_id: String) -> Dictionary:
 	return {
 		"scan_drone": _unit_gate_snap(
 			GameSession.get_build_base_scan_drone_gate(base_id),
-			GameSession.get_production_cost("scan_drone"),
 			res,
 			BaseStore.PRODUCTION_SCAN_DRONE,
 			base_id,
 		),
 		"mining_ship": _unit_gate_snap(
 			GameSession.get_build_base_mining_ship_gate(base_id),
-			GameSession.get_production_cost("mining_ship"),
 			res,
 			BaseStore.PRODUCTION_MINING_SHIP,
 			base_id,
 		),
 		"survey_probe": _unit_gate_snap(
 			GameSession.get_build_base_survey_probe_gate(base_id),
-			GameSession.get_survey_probe_build_cost(),
 			res,
 			BaseStore.PRODUCTION_SURVEY_PROBE,
 			base_id,
@@ -391,17 +390,23 @@ func _snap_production_gates(base_id: String) -> Dictionary:
 
 func _unit_gate_snap(
 	gate: Dictionary,
-	cost: Dictionary,
 	resources: Dictionary,
 	production_id: String,
 	base_id: String,
 ) -> Dictionary:
+	var spend_cost: Dictionary = GameSession.get_scaled_production_cost(production_id, base_id)
+	var info: Dictionary = GameSession.get_scaled_production_cost_preview_info(production_id, base_id)
+	var base_cost_v: Variant = info.get("base_cost", {})
+	var base_cost: Dictionary = {}
+	if base_cost_v is Dictionary:
+		base_cost = (base_cost_v as Dictionary).duplicate(true)
 	return {
 		"can_build": bool(gate.get("ok", false)),
 		"blocked_reason": str(gate.get("blocked_reason", "")),
 		"blocked_reason_key": str(gate.get("blocked_reason_key", "")),
-		"cost": cost.duplicate(true),
-		"cost_gap": _build_cost_gap(cost, resources),
+		"cost": spend_cost.duplicate(true),
+		"base_cost": base_cost,
+		"cost_gap": _build_cost_gap(spend_cost, resources),
 		"scaled_preview": _scaled_preview_snap(production_id, base_id),
 	}
 
@@ -413,7 +418,7 @@ func _scaled_preview_snap(production_id: String, base_id: String) -> Dictionary:
 		"multiplier": float(info.get("multiplier", 1.0)),
 		"base_cost": {},
 		"scaled_cost": {},
-		"used_for_gameplay": false,
+		"used_for_gameplay": bool(info.get("used_for_gameplay", false)),
 	}
 	var base_v: Variant = info.get("base_cost", {})
 	if base_v is Dictionary:
@@ -499,11 +504,23 @@ func _snap_investigate(base_id: String, system_id: String) -> Dictionary:
 
 	var sp_gate: Dictionary = {}
 	var sp_cost: Dictionary = {}
+	var sp_base_cost: Dictionary = {}
 	var sp_gap: Dictionary = {}
+	var sp_scaled_preview: Dictionary = {}
 	if GameSession.has_established_base(base_id):
+		var resources: Dictionary = GameSession.get_base_resources(base_id)
 		sp_gate = GameSession.get_build_base_survey_probe_gate(base_id)
-		sp_cost = GameSession.get_survey_probe_build_cost()
-		sp_gap = _build_cost_gap(sp_cost, GameSession.get_base_resources(base_id))
+		sp_cost = GameSession.get_scaled_production_cost(
+			BaseStore.PRODUCTION_SURVEY_PROBE, base_id
+		)
+		sp_gap = _build_cost_gap(sp_cost, resources)
+		var sp_info: Dictionary = GameSession.get_scaled_production_cost_preview_info(
+			BaseStore.PRODUCTION_SURVEY_PROBE, base_id
+		)
+		var base_cost_v: Variant = sp_info.get("base_cost", {})
+		if base_cost_v is Dictionary:
+			sp_base_cost = (base_cost_v as Dictionary).duplicate(true)
+		sp_scaled_preview = _scaled_preview_snap(BaseStore.PRODUCTION_SURVEY_PROBE, base_id)
 
 	var out: Dictionary = sp_snap.duplicate(true)
 	out["active_investigate_count"] = sp_snap.get("survey_probe_active_deployed", "unknown")
@@ -516,7 +533,9 @@ func _snap_investigate(base_id: String, system_id: String) -> Dictionary:
 		"blocked_reason_key": str(sp_gate.get("blocked_reason_key", "")),
 	}
 	out["survey_probe_cost"] = sp_cost.duplicate(true)
+	out["survey_probe_base_cost"] = sp_base_cost.duplicate(true)
 	out["survey_probe_cost_gap"] = sp_gap
+	out["survey_probe_scaled_preview"] = sp_scaled_preview.duplicate(true)
 	out["milestone_first_signal_revealed"] = _milestone_times.get("first_signal_revealed", -1.0)
 	out["milestone_first_investigate_started"] = _milestone_times.get("first_investigate_started", -1.0)
 	out["milestone_first_object_revealed"] = _milestone_times.get("first_object_revealed", -1.0)

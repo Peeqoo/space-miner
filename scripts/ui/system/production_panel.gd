@@ -254,11 +254,8 @@ func _colony_prerequisite_hover_lines() -> PackedStringArray:
 
 func _build_cost_text(production_id: String) -> String:
 	var resources := GameSession.get_base_resources(_economy_body_id_for_ops())
-	var cost := GameSession.get_production_cost(production_id)
-	if production_id == BaseStore.PRODUCTION_COLONY_SHIP:
-		var colony_cost := GameSession.get_colony_ship_build_cost()
-		if not colony_cost.is_empty():
-			cost = colony_cost
+	var base_id: String = _economy_body_id_for_ops()
+	var cost := GameSession.get_scaled_production_cost(production_id, base_id)
 	var lines := _format_cost_lines_with_availability_for_display(cost, resources)
 	if lines.is_empty():
 		return _hover_cost_header

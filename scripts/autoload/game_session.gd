@@ -2427,35 +2427,51 @@ func get_production_definition(production_id: String) -> ProductionDefinition:
 
 
 # --------------------------------------------------
-# Scaled production cost preview (read-only; Step 1 unlimited-production design)
-# Preview only for unlimited production design; not used for gameplay spend.
+# Scaled production costs (SD/MS/SP gameplay spend; CS excluded)
 # --------------------------------------------------
 
-const SCALED_PREVIEW_FORMULA := "ceil(base_cost * multiplier^built_count)"
+const SCALED_PRODUCTION_FORMULA := "ceil(base_cost * multiplier^production_lifetime_count)"
 
-## Preview-only multiplier candidates — not used for gameplay spend.
-const SCALED_PREVIEW_MULT_SCAN_DRONE: float = 1.20
-const SCALED_PREVIEW_MULT_MINING_SHIP: float = 1.25
-const SCALED_PREVIEW_MULT_SURVEY_PROBE: float = 1.15
+## Step 2b multiplier candidates (hardcoded; not in .tres yet).
+const SCALED_PRODUCTION_MULT_SCAN_DRONE: float = 1.20
+const SCALED_PRODUCTION_MULT_MINING_SHIP: float = 1.25
+const SCALED_PRODUCTION_MULT_SURVEY_PROBE: float = 1.15
 
 
-## Hypothetical next-unit cost for unlimited-production design (read-only).
+## Actual build spend cost: scaled for SD/MS/SP, flat for ColonyShip / unknown.
+func get_scaled_production_cost(production_id: String, base_id: String = "") -> Dictionary:
+	var pid: String = production_id.strip_edges()
+	if pid.is_empty():
+		return {}
+	if pid == BaseStore.PRODUCTION_COLONY_SHIP:
+		return get_colony_ship_build_cost().duplicate(true)
+
+	var multiplier: float = _get_scaled_production_multiplier(pid)
+	if multiplier <= 0.0:
+		return get_production_cost(pid).duplicate(true)
+
+	var bid: String = _economy_base_id(base_id)
+	bases.ensure_production_lifetime_counts(bid)
+	var lifetime_count: int = bases.get_production_lifetime_count(bid, pid)
+	var base_cost: Dictionary = _get_flat_production_base_cost(pid)
+	if base_cost.is_empty():
+		return {}
+	return _compute_scaled_production_cost(base_cost, multiplier, lifetime_count)
+
+
+## Telemetry / debug alias — same cost as gameplay spend.
 func get_scaled_production_cost_preview(production_id: String, base_id: String = "") -> Dictionary:
-	var info: Dictionary = get_scaled_production_cost_preview_info(production_id, base_id)
-	var scaled_v: Variant = info.get("scaled_cost", {})
-	if scaled_v is Dictionary:
-		return (scaled_v as Dictionary).duplicate(true)
-	return {}
+	return get_scaled_production_cost(production_id, base_id)
 
 
-## Structured scaled-cost preview for debug / telemetry (read-only).
+## Structured scaled-cost info for gates, UI hover, and telemetry.
 func get_scaled_production_cost_preview_info(
 	production_id: String,
 	base_id: String = "",
 ) -> Dictionary:
 	var pid: String = production_id.strip_edges()
 	var bid: String = _resolve_scaled_preview_base_id(base_id)
-	var count_info: Dictionary = _get_scaled_preview_built_count(pid, bid)
+	var count_info: Dictionary = _get_scaled_production_count_info(pid, bid)
 	var built_count: int = int(count_info.get("built_count", 0))
 	var count_source: String = str(count_info.get("count_source", ""))
 	var lifetime_count: int = int(count_info.get("lifetime_count", built_count))
@@ -2471,26 +2487,28 @@ func get_scaled_production_cost_preview_info(
 			"multiplier": 1.0,
 			"base_cost": flat_cost,
 			"scaled_cost": flat_cost,
-			"formula": SCALED_PREVIEW_FORMULA,
+			"formula": SCALED_PRODUCTION_FORMULA,
 			"used_for_gameplay": false,
 			"count_source": count_source,
 			"lifetime_count": lifetime_count,
 			"current_owned_count": current_owned_count,
 		}
 
-	var multiplier: float = _get_scaled_preview_multiplier(pid)
+	var multiplier: float = _get_scaled_production_multiplier(pid)
 	if multiplier <= 0.0:
-		return _empty_scaled_preview_info(
-			pid, built_count, count_source, lifetime_count, current_owned_count
+		return _empty_scaled_production_info(
+			pid, built_count, count_source, lifetime_count, current_owned_count, false
 		)
 
-	var base_cost: Dictionary = _get_scaled_preview_base_cost(pid)
+	var base_cost: Dictionary = _get_flat_production_base_cost(pid)
 	if base_cost.is_empty():
-		return _empty_scaled_preview_info(
-			pid, built_count, count_source, lifetime_count, current_owned_count
+		return _empty_scaled_production_info(
+			pid, built_count, count_source, lifetime_count, current_owned_count, false
 		)
 
-	var scaled_cost: Dictionary = _compute_scaled_preview_cost(base_cost, multiplier, built_count)
+	var scaled_cost: Dictionary = _compute_scaled_production_cost(
+		base_cost, multiplier, lifetime_count
+	)
 	return {
 		"production_id": pid,
 		"supported": true,
@@ -2499,8 +2517,8 @@ func get_scaled_production_cost_preview_info(
 		"multiplier": multiplier,
 		"base_cost": base_cost.duplicate(true),
 		"scaled_cost": scaled_cost,
-		"formula": SCALED_PREVIEW_FORMULA,
-		"used_for_gameplay": false,
+		"formula": SCALED_PRODUCTION_FORMULA,
+		"used_for_gameplay": true,
 		"count_source": count_source,
 		"lifetime_count": lifetime_count,
 		"current_owned_count": current_owned_count,
@@ -2533,7 +2551,7 @@ func get_production_lifetime_count(base_id: String, production_id: String) -> in
 	return bases.get_production_lifetime_count(_economy_base_id(base_id), production_id)
 
 
-func _get_scaled_preview_built_count(production_id: String, base_id: String) -> Dictionary:
+func _get_scaled_production_count_info(production_id: String, base_id: String) -> Dictionary:
 	if not has_established_base(base_id):
 		return {
 			"built_count": 0,
@@ -2548,7 +2566,7 @@ func _get_scaled_preview_built_count(production_id: String, base_id: String) -> 
 	bases.ensure_production_lifetime_counts(bid)
 
 	var lifetime_count: int = 0
-	if _is_scaled_preview_production_id(pid):
+	if _is_scaled_production_id(pid):
 		lifetime_count = bases.get_production_lifetime_count(bid, pid)
 
 	var current_owned_count: int = _get_current_owned_count_for_production(pid, bid)
@@ -2564,8 +2582,12 @@ func _get_scaled_preview_built_count(production_id: String, base_id: String) -> 
 	}
 
 
-func _is_scaled_preview_production_id(production_id: String) -> bool:
-	return BaseStore.PRODUCTION_LIFETIME_COUNT_IDS.has(production_id)
+func _is_scaled_production_id(production_id: String) -> bool:
+	return (
+		production_id == BaseStore.PRODUCTION_SCAN_DRONE
+		or production_id == BaseStore.PRODUCTION_MINING_SHIP
+		or production_id == BaseStore.PRODUCTION_SURVEY_PROBE
+	)
 
 
 func _get_current_owned_count_for_production(production_id: String, base_id: String) -> int:
@@ -2582,19 +2604,19 @@ func _get_current_owned_count_for_production(production_id: String, base_id: Str
 			return 0
 
 
-func _get_scaled_preview_multiplier(production_id: String) -> float:
+func _get_scaled_production_multiplier(production_id: String) -> float:
 	match production_id:
 		BaseStore.PRODUCTION_SCAN_DRONE:
-			return SCALED_PREVIEW_MULT_SCAN_DRONE
+			return SCALED_PRODUCTION_MULT_SCAN_DRONE
 		BaseStore.PRODUCTION_MINING_SHIP:
-			return SCALED_PREVIEW_MULT_MINING_SHIP
+			return SCALED_PRODUCTION_MULT_MINING_SHIP
 		BaseStore.PRODUCTION_SURVEY_PROBE:
-			return SCALED_PREVIEW_MULT_SURVEY_PROBE
+			return SCALED_PRODUCTION_MULT_SURVEY_PROBE
 		_:
 			return 0.0
 
 
-func _get_scaled_preview_base_cost(production_id: String) -> Dictionary:
+func _get_flat_production_base_cost(production_id: String) -> Dictionary:
 	match production_id:
 		BaseStore.PRODUCTION_SCAN_DRONE, BaseStore.PRODUCTION_MINING_SHIP:
 			return get_production_cost(production_id).duplicate(true)
@@ -2604,13 +2626,13 @@ func _get_scaled_preview_base_cost(production_id: String) -> Dictionary:
 			return {}
 
 
-func _compute_scaled_preview_cost(
+func _compute_scaled_production_cost(
 	base_cost: Dictionary,
 	multiplier: float,
-	built_count: int,
+	lifetime_count: int,
 ) -> Dictionary:
 	var scaled: Dictionary = {}
-	var factor: float = pow(multiplier, float(maxi(0, built_count)))
+	var factor: float = pow(multiplier, float(maxi(0, lifetime_count)))
 	for key: Variant in base_cost.keys():
 		var resource_id: String = str(key)
 		var base_amount: int = int(base_cost[key])
@@ -2622,12 +2644,13 @@ func _compute_scaled_preview_cost(
 	return scaled
 
 
-func _empty_scaled_preview_info(
+func _empty_scaled_production_info(
 	production_id: String,
 	built_count: int,
 	count_source: String,
 	lifetime_count: int = 0,
 	current_owned_count: int = 0,
+	used_for_gameplay: bool = false,
 ) -> Dictionary:
 	return {
 		"production_id": production_id,
@@ -2637,8 +2660,8 @@ func _empty_scaled_preview_info(
 		"multiplier": 1.0,
 		"base_cost": {},
 		"scaled_cost": {},
-		"formula": SCALED_PREVIEW_FORMULA,
-		"used_for_gameplay": false,
+		"formula": SCALED_PRODUCTION_FORMULA,
+		"used_for_gameplay": used_for_gameplay,
 		"count_source": count_source,
 		"lifetime_count": lifetime_count,
 		"current_owned_count": current_owned_count,

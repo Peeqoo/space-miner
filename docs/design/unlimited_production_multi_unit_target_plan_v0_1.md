@@ -424,9 +424,11 @@ This validates the economic curve before removing caps or touching scan mission 
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **Step 1** — read-only `get_scaled_production_cost_preview*` | **Done** | Preview multipliers in code; gameplay spend still flat |
+| **Step 1** — read-only `get_scaled_production_cost_preview*` | **Done** | Refactored to `get_scaled_production_cost` single source of truth |
 | **Step 1b** — `production_lifetime_counts` per base | **Done** | Stable count source for preview; increments on `build_*`; save-v1 compatible lazy migrate |
-| **Step 2+** | **Pending** | Gates, UI, multi-scan, multi-MS hardening |
+| **Step 2a** — remove SD/MS hard build limits | **Done** | Cost-only gating; telemetry `hard_limit_removed_for_build` |
+| **Step 2b** — activate scaled costs for SD/MS/SP spend | **Done** | BaseStore gates + spend; ProductionPanel + telemetry show actual scaled cost; CS excluded |
+| **Step 3+** | **Pending** | Multi-scan, multi-MS hardening, multiplier .tres migration |
 
 ---
 

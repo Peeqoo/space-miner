@@ -628,7 +628,7 @@ func get_build_survey_probe_blocked_reason(base_id: String) -> String:
 
 
 func get_build_survey_probe_blocked_reason_key(base_id: String) -> StringName:
-	var cost := get_production_cost(PRODUCTION_SURVEY_PROBE)
+	var cost := _get_scaled_automation_build_cost(base_id, PRODUCTION_SURVEY_PROBE)
 	if cost.is_empty():
 		return GateUiTextDefinition.KEY_BUILD_NOT_ENOUGH_RESOURCES
 	if not can_afford(base_id, cost):
@@ -643,7 +643,7 @@ func can_build_survey_probe(base_id: String) -> bool:
 func build_survey_probe(base_id: String) -> bool:
 	if not can_build_survey_probe(base_id):
 		return false
-	var cost := get_production_cost(PRODUCTION_SURVEY_PROBE)
+	var cost := _get_scaled_automation_build_cost(base_id, PRODUCTION_SURVEY_PROBE)
 	if cost.is_empty():
 		return false
 	if not spend_cost(base_id, cost):
@@ -654,9 +654,7 @@ func build_survey_probe(base_id: String) -> bool:
 
 
 func get_build_scan_drone_blocked_reason_key(base_id: String) -> StringName:
-	if get_drone_count(base_id) >= get_max_scan_drone_count():
-		return GateUiTextDefinition.KEY_BUILD_SCAN_DRONE_LIMIT
-	var cost := get_production_cost(PRODUCTION_SCAN_DRONE)
+	var cost := _get_scaled_automation_build_cost(base_id, PRODUCTION_SCAN_DRONE)
 	if cost.is_empty() or not can_afford(base_id, cost):
 		return GateUiTextDefinition.KEY_BUILD_NOT_ENOUGH_RESOURCES
 	return GateUiTextDefinition.KEY_NONE
@@ -676,7 +674,7 @@ func can_build_drone(base_id: String) -> bool:
 func build_drone(base_id: String) -> bool:
 	if not can_build_drone(base_id):
 		return false
-	var cost := get_production_cost(PRODUCTION_SCAN_DRONE)
+	var cost := _get_scaled_automation_build_cost(base_id, PRODUCTION_SCAN_DRONE)
 	if cost.is_empty():
 		return false
 	if not spend_cost(base_id, cost):
@@ -691,9 +689,7 @@ func build_drone(base_id: String) -> bool:
 
 
 func get_build_mining_ship_blocked_reason_key(base_id: String) -> StringName:
-	if get_mining_ship_count(base_id) >= get_max_mining_ship_count():
-		return GateUiTextDefinition.KEY_BUILD_MINING_SHIP_LIMIT
-	var cost := get_production_cost(PRODUCTION_MINING_SHIP)
+	var cost := _get_scaled_automation_build_cost(base_id, PRODUCTION_MINING_SHIP)
 	if cost.is_empty() or not can_afford(base_id, cost):
 		return GateUiTextDefinition.KEY_BUILD_NOT_ENOUGH_RESOURCES
 	return GateUiTextDefinition.KEY_NONE
@@ -713,7 +709,7 @@ func can_build_mining_ship(base_id: String) -> bool:
 func build_mining_ship(base_id: String) -> bool:
 	if not can_build_mining_ship(base_id):
 		return false
-	var cost := get_production_cost(PRODUCTION_MINING_SHIP)
+	var cost := _get_scaled_automation_build_cost(base_id, PRODUCTION_MINING_SHIP)
 	if cost.is_empty():
 		return false
 	if not spend_cost(base_id, cost):
@@ -725,6 +721,10 @@ func build_mining_ship(base_id: String) -> bool:
 	increment_production_lifetime_count(base_id, PRODUCTION_MINING_SHIP, 1)
 
 	return true
+
+
+func _get_scaled_automation_build_cost(base_id: String, production_id: String) -> Dictionary:
+	return GameSession.get_scaled_production_cost(production_id, base_id)
 
 
 func get_build_colony_ship_blocked_reason_key(
