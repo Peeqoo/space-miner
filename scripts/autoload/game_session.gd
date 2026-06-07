@@ -2458,6 +2458,8 @@ func get_scaled_production_cost_preview_info(
 	var count_info: Dictionary = _get_scaled_preview_built_count(pid, bid)
 	var built_count: int = int(count_info.get("built_count", 0))
 	var count_source: String = str(count_info.get("count_source", ""))
+	var lifetime_count: int = int(count_info.get("lifetime_count", built_count))
+	var current_owned_count: int = int(count_info.get("current_owned_count", 0))
 
 	if pid == BaseStore.PRODUCTION_COLONY_SHIP:
 		var flat_cost: Dictionary = get_colony_ship_build_cost().duplicate(true)
@@ -2472,15 +2474,21 @@ func get_scaled_production_cost_preview_info(
 			"formula": SCALED_PREVIEW_FORMULA,
 			"used_for_gameplay": false,
 			"count_source": count_source,
+			"lifetime_count": lifetime_count,
+			"current_owned_count": current_owned_count,
 		}
 
 	var multiplier: float = _get_scaled_preview_multiplier(pid)
 	if multiplier <= 0.0:
-		return _empty_scaled_preview_info(pid, built_count, count_source)
+		return _empty_scaled_preview_info(
+			pid, built_count, count_source, lifetime_count, current_owned_count
+		)
 
 	var base_cost: Dictionary = _get_scaled_preview_base_cost(pid)
 	if base_cost.is_empty():
-		return _empty_scaled_preview_info(pid, built_count, count_source)
+		return _empty_scaled_preview_info(
+			pid, built_count, count_source, lifetime_count, current_owned_count
+		)
 
 	var scaled_cost: Dictionary = _compute_scaled_preview_cost(base_cost, multiplier, built_count)
 	return {
@@ -2494,6 +2502,8 @@ func get_scaled_production_cost_preview_info(
 		"formula": SCALED_PREVIEW_FORMULA,
 		"used_for_gameplay": false,
 		"count_source": count_source,
+		"lifetime_count": lifetime_count,
+		"current_owned_count": current_owned_count,
 	}
 
 
@@ -2519,33 +2529,57 @@ func _resolve_scaled_preview_base_id(base_id: String) -> String:
 	return BaseStore.BASE_EARTH
 
 
+func get_production_lifetime_count(base_id: String, production_id: String) -> int:
+	return bases.get_production_lifetime_count(_economy_base_id(base_id), production_id)
+
+
 func _get_scaled_preview_built_count(production_id: String, base_id: String) -> Dictionary:
 	if not has_established_base(base_id):
-		return {"built_count": 0, "count_source": "no_established_base"}
+		return {
+			"built_count": 0,
+			"count_source": "no_established_base",
+			"lifetime_count": 0,
+			"current_owned_count": 0,
+		}
 
+	var pid: String = production_id.strip_edges()
+	var bid: String = _economy_base_id(base_id)
+	var had_lifetime_field: bool = bases.has_production_lifetime_counts_field(bid)
+	bases.ensure_production_lifetime_counts(bid)
+
+	var lifetime_count: int = 0
+	if _is_scaled_preview_production_id(pid):
+		lifetime_count = bases.get_production_lifetime_count(bid, pid)
+
+	var current_owned_count: int = _get_current_owned_count_for_production(pid, bid)
+	var count_source: String = (
+		"production_lifetime_count" if had_lifetime_field else "current_fleet_count"
+	)
+
+	return {
+		"built_count": lifetime_count,
+		"count_source": count_source,
+		"lifetime_count": lifetime_count,
+		"current_owned_count": current_owned_count,
+	}
+
+
+func _is_scaled_preview_production_id(production_id: String) -> bool:
+	return BaseStore.PRODUCTION_LIFETIME_COUNT_IDS.has(production_id)
+
+
+func _get_current_owned_count_for_production(production_id: String, base_id: String) -> int:
 	match production_id:
 		BaseStore.PRODUCTION_SCAN_DRONE:
-			return {
-				"built_count": maxi(0, get_base_drone_count(base_id)),
-				"count_source": "fleet_count",
-			}
+			return maxi(0, get_base_drone_count(base_id))
 		BaseStore.PRODUCTION_MINING_SHIP:
-			return {
-				"built_count": maxi(0, get_base_mining_ship_count(base_id)),
-				"count_source": "fleet_count",
-			}
+			return maxi(0, get_base_mining_ship_count(base_id))
 		BaseStore.PRODUCTION_SURVEY_PROBE:
-			return {
-				"built_count": maxi(0, bases.get_survey_probe_count(base_id)),
-				"count_source": "total_owned",
-			}
+			return maxi(0, bases.get_survey_probe_count(base_id))
 		BaseStore.PRODUCTION_COLONY_SHIP:
-			return {
-				"built_count": maxi(0, get_base_colony_ship_count(base_id)),
-				"count_source": "fleet_count",
-			}
+			return maxi(0, get_base_colony_ship_count(base_id))
 		_:
-			return {"built_count": 0, "count_source": "unknown"}
+			return 0
 
 
 func _get_scaled_preview_multiplier(production_id: String) -> float:
@@ -2592,6 +2626,8 @@ func _empty_scaled_preview_info(
 	production_id: String,
 	built_count: int,
 	count_source: String,
+	lifetime_count: int = 0,
+	current_owned_count: int = 0,
 ) -> Dictionary:
 	return {
 		"production_id": production_id,
@@ -2604,6 +2640,8 @@ func _empty_scaled_preview_info(
 		"formula": SCALED_PREVIEW_FORMULA,
 		"used_for_gameplay": false,
 		"count_source": count_source,
+		"lifetime_count": lifetime_count,
+		"current_owned_count": current_owned_count,
 	}
 
 

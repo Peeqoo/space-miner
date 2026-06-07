@@ -333,15 +333,26 @@ func _snap_units(base_id: String) -> Dictionary:
 	return {
 		"scan_drone": {
 			"count": GameSession.get_base_drone_count(base_id),
+			"current_count": GameSession.get_base_drone_count(base_id),
+			"lifetime_count": GameSession.get_production_lifetime_count(
+				base_id, BaseStore.PRODUCTION_SCAN_DRONE
+			),
 			"max_count": GameSession.get_max_base_scan_drone_count(),
 		},
 		"mining_ship": {
 			"count": GameSession.get_base_mining_ship_count(base_id),
+			"current_count": GameSession.get_base_mining_ship_count(base_id),
+			"lifetime_count": GameSession.get_production_lifetime_count(
+				base_id, BaseStore.PRODUCTION_MINING_SHIP
+			),
 			"max_count": GameSession.get_max_base_mining_ship_count(),
 		},
 		"survey_probe": sp_snap,
 		"colony_ship": {
 			"count": GameSession.get_base_colony_ship_count(base_id),
+			"lifetime_count": GameSession.get_production_lifetime_count(
+				base_id, BaseStore.PRODUCTION_COLONY_SHIP
+			),
 		},
 	}
 
@@ -413,6 +424,8 @@ func _scaled_preview_snap(production_id: String, base_id: String) -> Dictionary:
 	var count_source: String = str(info.get("count_source", "")).strip_edges()
 	if not count_source.is_empty():
 		out["count_source"] = count_source
+	out["lifetime_count"] = int(info.get("lifetime_count", out["built_count"]))
+	out["current_owned_count"] = int(info.get("current_owned_count", 0))
 	return out
 
 
@@ -1342,12 +1355,16 @@ func _survey_probe_inventory_snap(base_id: String) -> Dictionary:
 	if not GameSession.has_established_base(base_id):
 		return {
 			"survey_probe_total_owned": 0,
+			"survey_probe_lifetime_count": 0,
 			"survey_probe_available": 0,
 			"survey_probe_reserved": 0,
 			"survey_probe_active_deployed": 0,
 			"notes": "no_established_base",
 		}
 	var owned: int = GameSession.bases.get_survey_probe_count(base_id)
+	var lifetime: int = GameSession.get_production_lifetime_count(
+		base_id, BaseStore.PRODUCTION_SURVEY_PROBE
+	)
 	var reserved: int = GameSession.bases.get_survey_probes_reserved(base_id)
 	var available: int = GameSession.get_available_survey_probe_count(base_id)
 	var deployed: Variant = "unknown"
@@ -1356,11 +1373,13 @@ func _survey_probe_inventory_snap(base_id: String) -> Dictionary:
 		deployed = spc.get_active_investigate_count()
 	return {
 		"survey_probe_total_owned": owned,
+		"survey_probe_lifetime_count": lifetime,
 		"survey_probe_available": available,
 		"survey_probe_reserved": reserved,
 		"survey_probe_active_deployed": deployed,
 		"notes": (
-			"total_owned is base inventory and decreases when probes are consumed on investigate missions"
+			"total_owned decreases when probes are consumed; "
+			+ "lifetime_count never decreases and drives scaled_preview built_count"
 		),
 	}
 

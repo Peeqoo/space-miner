@@ -8,6 +8,14 @@ const PRODUCTION_MINING_SHIP := "mining_ship"
 const PRODUCTION_COLONY_SHIP := "colony_ship"
 const PRODUCTION_SURVEY_PROBE := "survey_probe"
 
+## Keys tracked in `production_lifetime_counts` (units ever received at base; never decremented).
+const PRODUCTION_LIFETIME_COUNT_IDS: Array[String] = [
+	PRODUCTION_SCAN_DRONE,
+	PRODUCTION_MINING_SHIP,
+	PRODUCTION_SURVEY_PROBE,
+	PRODUCTION_COLONY_SHIP,
+]
+
 ## Safety fallback only when `storage_0_base.tres` / UpgradeCatalog is unavailable.
 const STORAGE_CAPACITY_LEVEL_ZERO_FALLBACK: int = 1000
 
@@ -111,6 +119,112 @@ func get_base(base_id: String) -> Dictionary:
 	_sync_storage_capacity_from_definition(base_id, base_entry)
 
 	return base_entry
+
+
+func has_production_lifetime_counts_field(base_id: String) -> bool:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty() or not bases.has(bid):
+		return false
+	var counts_v: Variant = bases[bid].get("production_lifetime_counts", null)
+	return counts_v is Dictionary
+
+
+func ensure_production_lifetime_counts(base_id: String) -> void:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty() or not bases.has(bid):
+		return
+
+	var base: Dictionary = bases[bid]
+	var existing_v: Variant = base.get("production_lifetime_counts", null)
+	if existing_v is Dictionary:
+		base["production_lifetime_counts"] = _sanitize_production_lifetime_counts(
+			existing_v as Dictionary,
+			base,
+		)
+		bases[bid] = base
+		return
+
+	base["production_lifetime_counts"] = _production_lifetime_counts_from_fleet(base)
+	bases[bid] = base
+
+
+func get_production_lifetime_count(base_id: String, production_id: String) -> int:
+	var bid: String = base_id.strip_edges()
+	var pid: String = production_id.strip_edges()
+	if bid.is_empty():
+		return 0
+	if not _is_known_production_lifetime_id(pid):
+		if not pid.is_empty():
+			push_warning("BaseStore: unknown production_lifetime id '%s'" % pid)
+		return 0
+	if not bases.has(bid):
+		return 0
+
+	ensure_production_lifetime_counts(bid)
+	var counts_v: Variant = bases[bid].get("production_lifetime_counts", {})
+	if not counts_v is Dictionary:
+		return 0
+	return maxi(0, int((counts_v as Dictionary).get(pid, 0)))
+
+
+func set_production_lifetime_count(base_id: String, production_id: String, count: int) -> void:
+	var bid: String = base_id.strip_edges()
+	var pid: String = production_id.strip_edges()
+	if bid.is_empty() or not _is_known_production_lifetime_id(pid):
+		return
+	if not bases.has(bid):
+		push_warning("BaseStore: set_production_lifetime_count — base '%s' missing" % bid)
+		return
+
+	ensure_production_lifetime_counts(bid)
+	var base: Dictionary = bases[bid]
+	var counts: Dictionary = (base.get("production_lifetime_counts", {}) as Dictionary).duplicate(true)
+	counts[pid] = maxi(0, count)
+	base["production_lifetime_counts"] = counts
+	bases[bid] = base
+
+
+func increment_production_lifetime_count(
+	base_id: String,
+	production_id: String,
+	amount: int = 1,
+) -> void:
+	if amount <= 0:
+		return
+	var bid: String = base_id.strip_edges()
+	var pid: String = production_id.strip_edges()
+	if bid.is_empty() or not _is_known_production_lifetime_id(pid):
+		return
+	if not bases.has(bid):
+		push_warning("BaseStore: increment_production_lifetime_count — base '%s' missing" % bid)
+		return
+
+	var next_count: int = get_production_lifetime_count(bid, pid) + amount
+	set_production_lifetime_count(bid, pid, next_count)
+
+
+func _is_known_production_lifetime_id(production_id: String) -> bool:
+	return PRODUCTION_LIFETIME_COUNT_IDS.has(production_id)
+
+
+func _production_lifetime_counts_from_fleet(base: Dictionary) -> Dictionary:
+	return {
+		PRODUCTION_SCAN_DRONE: maxi(0, int(base.get("drones", 0))),
+		PRODUCTION_MINING_SHIP: maxi(0, int(base.get("mining_ships", 0))),
+		PRODUCTION_SURVEY_PROBE: maxi(0, int(base.get("survey_probes", 0))),
+		PRODUCTION_COLONY_SHIP: maxi(0, int(base.get("colony_ships", 0))),
+	}
+
+
+func _sanitize_production_lifetime_counts(counts: Dictionary, base: Dictionary) -> Dictionary:
+	var fleet_defaults: Dictionary = _production_lifetime_counts_from_fleet(base)
+	var out: Dictionary = {}
+	for pid: String in PRODUCTION_LIFETIME_COUNT_IDS:
+		if counts.has(pid):
+			out[pid] = maxi(0, int(counts[pid]))
+		else:
+			out[pid] = int(fleet_defaults.get(pid, 0))
+	return out
 
 
 func _normalize_mining_ship_upgrade_fields(base: Dictionary) -> void:
@@ -535,6 +649,7 @@ func build_survey_probe(base_id: String) -> bool:
 	if not spend_cost(base_id, cost):
 		return false
 	add_survey_probe(base_id, 1)
+	increment_production_lifetime_count(base_id, PRODUCTION_SURVEY_PROBE, 1)
 	return true
 
 
@@ -570,6 +685,7 @@ func build_drone(base_id: String) -> bool:
 	var base := get_base(base_id)
 	base["drones"] = int(base.get("drones", 0)) + 1
 	bases[base_id] = base
+	increment_production_lifetime_count(base_id, PRODUCTION_SCAN_DRONE, 1)
 
 	return true
 
@@ -606,6 +722,7 @@ func build_mining_ship(base_id: String) -> bool:
 	var base := get_base(base_id)
 	base["mining_ships"] = int(base.get("mining_ships", 0)) + 1
 	bases[base_id] = base
+	increment_production_lifetime_count(base_id, PRODUCTION_MINING_SHIP, 1)
 
 	return true
 
@@ -659,6 +776,7 @@ func build_colony_ship(
 	var base := get_base(base_id)
 	base["colony_ships"] = int(base.get("colony_ships", 0)) + 1
 	bases[base_id] = base
+	increment_production_lifetime_count(base_id, PRODUCTION_COLONY_SHIP, 1)
 	return true
 
 
@@ -744,6 +862,12 @@ func create_new_game_base_entry(
 		storage_capacity if storage_capacity >= 0 else _resolve_storage_capacity_level_zero_units()
 	)
 	base_entry["resources"] = resources.duplicate(true)
+	base_entry["production_lifetime_counts"] = {
+		PRODUCTION_SCAN_DRONE: maxi(0, drones),
+		PRODUCTION_MINING_SHIP: maxi(0, mining_ships),
+		PRODUCTION_SURVEY_PROBE: maxi(0, survey_probes),
+		PRODUCTION_COLONY_SHIP: maxi(0, colony_ships),
+	}
 	return base_entry
 
 
@@ -780,3 +904,8 @@ func apply_save_data(data: Dictionary) -> void:
 	if data.is_empty():
 		return
 	bases = data.duplicate(true)
+	for bid_var: Variant in bases.keys():
+		var bid: String = str(bid_var).strip_edges()
+		if bid.is_empty():
+			continue
+		ensure_production_lifetime_counts(bid)

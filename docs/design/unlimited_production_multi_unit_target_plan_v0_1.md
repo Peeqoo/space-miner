@@ -420,6 +420,16 @@ This validates the economic curve before removing caps or touching scan mission 
 
 ---
 
+## Implementation Status (code)
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **Step 1** — read-only `get_scaled_production_cost_preview*` | **Done** | Preview multipliers in code; gameplay spend still flat |
+| **Step 1b** — `production_lifetime_counts` per base | **Done** | Stable count source for preview; increments on `build_*`; save-v1 compatible lazy migrate |
+| **Step 2+** | **Pending** | Gates, UI, multi-scan, multi-MS hardening |
+
+---
+
 ## Acceptance (this document only)
 
 1. Only `docs/design/unlimited_production_multi_unit_target_plan_v0_1.md` created.  
