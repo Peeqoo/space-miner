@@ -357,29 +357,63 @@ func _snap_production_gates(base_id: String) -> Dictionary:
 			GameSession.get_build_base_scan_drone_gate(base_id),
 			GameSession.get_production_cost("scan_drone"),
 			res,
+			BaseStore.PRODUCTION_SCAN_DRONE,
+			base_id,
 		),
 		"mining_ship": _unit_gate_snap(
 			GameSession.get_build_base_mining_ship_gate(base_id),
 			GameSession.get_production_cost("mining_ship"),
 			res,
+			BaseStore.PRODUCTION_MINING_SHIP,
+			base_id,
 		),
 		"survey_probe": _unit_gate_snap(
 			GameSession.get_build_base_survey_probe_gate(base_id),
 			GameSession.get_survey_probe_build_cost(),
 			res,
+			BaseStore.PRODUCTION_SURVEY_PROBE,
+			base_id,
 		),
 		"colony_ship": _colony_gate_snap(base_id, res),
 	}
 
 
-func _unit_gate_snap(gate: Dictionary, cost: Dictionary, resources: Dictionary) -> Dictionary:
+func _unit_gate_snap(
+	gate: Dictionary,
+	cost: Dictionary,
+	resources: Dictionary,
+	production_id: String,
+	base_id: String,
+) -> Dictionary:
 	return {
 		"can_build": bool(gate.get("ok", false)),
 		"blocked_reason": str(gate.get("blocked_reason", "")),
 		"blocked_reason_key": str(gate.get("blocked_reason_key", "")),
 		"cost": cost.duplicate(true),
 		"cost_gap": _build_cost_gap(cost, resources),
+		"scaled_preview": _scaled_preview_snap(production_id, base_id),
 	}
+
+
+func _scaled_preview_snap(production_id: String, base_id: String) -> Dictionary:
+	var info: Dictionary = GameSession.get_scaled_production_cost_preview_info(production_id, base_id)
+	var out: Dictionary = {
+		"built_count": int(info.get("built_count", 0)),
+		"multiplier": float(info.get("multiplier", 1.0)),
+		"base_cost": {},
+		"scaled_cost": {},
+		"used_for_gameplay": false,
+	}
+	var base_v: Variant = info.get("base_cost", {})
+	if base_v is Dictionary:
+		out["base_cost"] = (base_v as Dictionary).duplicate(true)
+	var scaled_v: Variant = info.get("scaled_cost", {})
+	if scaled_v is Dictionary:
+		out["scaled_cost"] = (scaled_v as Dictionary).duplicate(true)
+	var count_source: String = str(info.get("count_source", "")).strip_edges()
+	if not count_source.is_empty():
+		out["count_source"] = count_source
+	return out
 
 
 func _colony_gate_snap(base_id: String, resources: Dictionary) -> Dictionary:
@@ -405,6 +439,7 @@ func _colony_gate_snap(base_id: String, resources: Dictionary) -> Dictionary:
 		"cost": cs_cost.duplicate(true),
 		"cost_gap": _build_cost_gap(cs_cost, resources),
 		"prerequisites": prereqs_out,
+		"scaling_excluded": true,
 	}
 
 
@@ -1420,6 +1455,10 @@ func _print_summary(path: String) -> void:
 									int(gd.get("need", 0)), missing_v,
 								])
 
+			var pgv: Variant = last.get("production_gates", {})
+			if pgv is Dictionary:
+				_print_scaled_preview_summary(pgv as Dictionary)
+
 	# Key milestone table
 	var key_milestones: Array[String] = [
 		"first_basic_scan_done",
@@ -1445,6 +1484,35 @@ func _print_summary(path: String) -> void:
 		else:
 			print_debug("  – %-38s NOT REACHED" % mk)
 	print_debug("[BalanceTelemetry] ═══════════════════════════════════════")
+
+
+func _print_scaled_preview_summary(production_gates: Dictionary) -> void:
+	print_debug("[BalanceTelemetry] Next scaled costs (preview only, not gameplay):")
+	_print_one_scaled_preview_line("ScanDrone", production_gates.get("scan_drone", {}))
+	_print_one_scaled_preview_line("MiningShip", production_gates.get("mining_ship", {}))
+	_print_one_scaled_preview_line("SurveyProbe", production_gates.get("survey_probe", {}))
+
+
+func _print_one_scaled_preview_line(label: String, gate_entry: Variant) -> void:
+	if not (gate_entry is Dictionary):
+		print_debug("  %s: (missing)" % label)
+		return
+	var entry: Dictionary = gate_entry as Dictionary
+	var preview_v: Variant = entry.get("scaled_preview", {})
+	if not (preview_v is Dictionary):
+		print_debug("  %s: (no preview)" % label)
+		return
+	var preview: Dictionary = preview_v as Dictionary
+	var scaled_v: Variant = preview.get("scaled_cost", {})
+	if not (scaled_v is Dictionary) or (scaled_v as Dictionary).is_empty():
+		print_debug("  %s: (empty)" % label)
+		return
+	var parts: PackedStringArray = []
+	for rk: Variant in (scaled_v as Dictionary).keys():
+		parts.append("%s=%d" % [str(rk), int((scaled_v as Dictionary)[rk])])
+	var built: int = int(preview.get("built_count", 0))
+	var mult: float = float(preview.get("multiplier", 1.0))
+	print_debug("  %s (built=%d mult=%.2f): %s" % [label, built, mult, ", ".join(parts)])
 
 
 # ══════════════════════════════════════════════════════════════════════════════

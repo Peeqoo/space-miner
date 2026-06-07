@@ -2427,6 +2427,187 @@ func get_production_definition(production_id: String) -> ProductionDefinition:
 
 
 # --------------------------------------------------
+# Scaled production cost preview (read-only; Step 1 unlimited-production design)
+# Preview only for unlimited production design; not used for gameplay spend.
+# --------------------------------------------------
+
+const SCALED_PREVIEW_FORMULA := "ceil(base_cost * multiplier^built_count)"
+
+## Preview-only multiplier candidates — not used for gameplay spend.
+const SCALED_PREVIEW_MULT_SCAN_DRONE: float = 1.20
+const SCALED_PREVIEW_MULT_MINING_SHIP: float = 1.25
+const SCALED_PREVIEW_MULT_SURVEY_PROBE: float = 1.15
+
+
+## Hypothetical next-unit cost for unlimited-production design (read-only).
+func get_scaled_production_cost_preview(production_id: String, base_id: String = "") -> Dictionary:
+	var info: Dictionary = get_scaled_production_cost_preview_info(production_id, base_id)
+	var scaled_v: Variant = info.get("scaled_cost", {})
+	if scaled_v is Dictionary:
+		return (scaled_v as Dictionary).duplicate(true)
+	return {}
+
+
+## Structured scaled-cost preview for debug / telemetry (read-only).
+func get_scaled_production_cost_preview_info(
+	production_id: String,
+	base_id: String = "",
+) -> Dictionary:
+	var pid: String = production_id.strip_edges()
+	var bid: String = _resolve_scaled_preview_base_id(base_id)
+	var count_info: Dictionary = _get_scaled_preview_built_count(pid, bid)
+	var built_count: int = int(count_info.get("built_count", 0))
+	var count_source: String = str(count_info.get("count_source", ""))
+
+	if pid == BaseStore.PRODUCTION_COLONY_SHIP:
+		var flat_cost: Dictionary = get_colony_ship_build_cost().duplicate(true)
+		return {
+			"production_id": pid,
+			"supported": false,
+			"scaling_excluded": true,
+			"built_count": built_count,
+			"multiplier": 1.0,
+			"base_cost": flat_cost,
+			"scaled_cost": flat_cost,
+			"formula": SCALED_PREVIEW_FORMULA,
+			"used_for_gameplay": false,
+			"count_source": count_source,
+		}
+
+	var multiplier: float = _get_scaled_preview_multiplier(pid)
+	if multiplier <= 0.0:
+		return _empty_scaled_preview_info(pid, built_count, count_source)
+
+	var base_cost: Dictionary = _get_scaled_preview_base_cost(pid)
+	if base_cost.is_empty():
+		return _empty_scaled_preview_info(pid, built_count, count_source)
+
+	var scaled_cost: Dictionary = _compute_scaled_preview_cost(base_cost, multiplier, built_count)
+	return {
+		"production_id": pid,
+		"supported": true,
+		"scaling_excluded": false,
+		"built_count": built_count,
+		"multiplier": multiplier,
+		"base_cost": base_cost.duplicate(true),
+		"scaled_cost": scaled_cost,
+		"formula": SCALED_PREVIEW_FORMULA,
+		"used_for_gameplay": false,
+		"count_source": count_source,
+	}
+
+
+func _resolve_scaled_preview_base_id(base_id: String) -> String:
+	var bid: String = base_id.strip_edges()
+	if not bid.is_empty():
+		if has_established_base(bid):
+			return bid
+		print_debug(
+			"GameSession: scaled preview base '%s' not established; using fallback." % bid
+		)
+
+	var system_id: String = current_system_id.strip_edges()
+	if not system_id.is_empty():
+		var established: String = get_established_base_id_for_system(system_id).strip_edges()
+		if not established.is_empty() and has_established_base(established):
+			return established
+
+	var source: String = get_colonization_source_base_id().strip_edges()
+	if not source.is_empty() and has_established_base(source):
+		return source
+
+	return BaseStore.BASE_EARTH
+
+
+func _get_scaled_preview_built_count(production_id: String, base_id: String) -> Dictionary:
+	if not has_established_base(base_id):
+		return {"built_count": 0, "count_source": "no_established_base"}
+
+	match production_id:
+		BaseStore.PRODUCTION_SCAN_DRONE:
+			return {
+				"built_count": maxi(0, get_base_drone_count(base_id)),
+				"count_source": "fleet_count",
+			}
+		BaseStore.PRODUCTION_MINING_SHIP:
+			return {
+				"built_count": maxi(0, get_base_mining_ship_count(base_id)),
+				"count_source": "fleet_count",
+			}
+		BaseStore.PRODUCTION_SURVEY_PROBE:
+			return {
+				"built_count": maxi(0, bases.get_survey_probe_count(base_id)),
+				"count_source": "total_owned",
+			}
+		BaseStore.PRODUCTION_COLONY_SHIP:
+			return {
+				"built_count": maxi(0, get_base_colony_ship_count(base_id)),
+				"count_source": "fleet_count",
+			}
+		_:
+			return {"built_count": 0, "count_source": "unknown"}
+
+
+func _get_scaled_preview_multiplier(production_id: String) -> float:
+	match production_id:
+		BaseStore.PRODUCTION_SCAN_DRONE:
+			return SCALED_PREVIEW_MULT_SCAN_DRONE
+		BaseStore.PRODUCTION_MINING_SHIP:
+			return SCALED_PREVIEW_MULT_MINING_SHIP
+		BaseStore.PRODUCTION_SURVEY_PROBE:
+			return SCALED_PREVIEW_MULT_SURVEY_PROBE
+		_:
+			return 0.0
+
+
+func _get_scaled_preview_base_cost(production_id: String) -> Dictionary:
+	match production_id:
+		BaseStore.PRODUCTION_SCAN_DRONE, BaseStore.PRODUCTION_MINING_SHIP:
+			return get_production_cost(production_id).duplicate(true)
+		BaseStore.PRODUCTION_SURVEY_PROBE:
+			return get_survey_probe_build_cost().duplicate(true)
+		_:
+			return {}
+
+
+func _compute_scaled_preview_cost(
+	base_cost: Dictionary,
+	multiplier: float,
+	built_count: int,
+) -> Dictionary:
+	var scaled: Dictionary = {}
+	var factor: float = pow(multiplier, float(maxi(0, built_count)))
+	for key: Variant in base_cost.keys():
+		var resource_id: String = str(key)
+		var base_amount: int = int(base_cost[key])
+		if base_amount <= 0:
+			scaled[resource_id] = 0
+			continue
+		var amount_f: float = float(base_amount) * factor
+		scaled[resource_id] = maxi(1, int(ceil(amount_f)))
+	return scaled
+
+
+func _empty_scaled_preview_info(
+	production_id: String,
+	built_count: int,
+	count_source: String,
+) -> Dictionary:
+	return {
+		"production_id": production_id,
+		"supported": false,
+		"scaling_excluded": false,
+		"built_count": built_count,
+		"multiplier": 1.0,
+		"base_cost": {},
+		"scaled_cost": {},
+		"formula": SCALED_PREVIEW_FORMULA,
+		"used_for_gameplay": false,
+		"count_source": count_source,
+	}
+
+
+# --------------------------------------------------
 # Automation API
 # --------------------------------------------------
 
