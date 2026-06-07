@@ -4,6 +4,25 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_y2s6n"]
 [ext_resource type="Texture2D" uid="uid://ccv784e2jnc05" path="res://assets/sprites/planets/PlanetsFull/Terran_or_Earth-like/9.png" id="2_dkwxl"]
 
+[sub_resource type="Resource" id="proxima_b_res_iron"]
+script = ExtResource("1_ropso")
+resource_id = &"Iron"
+richness_percent = 55
+deposit_amount = 9000
+
+[sub_resource type="Resource" id="proxima_b_res_water"]
+script = ExtResource("1_ropso")
+resource_id = &"Water"
+richness_percent = 42
+deposit_amount = 6500
+
+[sub_resource type="Resource" id="proxima_b_res_carbon"]
+script = ExtResource("1_ropso")
+resource_id = &"Carbon"
+richness_percent = 18
+deposit_amount = 3200
+layer = 1
+
 [resource]
 script = ExtResource("1_y2s6n")
 id = "proxima_b"
@@ -20,4 +39,5 @@ reference_orbit_au = 0.048
 reference_period_days = 11.2
 size_authoring_mode = 1
 gameplay_orbit_bias = 0.92
+scan_resources = Array[ExtResource("1_ropso")]([SubResource("proxima_b_res_iron"), SubResource("proxima_b_res_water"), SubResource("proxima_b_res_carbon")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_fodo3"]
 [ext_resource type="Script" uid="uid://de5akqgbobdkp" path="res://resources/definitions/scanned_resource_entry.gd" id="1_qsy51"]
 [ext_resource type="Texture2D" uid="uid://ckmthn4f332ki" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Mars/1.png" id="2_puof5"]
-[ext_resource type="Resource" path="res://data/discovery_signal_types/gravity.tres" id="3_signal_gravity"]
+[ext_resource type="Resource" uid="uid://bylmo8ikf0ob0" path="res://data/discovery_signal_types/gravity.tres" id="3_signal_gravity"]
 
 [sub_resource type="Resource" id="mars_res_iron"]
 script = ExtResource("1_qsy51")

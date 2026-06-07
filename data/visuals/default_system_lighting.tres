@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SystemLightingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://d8k3m2n7p1qws" path="res://resources/definitions/system_lighting_definition.gd" id="1_lighting"]
+[ext_resource type="Script" uid="uid://bpp5eks4w0ej" path="res://resources/definitions/planet_lighting_visual_definition.gd" id="2_planet"]
+
+[sub_resource type="Resource" id="Resource_planet_default"]
+script = ExtResource("2_planet")
+light_tint = Color(1, 0.92, 0.72, 1)
+shadow_tint = Color(0.08, 0.11, 0.2, 1)
+shadow_strength = 0.55
+light_boost = 0.12
+terminator_softness = 0.18
+light_height = 0.35
+rim_strength = 0.08
+rim_power = 4.0
+
+[resource]
+script = ExtResource("1_lighting")
+ambient_color = Color(0.059911326, 0.070476435, 0.112851225, 1)
+star_light_color = Color(0.91654724, 0.9510632, 0.9999996, 1)
+star_light_energy = 1.15
+star_light_radius_px = 12000.0
+star_light_texture_size = 1024
+star_glow_color = Color(1, 0.72, 0.32, 0.35)
+star_glow_scale = 4.0
+star_glow_alpha = 0.32
+default_planet_lighting = SubResource("Resource_planet_default")
+enable_vignette = false
+vignette_color = Color(0.05882353, 0.07058824, 0.11372549, 1)
+vignette_strength = 0.8
+vignette_radius = 0.19
+vignette_softness = 0.9

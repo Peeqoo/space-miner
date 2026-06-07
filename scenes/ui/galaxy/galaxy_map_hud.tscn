@@ -267,6 +267,24 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 2
 
+[node name="ColonizationStartButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ActionSection" unique_id=892001008]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("5_0qajj")
+theme_override_font_sizes/font_size = 10
+disabled = true
+text = "Establish Colony"
+
+[node name="DevInstantColonizeButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ActionSection" unique_id=892001009]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("5_0qajj")
+theme_override_font_sizes/font_size = 8
+disabled = true
+text = "DEV: Colonize Selected System"
+
 [node name="EnterButton" type="Button" parent="GalaxyInfoPanel/Margin/Root/ActionSection" unique_id=131344656]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -355,4 +373,6 @@ label_settings = ExtResource("4_3tpsn")
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/SystemHeaderSection/HeaderRow/CloseButton" to="." method="_on_close_button_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationCancelButton" to="." method="_on_colon_cancel_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDevButton" to="." method="_on_colon_dev_pressed"]
+[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ActionSection/ColonizationStartButton" to="." method="_on_colonization_start_pressed"]
+[connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ActionSection/DevInstantColonizeButton" to="." method="_on_dev_instant_colonize_pressed"]
 [connection signal="pressed" from="GalaxyInfoPanel/Margin/Root/ActionSection/EnterButton" to="." method="_on_enter_button_pressed"]

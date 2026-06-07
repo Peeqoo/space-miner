@@ -4,6 +4,25 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_qm6f4"]
 [ext_resource type="Texture2D" uid="uid://bins83drc7kao" path="res://assets/sprites/planets/PlanetsFull/Rocky/1.png" id="2_epjyb"]
 
+[sub_resource type="Resource" id="proxima_d_res_copper"]
+script = ExtResource("1_0c4yn")
+resource_id = &"Copper"
+richness_percent = 48
+deposit_amount = 7000
+
+[sub_resource type="Resource" id="proxima_d_res_aluminium"]
+script = ExtResource("1_0c4yn")
+resource_id = &"Aluminium"
+richness_percent = 32
+deposit_amount = 4800
+
+[sub_resource type="Resource" id="proxima_d_res_hydrogen"]
+script = ExtResource("1_0c4yn")
+resource_id = &"Hydrogen"
+richness_percent = 12
+deposit_amount = 2200
+layer = 1
+
 [resource]
 script = ExtResource("1_qm6f4")
 id = "proxima_d"
@@ -19,4 +38,5 @@ reference_orbit_au = 0.029
 reference_period_days = 5.1
 size_authoring_mode = 1
 gameplay_orbit_bias = 0.55
+scan_resources = Array[ExtResource("1_0c4yn")]([SubResource("proxima_d_res_copper"), SubResource("proxima_d_res_aluminium"), SubResource("proxima_d_res_hydrogen")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

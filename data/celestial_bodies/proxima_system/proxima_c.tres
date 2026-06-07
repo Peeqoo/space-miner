@@ -4,6 +4,25 @@
 [ext_resource type="Script" uid="uid://c1hb30l5a8obm" path="res://resources/definitions/system_body_definition.gd" id="1_enoce"]
 [ext_resource type="Texture2D" uid="uid://ctsrdh6tiucmr" path="res://assets/sprites/planets/PlanetsFull/Ice_or_Snow/1.png" id="2_xv5cp"]
 
+[sub_resource type="Resource" id="proxima_c_res_silicon"]
+script = ExtResource("1_7tkm2")
+resource_id = &"Silicon"
+richness_percent = 52
+deposit_amount = 7500
+
+[sub_resource type="Resource" id="proxima_c_res_copper"]
+script = ExtResource("1_7tkm2")
+resource_id = &"Copper"
+richness_percent = 38
+deposit_amount = 5500
+
+[sub_resource type="Resource" id="proxima_c_res_carbon"]
+script = ExtResource("1_7tkm2")
+resource_id = &"Carbon"
+richness_percent = 15
+deposit_amount = 2800
+layer = 1
+
 [resource]
 script = ExtResource("1_enoce")
 id = "proxima_c"
@@ -20,4 +39,5 @@ reference_radius_earth = 2.3
 reference_orbit_au = 1.49
 reference_period_days = 1900.0
 size_authoring_mode = 1
+scan_resources = Array[ExtResource("1_7tkm2")]([SubResource("proxima_c_res_silicon"), SubResource("proxima_c_res_copper"), SubResource("proxima_c_res_carbon")])
 metadata/_custom_type_script = "uid://c1hb30l5a8obm"

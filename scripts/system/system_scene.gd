@@ -41,10 +41,7 @@ func _ready() -> void:
 		discovery_controller.apply_for_system(system_definition)
 	orbit_guides.update_orbit_guides()
 
-	# VISUAL_LIGHTING_EXPERIMENT_START
-	if system_light_controller != null:
-		system_light_controller.setup_from_spawner(spawner)
-	# VISUAL_LIGHTING_EXPERIMENT_END
+	call_deferred("_apply_system_visuals")
 
 	call_deferred("_finish_initial_setup")
 
@@ -107,6 +104,22 @@ func _try_restore_saved_camera_state() -> bool:
 		return false
 
 	return camera.restore_saved_state(camera_state)
+
+
+func _apply_system_visuals() -> void:
+	if system_light_controller == null:
+		return
+
+	var lighting_def: SystemLightingDefinition = null
+	if system_definition != null:
+		lighting_def = system_definition.get_resolved_lighting_definition()
+	else:
+		lighting_def = SystemLightingDefinition.get_default()
+
+	if lighting_def != null:
+		system_light_controller.apply_lighting_definition(lighting_def)
+
+	system_light_controller.setup_from_spawner(spawner)
 
 
 func _setup_controllers() -> void:

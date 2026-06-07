@@ -18,6 +18,7 @@ star_texture = ExtResource("4_mh2o4")
 star_scale = Vector2(0.8, 0.8)
 star_visual_radius = 31.5
 start_body_id = "proxima_b"
+colonization_start_body_id = &"proxima_b"
 earth_target_body_diameter_px = 28.0
 earth_target_orbit_offset_px = 180.0
 earth_orbit_angular_speed = 0.04

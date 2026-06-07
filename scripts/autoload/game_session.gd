@@ -516,10 +516,60 @@ func get_colonization_operation_duration_ms() -> int:
 	return COLONIZATION_OPERATION_DURATION_MS_FALLBACK
 
 
-func start_colonization_operation(source_base_id: String, target_system_id: String, target_body_id: String) -> String:
+func resolve_colonization_target_body_id(target_system_id: String) -> String:
+	var tsid := target_system_id.strip_edges()
+	if tsid.is_empty():
+		return ""
+	var system_def := get_system_definition_by_id(tsid)
+	if system_def == null:
+		push_warning(
+			"GameSession.resolve_colonization_target_body_id: missing SystemDefinition for '%s'."
+			% tsid
+		)
+		return ""
+	var body_id := system_def.get_resolved_colonization_start_body_id().strip_edges()
+	if body_id.is_empty():
+		push_warning(
+			"GameSession.resolve_colonization_target_body_id: no colonization target for '%s'."
+			% tsid
+		)
+	return body_id
+
+
+func can_start_colonization_for_system(target_system_id: String) -> bool:
+	return bool(get_colonization_start_gate(target_system_id).get("ok", false))
+
+
+func get_colonization_start_gate(target_system_id: String) -> Dictionary:
+	var tsid := target_system_id.strip_edges()
+	if tsid.is_empty() or tsid == START_SYSTEM_ID:
+		return {"ok": false, "target_body_id": ""}
+	if has_established_base_in_system(tsid):
+		return {"ok": false, "target_body_id": ""}
+	if has_pending_colonization_to_system(tsid):
+		return {"ok": false, "target_body_id": ""}
+
+	var src := get_colonization_source_base_id().strip_edges()
+	if src.is_empty() or get_base_colony_ship_count(src) < 1:
+		return {"ok": false, "target_body_id": ""}
+
+	var tbod := resolve_colonization_target_body_id(tsid)
+	if tbod.is_empty() or has_established_base(tbod):
+		return {"ok": false, "target_body_id": ""}
+
+	return {"ok": true, "target_body_id": tbod}
+
+
+func start_colonization_operation(
+	source_base_id: String,
+	target_system_id: String,
+	target_body_id: String = "",
+) -> String:
 	var src := source_base_id.strip_edges()
 	var tsid := target_system_id.strip_edges()
 	var tbod := target_body_id.strip_edges()
+	if tbod.is_empty():
+		tbod = resolve_colonization_target_body_id(tsid)
 
 	if src.is_empty() or tsid.is_empty() or tbod.is_empty():
 		push_warning("GameSession.start_colonization_operation: empty source or target id")
@@ -757,6 +807,76 @@ func process_colonization_operations() -> Array[String]:
 		if complete_colonization_operation(op_id_complete):
 			completed_ids.append(op_id_complete)
 	return completed_ids
+
+
+## DEBUG ONLY — internal gate for galaxy instant-colonize dev button (no side effects).
+func can_dev_instant_colonize_system(target_system_id: String) -> bool:
+	if not OS.is_debug_build():
+		return false
+
+	var tsid := target_system_id.strip_edges()
+	if tsid.is_empty() or tsid == START_SYSTEM_ID:
+		return false
+	if tsid == current_system_id.strip_edges():
+		return false
+	if has_established_base_in_system(tsid):
+		return false
+	if has_pending_colonization_to_system(tsid):
+		return false
+
+	var tbod := resolve_colonization_target_body_id(tsid)
+	if tbod.is_empty() or has_established_base(tbod):
+		return false
+
+	return not _dev_resolve_colonization_source_base_id().is_empty()
+
+
+## DEBUG ONLY: start + immediately complete a real colonization operation (editor/debug builds).
+func dev_instant_colonize_system(target_system_id: String) -> bool:
+	if not OS.is_debug_build():
+		push_warning("GameSession: dev_instant_colonize_system is debug-only.")
+		return false
+
+	if not can_dev_instant_colonize_system(target_system_id):
+		return false
+
+	var tsid := target_system_id.strip_edges()
+	var src := _dev_resolve_colonization_source_base_id()
+	if src.is_empty():
+		return false
+
+	# DEV ONLY: grant one ColonyShip when the source base has none (no build-cost bypass elsewhere).
+	if get_base_colony_ship_count(src) < 1:
+		bases.add_colony_ship(src, 1)
+		base_resources_changed.emit(src)
+
+	var op_id := start_colonization_operation(src, tsid)
+	if op_id.is_empty():
+		return false
+
+	return complete_colonization_operation(op_id)
+
+
+func _dev_resolve_colonization_source_base_id() -> String:
+	var candidates: Array[String] = []
+
+	for bid_var: Variant in _established_base_records.keys():
+		var bid: String = str(bid_var).strip_edges()
+		if bid.is_empty() or not has_established_base(bid):
+			continue
+		candidates.append(bid)
+
+	if candidates.is_empty():
+		return ""
+
+	var preferred_id: String = _get_preferred_colonization_source_base_id()
+	for candidate in candidates:
+		var cid: String = str(candidate).strip_edges()
+		if cid == preferred_id:
+			return preferred_id
+
+	candidates.sort()
+	return candidates[0]
 
 
 func get_colonization_source_base_id() -> String:

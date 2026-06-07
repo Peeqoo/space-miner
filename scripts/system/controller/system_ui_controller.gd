@@ -613,30 +613,10 @@ func _apply_colonization_info_to_dict(info: Dictionary, selected_node: Node) -> 
 	info["system_id"] = sys_id
 	info["object_id"] = _get_object_id(selected_node)
 
-	var is_home: bool = sys_id == GameSession.START_SYSTEM_ID
-	var has_base: bool = GameSession.has_established_base_in_system(sys_id)
-	var pending: bool = GameSession.has_pending_colonization_to_system(sys_id)
-
-	var is_colonizable: bool = false
-	if selected_node is SystemBody:
-		var body := selected_node as SystemBody
-		if body.definition != null and body.definition.can_build_base:
-			is_colonizable = true
-
-	var show_button: bool = (
-		selected_node is SystemBody
-		and not is_home
-		and not has_base
-		and is_colonizable
-	)
-
-	info["colonization_button_visible"] = show_button
-	info["colonization_pending"] = pending and show_button
-	info["colonization_can_start"] = (
-		show_button
-		and not pending
-		and not GameSession.get_colonization_source_base_id().strip_edges().is_empty()
-	)
+	## v0.1: colonization starts from Galaxy map (system pick), not per-body in system view.
+	info["colonization_button_visible"] = false
+	info["colonization_pending"] = false
+	info["colonization_can_start"] = false
 
 
 func _body_definition_allows_base(body_id: String) -> bool:
@@ -848,32 +828,8 @@ func _refresh_economy_panels() -> void:
 		base_management_panel.refresh_from_game_session()
 
 
-func _on_colonization_requested(object_id: String) -> void:
-	var sys_id := _current_system_definition_id()
-	var body_id := object_id.strip_edges()
-	if sys_id.is_empty() or body_id.is_empty():
-		return
-	if sys_id == GameSession.START_SYSTEM_ID:
-		return
-	if GameSession.has_established_base_in_system(sys_id):
-		return
-	if GameSession.has_pending_colonization_to_system(sys_id):
-		return
-	if not _body_definition_allows_base(body_id):
-		return
-
-	var src := GameSession.get_colonization_source_base_id().strip_edges()
-	if src.is_empty():
-		update_object_info()
-		return
-
-	var op_id := GameSession.start_colonization_operation(src, sys_id, body_id)
-	if op_id.is_empty():
-		update_object_info()
-		return
-
-	update_object_info()
-	_update_top_hud()
+func _on_colonization_requested(_object_id: String) -> void:
+	pass
 
 
 func _on_build_drone_requested() -> void:

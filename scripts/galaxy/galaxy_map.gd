@@ -66,11 +66,20 @@ func _connect_galaxy_map_signals() -> void:
 	if hud != null and not hud.enter_requested.is_connected(_on_enter_pressed):
 		hud.enter_requested.connect(_on_enter_pressed)
 
+	if hud != null and not hud.colonization_start_requested.is_connected(_on_colon_start_requested):
+		hud.colonization_start_requested.connect(_on_colon_start_requested)
+
 	if hud != null and not hud.colonization_cancel_requested.is_connected(_on_colon_cancel_requested):
 		hud.colonization_cancel_requested.connect(_on_colon_cancel_requested)
 
 	if hud != null and not hud.colonization_dev_complete_requested.is_connected(_on_colon_dev_complete_requested):
 		hud.colonization_dev_complete_requested.connect(_on_colon_dev_complete_requested)
+
+	if (
+		hud != null
+		and not hud.dev_colonize_selected_system_requested.is_connected(_on_dev_colonize_selected_system_requested)
+	):
+		hud.dev_colonize_selected_system_requested.connect(_on_dev_colonize_selected_system_requested)
 
 
 func is_pause_menu_open() -> bool:
@@ -185,6 +194,27 @@ func _update_hud_for_selected_system(system_def: SystemDefinition) -> void:
 	hud.update_colonization_preview(system_def, access_state)
 
 
+func _on_colon_start_requested() -> void:
+	if selected_system == null:
+		return
+
+	var sid := selected_system.id.strip_edges()
+	if sid.is_empty() or sid == GameSession.START_SYSTEM_ID:
+		return
+	if not GameSession.can_start_colonization_for_system(sid):
+		return
+
+	var src := GameSession.get_colonization_source_base_id().strip_edges()
+	if src.is_empty():
+		return
+
+	var op_id := GameSession.start_colonization_operation(src, sid)
+	if op_id.is_empty():
+		return
+
+	_update_hud_for_selected_system(selected_system)
+
+
 func _on_colon_cancel_requested() -> void:
 	if selected_system == null:
 		return
@@ -217,6 +247,18 @@ func _on_colon_dev_complete_requested() -> void:
 
 	GameSession.complete_colonization_operation(oid)
 	_update_hud_for_selected_system(selected_system)
+
+
+func _on_dev_colonize_selected_system_requested(system_id: String) -> void:
+	var sid := system_id.strip_edges()
+	if sid.is_empty():
+		return
+	if not GameSession.dev_instant_colonize_system(sid):
+		push_warning("GalaxyMap: dev_instant_colonize_system failed for target_system_id='%s'." % sid)
+		return
+	_refresh_system_node_progression_visuals()
+	if selected_system != null:
+		_update_hud_for_selected_system(selected_system)
 
 
 func _are_systems_directly_connected(a_id: String, b_id: String) -> bool:

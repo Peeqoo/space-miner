@@ -107,14 +107,6 @@ script = ExtResource("8_dc3br")
 [node name="SystemLightController" type="Node" parent="." unique_id=2062233604]
 script = ExtResource("21_light")
 star_node_path = NodePath("WorldRoot/StarRoot")
-true_lighting_canvas_modulate_color = Color(0.059911326, 0.070476435, 0.112851225, 1)
-real_star_light_color = Color(0.91654724, 0.9510632, 0.9999996, 1)
-real_star_light_radius_px = 12000.0
-enable_vignette = false
-vignette_color = Color(0.05882353, 0.07058824, 0.11372549, 1)
-vignette_strength = 0.8
-vignette_radius = 0.19
-vignette_softness = 0.9
 
 [node name="SystemOrbitGuidesController" type="Node2D" parent="." unique_id=2030945301]
 script = ExtResource("9_06sa2")

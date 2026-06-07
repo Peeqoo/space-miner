@@ -21,14 +21,14 @@ const LEGACY_STAR_WIDE_HALO_NAME: StringName = &"StarWideHaloVisual"
 
 @export_group("True 2D Lighting")
 @export var enable_true_2d_lighting_mode: bool = true
-@export var true_lighting_canvas_modulate_color: Color = Color(0.16, 0.18, 0.26, 1.0)
+@export var true_lighting_canvas_modulate_color: Color = Color(0.059911326, 0.070476435, 0.112851225, 1.0)
 @export var true_lighting_canvas_modulate_name: StringName = WORLD_AMBIENT_CANVAS_MODULATE_NAME
 
 @export_group("Real Star Light")
 @export var enable_real_star_light: bool = true
-@export var real_star_light_color: Color = Color(0.86, 0.92, 1.0, 1.0)
+@export var real_star_light_color: Color = Color(0.91654724, 0.9510632, 0.9999996, 1.0)
 @export_range(0.0, 5.0, 0.01) var real_star_light_energy: float = 1.15
-@export_range(64.0, 20000.0, 1.0) var real_star_light_radius_px: float = 6000.0
+@export_range(64.0, 20000.0, 1.0) var real_star_light_radius_px: float = 12000.0
 @export_range(128, 4096, 1) var real_star_light_texture_size: int = 1024
 @export var real_star_light_only_in_true_mode: bool = true
 @export var enable_real_star_light_debug: bool = false
@@ -57,11 +57,11 @@ const LEGACY_STAR_WIDE_HALO_NAME: StringName = &"StarWideHaloVisual"
 @export_range(0.0, 0.6, 0.01) var scene_dim_strength: float = 0.18
 
 @export_group("Screen Vignette")
-@export var enable_vignette: bool = true
-@export var vignette_color: Color = Color(0.02, 0.03, 0.08, 1.0)
-@export_range(0.0, 1.0, 0.01) var vignette_strength: float = 0.16
-@export_range(0.0, 1.5, 0.01) var vignette_radius: float = 0.62
-@export_range(0.01, 1.0, 0.01) var vignette_softness: float = 0.38
+@export var enable_vignette: bool = false
+@export var vignette_color: Color = Color(0.05882353, 0.07058824, 0.11372549, 1.0)
+@export_range(0.0, 1.0, 0.01) var vignette_strength: float = 0.8
+@export_range(0.0, 1.5, 0.01) var vignette_radius: float = 0.19
+@export_range(0.01, 1.0, 0.01) var vignette_softness: float = 0.9
 @export var true_lighting_keep_vignette: bool = true
 @export var vignette_canvas_layer_name: StringName = &"AtmosphereOverlayCanvasLayer"
 @export var vignette_rect_name: StringName = &"VignetteOverlay"
@@ -103,6 +103,12 @@ func _process(_delta: float) -> void:
 	_update_light_directions()
 
 
+func apply_lighting_definition(defn: SystemLightingDefinition) -> void:
+	if defn == null:
+		return
+	defn.apply_to(self)
+
+
 func setup_from_spawner(spawner: SystemSpawner) -> void:
 	_spawner = spawner
 	_resolve_star_sprite()
@@ -110,11 +116,7 @@ func setup_from_spawner(spawner: SystemSpawner) -> void:
 	if remove_legacy_star_light_nodes:
 		_cleanup_legacy_star_light_nodes()
 
-	refresh_world_lighting()
-	refresh_star_glow()
-	refresh_real_star_light()
-	refresh_planet_lighting_targets()
-	refresh_vignette()
+	refresh_all_visual_lighting()
 
 
 func refresh_all_visual_lighting() -> void:
@@ -220,7 +222,7 @@ func refresh_planet_lighting_targets() -> void:
 			continue
 
 		var body := node as SystemBody
-		var sprite := body.body_visual
+		var sprite := _resolve_body_sprite(body)
 		if sprite == null or not is_instance_valid(sprite):
 			continue
 		if sprite.texture == null:
@@ -273,6 +275,17 @@ func refresh_vignette() -> void:
 	_vignette_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_vignette_rect.visible = true
 	_vignette_canvas_layer.visible = true
+
+
+func _resolve_body_sprite(body: SystemBody) -> Sprite2D:
+	if body == null:
+		return null
+	if body.body_visual != null and is_instance_valid(body.body_visual):
+		return body.body_visual
+	var sprite := body.get_node_or_null(NodePath("OrbitPivot/BodyVisual"))
+	if sprite is Sprite2D:
+		return sprite as Sprite2D
+	return null
 
 
 func _resolve_star_sprite() -> void:

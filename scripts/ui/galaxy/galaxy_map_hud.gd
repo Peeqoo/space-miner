@@ -8,9 +8,16 @@ const ACCESS_LOCKED := "locked"
 const ACCESS_UNREACHABLE := "unreachable"
 
 signal enter_requested
+signal colonization_start_requested
 signal colonization_cancel_requested
 signal colonization_dev_complete_requested
+signal dev_colonize_selected_system_requested(system_id: String)
 signal close_requested
+
+## DEBUG ONLY — paired with `OS.is_debug_build()`; never enable for release exports.
+const DEV_GALAXY_INSTANT_COLONIZE_ENABLED := true
+const DEV_INSTANT_COLONIZE_BUTTON_TEXT_ENABLED := "DEV: Colonize Selected System"
+const DEV_INSTANT_COLONIZE_BUTTON_TEXT_DISABLED := "DEV: Colonize Blocked"
 
 ## Unter `UI` neben diesem HUD (siehe `galaxy_map.tscn`); in `galaxy_map_hud.tscn` nicht als Kind vorhanden.
 @onready var current_system_value_label: Label = (
@@ -54,7 +61,16 @@ signal close_requested
 @onready var colonization_dev_button: Button = (
 	$GalaxyInfoPanel/Margin/Root/ColonizationSection/ColonizationSecondaryRow/ColonizationDevButton
 )
+@onready var colonization_start_button: Button = (
+	$GalaxyInfoPanel/Margin/Root/ActionSection/ColonizationStartButton
+)
+@onready var dev_instant_colonize_button: Button = (
+	$GalaxyInfoPanel/Margin/Root/ActionSection/DevInstantColonizeButton
+)
 @onready var enter_button: Button = $GalaxyInfoPanel/Margin/Root/ActionSection/EnterButton
+@onready var colonization_target_label: Label = (
+	$GalaxyInfoPanel/Margin/Root/ColonizationSection/GridContainer/ColonizationTargetLabel
+)
 
 @onready var access_status_current_template: Label = (
 	$GalaxyInfoPanel/Margin/Root/AccessStatusCurrentTemplate
@@ -93,11 +109,18 @@ var _intel_unknown_text: String = ""
 var _no_description_text: String = ""
 var _no_selection_info_text: String = ""
 var _empty_value_text: String = "-"
+var _dev_instant_colonize_debug_logged_system_id: String = ""
 
 
 func _ready() -> void:
+	if dev_instant_colonize_button == null:
+		push_warning(
+			"GalaxyMapHUD: DevInstantColonizeButton not found at "
+			+ "GalaxyInfoPanel/Margin/Root/ActionSection/DevInstantColonizeButton"
+		)
 	_capture_editor_text_templates()
 	set_current_system_name("-")
+	_apply_dev_instant_colonize_button_state(false, false)
 	show_no_selection_state()
 	set_process(false)
 
@@ -221,6 +244,9 @@ func show_no_selection_state() -> void:
 	_set_info_text(_no_selection_info_text)
 	if is_instance_valid(enter_button):
 		enter_button.disabled = true
+	_set_colonization_start_button_visible(false)
+	_apply_dev_instant_colonize_button_state(false, false)
+	_dev_instant_colonize_debug_logged_system_id = ""
 	_hide_colonization_section()
 
 
@@ -247,6 +273,7 @@ func show_system_info(
 	_set_info_text(info_text)
 	if is_instance_valid(enter_button):
 		enter_button.disabled = not can_enter
+	_refresh_colonization_start_button(system_name, access_state)
 
 
 func _is_unknown_resources_summary(summary_text: String) -> bool:
@@ -289,6 +316,8 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 		_colonization_preview_system_def = null
 		_colonization_preview_access_state = ""
 		set_process(false)
+		_apply_dev_instant_colonize_button_state(false, false)
+		_dev_instant_colonize_debug_logged_system_id = ""
 		return
 
 	_colonization_preview_system_def = system_def
@@ -301,16 +330,19 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 	if access_state == ACCESS_LOCKED or access_state == ACCESS_UNREACHABLE:
 		_set_colonization_block(
 			str(_colonization_state_texts.get("blocked", "")),
-			_colonization_target_value_text(system_def, sid),
+			_colonization_system_target_text(system_def),
 			_colonization_ships_count_text(sid),
 			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
 		_set_cancel_dev_disabled()
+		_refresh_colonization_start_button(system_def.display_name, access_state)
+		_refresh_dev_instant_colonize_button()
 		return
 
 	if sid.is_empty():
 		_set_colonization_block()
 		_set_cancel_dev_disabled()
+		_refresh_dev_instant_colonize_button()
 		return
 
 	if GameSession.has_established_base_in_system(sid):
@@ -323,24 +355,28 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 			ships_n = GameSession.get_base_colony_ship_count(eb)
 		_set_colonization_block(
 			state_short,
-			_colonization_target_value_text(system_def, sid),
+			_colonization_system_target_text(system_def),
 			NumberFormat.format_compact(ships_n),
 			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
 		_set_cancel_dev_disabled()
+		_refresh_colonization_start_button(system_def.display_name, access_state)
+		_refresh_dev_instant_colonize_button()
 		return
 
 	if not pending_rec.is_empty():
 		var op_id := str(pending_rec.get("operation_id", "")).strip_edges()
 		_set_colonization_block(
 			_format_colonization_operation_status(op_id),
-			_colonization_target_value_text(system_def, sid),
+			_colonization_system_target_text(system_def),
 			_colonization_ships_count_text(sid),
 			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
 		colonization_cancel_button.disabled = false
 		colonization_dev_button.disabled = false
 		set_process(true)
+		_refresh_colonization_start_button(system_def.display_name, access_state)
+		_refresh_dev_instant_colonize_button()
 		return
 
 	set_process(false)
@@ -351,22 +387,26 @@ func update_colonization_preview(system_def: SystemDefinition, access_state: Str
 	if source_id.is_empty():
 		_set_colonization_block(
 			uncolonized_text,
-			_colonization_target_value_text(system_def, sid),
+			_colonization_system_target_text(system_def),
 			_colonization_ships_count_text(sid),
 			_colonization_intel_value_text(system_def, sid, pending_rec),
 		)
 		_set_cancel_dev_disabled()
+		_refresh_colonization_start_button(system_def.display_name, access_state)
+		_refresh_dev_instant_colonize_button()
 		return
 
 	var cs_n: int = GameSession.get_base_colony_ship_count(source_id)
 
 	_set_colonization_block(
 		uncolonized_text,
-		_colonization_target_value_text(system_def, sid),
+		_colonization_system_target_text(system_def),
 		NumberFormat.format_compact(cs_n),
 		_colonization_intel_value_text(system_def, sid, pending_rec),
 	)
 	_set_cancel_dev_disabled()
+	_refresh_colonization_start_button(system_def.display_name, access_state)
+	_refresh_dev_instant_colonize_button()
 	set_process(false)
 
 
@@ -390,21 +430,11 @@ func _set_colonization_block(
 		colonization_intel_value_label.text = intel_display
 
 
-func _colonization_target_value_text(system_def: SystemDefinition, sid: String) -> String:
-	var pending := GameSession.get_pending_colonization_operation_for_system(sid)
-	if not pending.is_empty():
-		var tid := str(pending.get("target_body_id", "")).strip_edges()
-		if not tid.is_empty():
-			var dn := _get_body_display_name(system_def, tid).strip_edges()
-			return dn if not dn.is_empty() else "-"
+func _colonization_system_target_text(system_def: SystemDefinition) -> String:
+	if system_def == null:
 		return "-"
-	if not GameSession.has_established_base_in_system(sid):
-		return "-"
-	var eb := GameSession.get_established_base_id_for_system(sid).strip_edges()
-	if eb.is_empty():
-		return "-"
-	var t := _colonization_target_for_established_base(system_def, eb).strip_edges()
-	return t if not t.is_empty() else "-"
+	var name := system_def.display_name.strip_edges()
+	return name if not name.is_empty() else "-"
 
 
 func _colonization_ships_count_text(sid: String) -> String:
@@ -444,31 +474,6 @@ func _colonization_intel_value_text(
 	return _intel_unknown_text
 
 
-func _get_body_display_name(system_def: SystemDefinition, body_id: String) -> String:
-	var clean_id := body_id.strip_edges()
-	if clean_id == "":
-		return ""
-	if system_def != null:
-		for body in system_def.bodies:
-			if body == null:
-				continue
-			if str(body.id).strip_edges() != clean_id:
-				continue
-			var dn := str(body.display_name).strip_edges()
-			return dn if not dn.is_empty() else clean_id
-	return clean_id
-
-
-func _colonization_target_for_established_base(
-	system_def: SystemDefinition,
-	base_id: String,
-) -> String:
-	var bid := GameSession.get_established_base_body_id(base_id).strip_edges()
-	if not bid.is_empty():
-		return _get_body_display_name(system_def, bid)
-	return base_id.strip_edges()
-
-
 func _show_colonization_section() -> void:
 	if is_instance_valid(divider_c):
 		divider_c.visible = true
@@ -478,6 +483,8 @@ func _show_colonization_section() -> void:
 		colonization_title_label.visible = true
 	if is_instance_valid(colonization_state_value_label):
 		colonization_state_value_label.visible = true
+	if is_instance_valid(colonization_target_label):
+		colonization_target_label.visible = true
 	if is_instance_valid(colonization_target_value_label):
 		colonization_target_value_label.visible = true
 	if is_instance_valid(colonization_ships_value_label):
@@ -507,6 +514,119 @@ func _set_cancel_dev_disabled() -> void:
 	colonization_dev_button.disabled = true
 
 
+func _refresh_colonization_start_button(system_display_name: String, access_state: String) -> void:
+	if not is_instance_valid(colonization_start_button):
+		return
+
+	var sid := ""
+	if _colonization_preview_system_def != null:
+		sid = _colonization_preview_system_def.id.strip_edges()
+
+	var can_start: bool = (
+		not sid.is_empty()
+		and sid != GameSession.START_SYSTEM_ID
+		and access_state != ACCESS_LOCKED
+		and access_state != ACCESS_UNREACHABLE
+		and GameSession.can_start_colonization_for_system(sid)
+	)
+
+	_set_colonization_start_button_visible(can_start)
+	if not can_start:
+		return
+
+	var system_name := system_display_name.strip_edges()
+	if system_name.is_empty() and _colonization_preview_system_def != null:
+		system_name = _colonization_preview_system_def.display_name.strip_edges()
+	if system_name.is_empty():
+		system_name = sid
+
+	colonization_start_button.text = "Establish Colony in %s" % system_name
+	colonization_start_button.disabled = false
+
+
+func _set_colonization_start_button_visible(show_button: bool) -> void:
+	if not is_instance_valid(colonization_start_button):
+		return
+	colonization_start_button.visible = show_button
+	if not show_button:
+		colonization_start_button.disabled = true
+
+
+func _is_dev_galaxy_instant_colonize_enabled() -> bool:
+	return OS.is_debug_build() and DEV_GALAXY_INSTANT_COLONIZE_ENABLED
+
+
+func _refresh_dev_instant_colonize_button() -> void:
+	if dev_instant_colonize_button == null:
+		return
+
+	if not _is_dev_galaxy_instant_colonize_enabled():
+		_apply_dev_instant_colonize_button_state(false, false)
+		_dev_instant_colonize_debug_logged_system_id = ""
+		return
+
+	var sid := ""
+	if _colonization_preview_system_def != null:
+		sid = _colonization_preview_system_def.id.strip_edges()
+
+	var current_id := GameSession.current_system_id.strip_edges()
+	var show_button := not sid.is_empty() and sid != current_id
+	if not show_button:
+		_apply_dev_instant_colonize_button_state(false, false)
+		_dev_instant_colonize_debug_logged_system_id = ""
+		return
+
+	var can_dev := GameSession.can_dev_instant_colonize_system(sid)
+	_apply_dev_instant_colonize_button_state(true, can_dev)
+	_log_dev_instant_colonize_blocked_once(sid, current_id, can_dev)
+
+
+func _apply_dev_instant_colonize_button_state(visible: bool, enabled: bool) -> void:
+	if dev_instant_colonize_button == null:
+		return
+	dev_instant_colonize_button.visible = visible
+	dev_instant_colonize_button.disabled = not enabled
+	if visible:
+		dev_instant_colonize_button.text = (
+			DEV_INSTANT_COLONIZE_BUTTON_TEXT_ENABLED
+			if enabled
+			else DEV_INSTANT_COLONIZE_BUTTON_TEXT_DISABLED
+		)
+
+
+func _log_dev_instant_colonize_blocked_once(
+	selected_system_id: String,
+	current_system_id: String,
+	can_dev: bool,
+) -> void:
+	if can_dev:
+		_dev_instant_colonize_debug_logged_system_id = selected_system_id
+		return
+	if selected_system_id == _dev_instant_colonize_debug_logged_system_id:
+		return
+	_dev_instant_colonize_debug_logged_system_id = selected_system_id
+	print_debug(
+		(
+			"GalaxyMapHUD DevInstantColonize blocked: selected_system_id=%s "
+			+ "current_system_id=%s OS.is_debug_build()=%s "
+			+ "DEV_GALAXY_INSTANT_COLONIZE_ENABLED=%s can_dev_instant_colonize_system=%s"
+		)
+		% [
+			selected_system_id,
+			current_system_id,
+			OS.is_debug_build(),
+			DEV_GALAXY_INSTANT_COLONIZE_ENABLED,
+			can_dev,
+		]
+	)
+
+
+func _on_colonization_start_pressed() -> void:
+	if colonization_start_button == null or colonization_start_button.disabled:
+		return
+	colonization_start_requested.emit()
+
+
 func _on_enter_button_pressed() -> void:
 	enter_requested.emit()
 
@@ -517,3 +637,14 @@ func _on_colon_cancel_pressed() -> void:
 
 func _on_colon_dev_pressed() -> void:
 	colonization_dev_complete_requested.emit()
+
+
+func _on_dev_instant_colonize_pressed() -> void:
+	if dev_instant_colonize_button == null or dev_instant_colonize_button.disabled:
+		return
+	if _colonization_preview_system_def == null:
+		return
+	var sid := _colonization_preview_system_def.id.strip_edges()
+	if sid.is_empty() or not GameSession.can_dev_instant_colonize_system(sid):
+		return
+	dev_colonize_selected_system_requested.emit(sid)
