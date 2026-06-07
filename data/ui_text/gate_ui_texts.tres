@@ -5,9 +5,7 @@
 [resource]
 script = ExtResource("1")
 templates = {
-"build_mining_ship_limit": "Mining ship limit reached",
 "build_not_enough_resources": "Not enough resources",
-"build_scan_drone_limit": "Scan drone limit reached",
 "colony_deep_scan_required": "Deep Scan Module required",
 "colony_fully_scan_three": "Fully scan 3 objects",
 "colony_ice_source_required": "Ice source not discovered",

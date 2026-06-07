@@ -2168,10 +2168,12 @@ func get_mining_ship_mining_rate_multiplier(base_id: String = BaseStore.BASE_EAR
 	return clampf(bases.get_mining_ship_mining_rate_multiplier(base_id), 0.05, 10.0)
 
 
+## Legacy balance reference for telemetry; SD build is not capped by this value.
 func get_max_base_scan_drone_count() -> int:
 	return bases.get_max_scan_drone_count()
 
 
+## Legacy balance reference for telemetry; MS build is not capped by this value.
 func get_max_base_mining_ship_count() -> int:
 	return bases.get_max_mining_ship_count()
 

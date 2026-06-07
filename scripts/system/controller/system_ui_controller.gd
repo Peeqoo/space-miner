@@ -141,7 +141,7 @@ func setup(
 
 func update_all() -> void:
 	update_object_info()
-	update_base_panel()
+	_refresh_base_panel_if_open()
 	_apply_session_economy_gate()
 	_update_top_hud()
 
@@ -290,6 +290,7 @@ func update_object_info() -> void:
 			object_info_panel.show_poi_info(info)
 
 
+## Player selection only — may open/close BaseManagementPanel.
 func update_base_panel() -> void:
 	if base_management_panel == null:
 		return
@@ -317,6 +318,16 @@ func update_base_panel() -> void:
 	base_management_panel.hide_panel()
 
 	_hide_base_subpanels()
+
+
+## Economy/automation refresh — never opens the panel; updates content only if already visible.
+func _refresh_base_panel_if_open() -> void:
+	if base_management_panel == null:
+		return
+	if base_management_panel.visible:
+		base_management_panel.refresh_from_game_session()
+	elif base_management_panel.is_hold_open_across_selection():
+		base_management_panel.refresh_while_hold_open()
 
 
 func _hide_base_subpanels() -> void:
@@ -789,7 +800,7 @@ func _on_object_info_close_requested() -> void:
 
 func _on_automation_state_changed() -> void:
 	update_object_info()
-	update_base_panel()
+	_refresh_base_panel_if_open()
 	_refresh_economy_panels()
 	_update_top_hud()
 
@@ -802,14 +813,14 @@ func _on_object_remaining_resources_changed(_changed_system_id: String, _changed
 
 func _on_base_resources_changed_ui_refresh(_base_id: String) -> void:
 	update_object_info()
-	update_base_panel()
+	_refresh_base_panel_if_open()
 	_refresh_economy_panels()
 	_update_top_hud()
 
 
 func _on_base_upgrades_changed_ui_refresh(_base_id: String) -> void:
 	update_object_info()
-	update_base_panel()
+	_refresh_base_panel_if_open()
 	_refresh_economy_panels()
 	_update_top_hud()
 
@@ -964,12 +975,12 @@ func _on_investigate_requested(object_id: String) -> void:
 			push_warning("Investigate failed for '%s': %s" % [object_id, blocked])
 
 	update_object_info()
-	update_base_panel()
+	_refresh_base_panel_if_open()
 
 
 func _on_survey_probe_mission_changed() -> void:
 	update_object_info()
-	update_base_panel()
+	_refresh_base_panel_if_open()
 	_update_top_hud()
 
 

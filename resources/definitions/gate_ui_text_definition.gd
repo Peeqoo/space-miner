@@ -18,7 +18,9 @@ const KEY_MINE_NO_SHIP := &"mine_no_ship"
 const KEY_MINE_STORAGE_FULL := &"mine_storage_full"
 
 const KEY_BUILD_NOT_ENOUGH_RESOURCES := &"build_not_enough_resources"
+## Deprecated (Step 2a): SD/MS build gates no longer emit this key. Kept as string id for tests only.
 const KEY_BUILD_SCAN_DRONE_LIMIT := &"build_scan_drone_limit"
+## Deprecated (Step 2a): MS build gates no longer emit this key. Kept as string id for tests only.
 const KEY_BUILD_MINING_SHIP_LIMIT := &"build_mining_ship_limit"
 
 const KEY_UPGRADE_NOT_ENOUGH_RESOURCES := &"upgrade_not_enough_resources"
@@ -47,8 +49,6 @@ const FALLBACK_MINE_NO_SHIP := "No mining ship available"
 const FALLBACK_MINE_STORAGE_FULL := "Storage full"
 
 const FALLBACK_BUILD_NOT_ENOUGH_RESOURCES := "Not enough resources"
-const FALLBACK_BUILD_SCAN_DRONE_LIMIT := "Scan drone limit reached"
-const FALLBACK_BUILD_MINING_SHIP_LIMIT := "Mining ship limit reached"
 
 const FALLBACK_UPGRADE_NOT_ENOUGH_RESOURCES := "Not enough resources"
 const FALLBACK_UPGRADE_MAX_LEVEL := "Maximum level reached"
@@ -113,10 +113,6 @@ static func _fallback_for_key(key: StringName) -> String:
 			return FALLBACK_MINE_STORAGE_FULL
 		KEY_BUILD_NOT_ENOUGH_RESOURCES:
 			return FALLBACK_BUILD_NOT_ENOUGH_RESOURCES
-		KEY_BUILD_SCAN_DRONE_LIMIT:
-			return FALLBACK_BUILD_SCAN_DRONE_LIMIT
-		KEY_BUILD_MINING_SHIP_LIMIT:
-			return FALLBACK_BUILD_MINING_SHIP_LIMIT
 		KEY_UPGRADE_NOT_ENOUGH_RESOURCES:
 			return FALLBACK_UPGRADE_NOT_ENOUGH_RESOURCES
 		KEY_UPGRADE_MAX_LEVEL:

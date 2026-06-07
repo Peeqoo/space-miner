@@ -337,7 +337,8 @@ func _snap_units(base_id: String) -> Dictionary:
 			"lifetime_count": GameSession.get_production_lifetime_count(
 				base_id, BaseStore.PRODUCTION_SCAN_DRONE
 			),
-			"max_count": GameSession.get_max_base_scan_drone_count(),
+			"balance_reference_max_count": GameSession.get_max_base_scan_drone_count(),
+			"build_limit_active": false,
 			"hard_limit_removed_for_build": true,
 		},
 		"mining_ship": {
@@ -346,7 +347,8 @@ func _snap_units(base_id: String) -> Dictionary:
 			"lifetime_count": GameSession.get_production_lifetime_count(
 				base_id, BaseStore.PRODUCTION_MINING_SHIP
 			),
-			"max_count": GameSession.get_max_base_mining_ship_count(),
+			"balance_reference_max_count": GameSession.get_max_base_mining_ship_count(),
+			"build_limit_active": false,
 			"hard_limit_removed_for_build": true,
 		},
 		"survey_probe": sp_snap,
