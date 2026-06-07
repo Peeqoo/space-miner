@@ -64,6 +64,9 @@ var game_balance: GameBalanceDefinition = null
 ## UI metadata for resource ids (`data/resources/resource_catalog.tres`). Not a source for amounts or costs.
 var resource_catalog: ResourceCatalogDefinition = null
 
+## Debug-only balance telemetry logger. null in release builds.
+var _balance_telemetry_logger: BalanceTelemetryLogger = null
+
 ## Phase 6.1b: session-only galaxy progression (no savegame).
 var discovered_system_ids: Array[String] = []
 var unlocked_system_ids: Array[String] = []
@@ -118,6 +121,11 @@ func _ready() -> void:
 
 	mark_base_established(BaseStore.BASE_EARTH)
 	ensure_default_system_loaded()
+
+	if OS.is_debug_build():
+		_balance_telemetry_logger = BalanceTelemetryLogger.new()
+		_balance_telemetry_logger.name = "BalanceTelemetryLogger"
+		add_child(_balance_telemetry_logger)
 
 	set_process(true)
 
