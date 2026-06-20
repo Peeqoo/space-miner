@@ -2433,10 +2433,12 @@ func get_production_definition(production_id: String) -> ProductionDefinition:
 # --------------------------------------------------
 
 const SCALED_PRODUCTION_FORMULA := "ceil(base_cost * multiplier^production_lifetime_count)"
+## Subtract before ceil so values like 50×1.12=56.0000001 do not become 57.
+const SCALED_COST_CEIL_EPSILON: float = 0.0001
 
 ## Step 2b multiplier candidates (hardcoded; not in .tres yet).
 const SCALED_PRODUCTION_MULT_SCAN_DRONE: float = 1.12
-const SCALED_PRODUCTION_MULT_MINING_SHIP: float = 1.15
+const SCALED_PRODUCTION_MULT_MINING_SHIP: float = 1.12
 const SCALED_PRODUCTION_MULT_SURVEY_PROBE: float = 1.10
 
 
@@ -2641,8 +2643,8 @@ func _compute_scaled_production_cost(
 		if base_amount <= 0:
 			scaled[resource_id] = 0
 			continue
-		var amount_f: float = float(base_amount) * factor
-		scaled[resource_id] = maxi(1, int(ceil(amount_f)))
+		var amount_f: float = float(base_amount) * factor - SCALED_COST_CEIL_EPSILON
+		scaled[resource_id] = maxi(1, ceili(amount_f))
 	return scaled
 
 

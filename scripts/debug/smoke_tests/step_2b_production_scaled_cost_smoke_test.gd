@@ -43,8 +43,8 @@ func _primary_base_id() -> String:
 
 
 func _test_start_scaled_costs(base_id: String) -> void:
-	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_SCAN_DRONE, {"Iron": 68})
-	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_MINING_SHIP, {"Iron": 173, "Silicon": 29})
+	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_SCAN_DRONE, {"Iron": 56})
+	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_MINING_SHIP, {"Iron": 135, "Silicon": 23})
 	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_SURVEY_PROBE, {"Iron": 37})
 
 
@@ -70,7 +70,7 @@ func _test_scan_drone_build_spend(base_id: String) -> void:
 	var next_cost: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_SCAN_DRONE, base_id
 	)
-	_expect_amount(int(next_cost.get("Iron", 0)), 76, "ScanDrone next cost after build")
+	_expect_amount(int(next_cost.get("Iron", 0)), 63, "ScanDrone next cost after build")
 
 
 func _test_mining_ship_build_spend(base_id: String) -> void:
@@ -94,8 +94,8 @@ func _test_mining_ship_build_spend(base_id: String) -> void:
 	var next_cost: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_MINING_SHIP, base_id
 	)
-	_expect_amount(int(next_cost.get("Iron", 0)), 199, "MiningShip next Iron after build")
-	_expect_amount(int(next_cost.get("Silicon", 0)), 34, "MiningShip next Silicon after build")
+	_expect_amount(int(next_cost.get("Iron", 0)), 151, "MiningShip next Iron after build")
+	_expect_amount(int(next_cost.get("Silicon", 0)), 26, "MiningShip next Silicon after build")
 
 
 func _test_survey_probe_consume_and_build(base_id: String) -> void:

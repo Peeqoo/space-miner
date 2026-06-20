@@ -7,8 +7,8 @@ script = ExtResource("1")
 id = "mining_ship"
 unit_key = "mining_ships"
 cost = {
-"Iron": 150,
-"Silicon": 25
+"Iron": 120,
+"Silicon": 20
 }
 sort_order = 1
 short_description = "Mines visible, mineable resources."

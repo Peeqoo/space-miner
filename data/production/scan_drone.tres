@@ -7,6 +7,6 @@ script = ExtResource("1")
 id = "scan_drone"
 unit_key = "drones"
 cost = {
-"Iron": 60
+"Iron": 50
 }
 short_description = "Scans celestial bodies and reveals resources."

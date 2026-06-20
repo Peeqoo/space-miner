@@ -4,9 +4,9 @@
 **Godot:** 4.6.1 / strictly typed GDScript  
 **Scope:** Read-only audit — all resource costs and spends in the current codebase.
 
-> **Updated:** Values below reflect **Cost Reduction Pass v0.1** (`docs/audits/cost_reduction_pass_v0_1.md`). Pre-reduction baseline documented in that file.
+> **Updated:** Values reflect **Cost Reduction Pass v0.2** (`docs/audits/cost_reduction_pass_v0_2.md`). v0.1 in `cost_reduction_pass_v0_1.md`.
 
-**Related docs:** `cost_reduction_pass_v0_1.md`, `unlimited_production_multi_unit_target_plan_v0_1.md`, `stale_production_limit_cleanup_v0_1.md`
+**Related docs:** `cost_reduction_pass_v0_2.md`, `cost_reduction_pass_v0_1.md`, `unlimited_production_multi_unit_target_plan_v0_1.md`, `stale_production_limit_cleanup_v0_1.md`
 
 ---
 
@@ -32,7 +32,7 @@
 | Category | Flat | Scaled |
 |----------|------|--------|
 | ScanDrone build | Base cost in `.tres` | **Runtime:** `ceil(base × 1.12^lifetime_count)` |
-| MiningShip build | Base cost in `.tres` | **Runtime:** `ceil(base × 1.15^lifetime_count)` |
+| MiningShip build | Base cost in `.tres` | **Runtime:** `ceil(base × 1.12^lifetime_count)` |
 | SurveyProbe build | Base cost via `.tres` / balance fallback | **Runtime:** `ceil(base × 1.10^lifetime_count)` |
 | ColonyShip build | Flat from `.tres` (primary) | **Excluded** (`scaling_excluded: true`) |
 | All upgrades | Flat from `data/upgrades/**/*.tres` | No |
@@ -40,7 +40,7 @@
 
 **Scaling index:** `production_lifetime_counts[production_id]` on each base — incremented on successful `build_*`, initialized from fleet counts on new game / lazy migrate. **Investigate consume does not change lifetime count** (only owned `survey_probes` count).
 
-**Multipliers:** Hardcoded in `GameSession` (not in `.tres` yet): SD `1.12`, MS `1.15`, SP `1.10`.
+**Multipliers:** Hardcoded in `GameSession`: SD `1.12`, MS `1.12`, SP `1.10`.
 
 ### Legacy / dead costs
 
@@ -69,8 +69,8 @@
 
 | Item | Cost Source | Base Cost | Actual Runtime Cost | Scaling? | Formula | Used By | Notes |
 |------|-------------|-----------|---------------------|----------|---------|---------|-------|
-| **ScanDrone** | `data/production/scan_drone.tres` | Iron: 60 | `get_scaled_production_cost("scan_drone")` | **Yes** | `ceil(60 × 1.12^n)` | `BaseStore.build_drone`, gates, `ProductionPanel`, telemetry | `n` = `production_lifetime_counts.scan_drone` |
-| **MiningShip** | `data/production/mining_ship.tres` | Iron: 150, Silicon: 25 | `get_scaled_production_cost("mining_ship")` | **Yes** | per-resource `ceil(base × 1.15^n)` | `BaseStore.build_mining_ship`, gates, UI, telemetry | |
+| **ScanDrone** | `data/production/scan_drone.tres` | Iron: 50 | `get_scaled_production_cost("scan_drone")` | **Yes** | `ceil(50 × 1.12^n)` | `BaseStore.build_drone`, gates, `ProductionPanel`, telemetry | `n` = `production_lifetime_counts.scan_drone` |
+| **MiningShip** | `data/production/mining_ship.tres` | Iron: 120, Silicon: 20 | `get_scaled_production_cost("mining_ship")` | **Yes** | per-resource `ceil(base × 1.12^n)` | `BaseStore.build_mining_ship`, gates, UI, telemetry | |
 | **SurveyProbe** | `.tres` + `get_survey_probe_build_cost()` | Iron: 30 | `get_scaled_production_cost("survey_probe")` | **Yes** | `ceil(30 × 1.10^n)` | `BaseStore.build_survey_probe`, gates, UI, telemetry | Base read: `.tres` first, then `balance.survey_probe_build_cost` |
 | **ColonyShip** | `data/production/colony_ship.tres` | Water: 250, Iron: 900, Silicon: 180, SurveyData: 100 | Same (flat) | **No** | flat | `BaseStore.build_colony_ship`, `get_colony_ship_build_cost()`, telemetry | `build_time_seconds`: 120; not scaled |
 
@@ -89,35 +89,35 @@
 
 | Unit | Next build cost |
 |------|-----------------|
-| ScanDrone #2 | **68 Iron** |
-| MiningShip #2 | **173 Iron**, **29 Silicon** |
+| ScanDrone #2 | **56 Iron** |
+| MiningShip #2 | **135 Iron**, **23 Silicon** |
 | SurveyProbe #3 | **37 Iron** |
 
 ### Scaled cost examples (`lifetime_count` = n)
 
 Formula: `ceil(base_amount × multiplier^n)` per resource key.
 
-#### ScanDrone (base Iron 60, ×1.12)
+#### ScanDrone (base Iron 50, ×1.12)
 
 | n | Iron |
 |---|------|
-| 0 | 60 |
-| 1 | **68** |
-| 2 | 76 |
-| 3 | 86 |
-| 4 | 96 |
-| 5 | 108 |
+| 0 | 50 |
+| 1 | **56** |
+| 2 | 63 |
+| 3 | 70 |
+| 4 | 79 |
+| 5 | 88 |
 
-#### MiningShip (base Iron 150 / Silicon 25, ×1.15)
+#### MiningShip (base Iron 120 / Silicon 20, ×1.12)
 
 | n | Iron | Silicon |
 |---|------|---------|
-| 0 | 150 | 25 |
-| 1 | **173** | **29** |
-| 2 | 199 | 34 |
-| 3 | 228 | 39 |
-| 4 | 262 | 45 |
-| 5 | 302 | 52 |
+| 0 | 120 | 20 |
+| 1 | **135** | **23** |
+| 2 | 151 | 26 |
+| 3 | 169 | 29 |
+| 4 | 189 | 33 |
+| 5 | 212 | 37 |
 
 #### SurveyProbe (base Iron 30, ×1.10)
 
