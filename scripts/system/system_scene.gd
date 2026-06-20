@@ -231,6 +231,9 @@ func _restore_pending_system_processes() -> void:
 		if pulse_snap is Dictionary and not (pulse_snap as Dictionary).is_empty():
 			base_sensor_pulse_controller.restore_from_runtime_snapshot(pulse_snap as Dictionary)
 
+	if automation_controller != null:
+		automation_controller.ensure_survey_probe_units_for_base(_resolved_start_body_id)
+
 
 func _wire_camera_follow_to_selection() -> void:
 	if selection != null:

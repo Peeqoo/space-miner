@@ -479,6 +479,18 @@ func get_idle_survey_probe_count() -> int:
 	return idle_survey_probes.size()
 
 
+func get_idle_survey_probe_count_at_home(base_id: String = "") -> int:
+	_prune_idle_survey_probes()
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+	return _count_idle_survey_probes_at_home(bid)
+
+
+func get_busy_survey_probe_count() -> int:
+	return survey_probe_busy_unit_ids.size()
+
+
 func take_idle_survey_probe_for_base(base_id: String = "") -> SurveyProbeUnit:
 	var bid: String = base_id.strip_edges()
 	if bid.is_empty():
@@ -505,6 +517,24 @@ func take_idle_survey_probe_for_base(base_id: String = "") -> SurveyProbeUnit:
 
 	unit.one_way_investigate = false
 	unit.start_orbiting_base(base_node)
+	survey_probe_busy_unit_ids[unit.get_instance_id()] = true
+	return unit
+
+
+## Restore-only: spawn a mission visual without BaseStore consume (probe already spent).
+func borrow_survey_probe_unit_for_restored_mission(base_id: String = "") -> SurveyProbeUnit:
+	var bid: String = base_id.strip_edges()
+	if bid.is_empty():
+		bid = _get_session_base_id()
+
+	if not GameSession.has_established_base(bid):
+		return null
+
+	var unit := _spawn_survey_probe_unit()
+	if unit == null:
+		return null
+
+	unit.one_way_investigate = false
 	survey_probe_busy_unit_ids[unit.get_instance_id()] = true
 	return unit
 

@@ -255,6 +255,13 @@ func restore_from_runtime_snapshot(ops: Array) -> void:
 	for op_variant: Variant in ops:
 		if op_variant is Dictionary:
 			_restore_one_mission_from_snapshot(op_variant as Dictionary)
+	_reconcile_idle_survey_probe_visuals_after_restore()
+
+
+func _reconcile_idle_survey_probe_visuals_after_restore() -> void:
+	if automation_controller == null:
+		return
+	automation_controller.ensure_survey_probe_units_for_base(_resolve_base_id(""))
 
 
 func _restore_one_mission_from_snapshot(op: Dictionary) -> void:
@@ -311,7 +318,13 @@ func _restore_one_mission_from_snapshot(op: Dictionary) -> void:
 		)
 		return
 
-	var unit: SurveyProbeUnit = automation_controller.take_idle_survey_probe_for_base(bid)
+	var unit: SurveyProbeUnit = null
+	if bool(op.get("consumed_probe_already", false)) and automation_controller.has_method(
+		"borrow_survey_probe_unit_for_restored_mission"
+	):
+		unit = automation_controller.borrow_survey_probe_unit_for_restored_mission(bid)
+	else:
+		unit = automation_controller.take_idle_survey_probe_for_base(bid)
 	if unit == null:
 		push_warning(
 			"SurveyProbeMissionController: cannot restore investigate for '%s' (no probe unit)."
