@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/debug/smoke_tests/shared_scan_telemetry_step_2_smoke_test.gd" id="1"]
+
+[node name="SharedScanTelemetryStep2SmokeRunner" type="Node"]
+script = ExtResource("1")

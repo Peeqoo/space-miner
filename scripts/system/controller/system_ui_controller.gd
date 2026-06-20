@@ -28,6 +28,8 @@ var _storage_context_base_id: String = ""
 ## Mirrors `AutomationController.MiningShipStatus` order (read-only; do not change automation enums here).
 const _MS_RT_TO_TARGET := 0
 const _MS_RT_MINING := 1
+
+const MINING_BUTTON_TEXT_ASSIGN: String = "Assign MiningShip"
 const _MS_RT_TO_BASE := 2
 const _MS_RT_UNLOADING := 3
 const _MS_RT_WAITING_STORAGE := 4
@@ -564,6 +566,9 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	if bool(info["is_home_base"]):
 		info["active_scan_drone_count"] = 0
 		info["active_mining_ship_count"] = 0
+		info["assigned_mining_ship_count"] = 0
+		info["show_mining_ship_status"] = false
+		info["mining_button_text"] = ""
 		info["scan_drone_supporting_count"] = 0
 		info["mining_ship_mining_count"] = 0
 		info["mining_bonus"] = 0.0
@@ -572,6 +577,15 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 	else:
 		info["active_scan_drone_count"] = _get_active_scan_drone_count(object_id)
 		info["active_mining_ship_count"] = _get_active_mining_ship_count(object_id)
+		info["assigned_mining_ship_count"] = _get_assigned_mining_ship_count(object_id)
+		info["show_mining_ship_status"] = (
+			bool(info.get("show_mine_with_ship", false))
+			or int(info["assigned_mining_ship_count"]) > 0
+		)
+		if int(info["assigned_mining_ship_count"]) > 0 and bool(info.get("show_mine_with_ship", false)):
+			info["mining_button_text"] = MINING_BUTTON_TEXT_ASSIGN
+		else:
+			info["mining_button_text"] = ""
 		info["scan_drone_supporting_count"] = _get_orbiting_drone_count(object_id)
 		info["mining_ship_mining_count"] = _get_mining_ship_mining_status_count(object_id)
 		info["mining_bonus"] = _get_mining_bonus_for_object(object_id)
@@ -612,6 +626,9 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 		if not bool(info.get("is_home_base", false)):
 			info["active_scan_drone_count"] = 0
 			info["active_mining_ship_count"] = 0
+			info["assigned_mining_ship_count"] = 0
+			info["show_mining_ship_status"] = false
+			info["mining_button_text"] = ""
 			info["scan_drone_supporting_count"] = 0
 			info["mining_ship_mining_count"] = 0
 			info["mining_bonus"] = 0.0
@@ -756,6 +773,13 @@ func _apply_mining_ship_info_to_dict(
 		and not bool(info["can_mine_with_ship"])
 		and block_key == GateUiTextDefinition.KEY_MINE_DEPLETED
 	)
+
+	var assigned_count: int = _get_assigned_mining_ship_count(object_id)
+	info["assigned_mining_ship_count"] = assigned_count
+	info["show_mining_ship_status"] = bool(info["show_mine_with_ship"]) or assigned_count > 0
+	info["mining_button_text"] = ""
+	if assigned_count > 0 and bool(info["show_mine_with_ship"]):
+		info["mining_button_text"] = MINING_BUTTON_TEXT_ASSIGN
 
 
 func _get_preview_texture(node: Node) -> Texture2D:

@@ -33,6 +33,7 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var orbit_status_section: VBoxContainer = $Margin/Root/OrbitStatusSection
 
 @onready var drone_orbit_label: Label = $Margin/Root/OrbitStatusSection/DroneOrbitLabel
+@onready var mining_ship_count_label: Label = $Margin/Root/OrbitStatusSection/MiningShipCountLabel
 @onready var mine_orbit_label: Label = $Margin/Root/OrbitStatusSection/MineOrbitLabel
 @onready var mining_bonus_label: Label = $Margin/Root/OrbitStatusSection/MiningBonusLabel
 
@@ -102,6 +103,7 @@ var _type_label_prefix: String = ""
 var _scan_status_label_prefix: String = ""
 var _distance_label_prefix: String = ""
 var _drone_orbit_label_prefix: String = ""
+var _mining_ship_count_label_prefix: String = ""
 var _mine_orbit_label_prefix: String = ""
 var _mining_bonus_label_prefix: String = ""
 
@@ -193,6 +195,7 @@ func _capture_editor_text_templates() -> void:
 	_scan_status_label_prefix = _label_prefix(scan_status_label)
 	_distance_label_prefix = _label_prefix(distance_label)
 	_drone_orbit_label_prefix = _label_prefix(drone_orbit_label)
+	_mining_ship_count_label_prefix = _label_prefix(mining_ship_count_label)
 	_mine_orbit_label_prefix = _label_prefix(mine_orbit_label)
 	_mining_bonus_label_prefix = _label_prefix(mining_bonus_label)
 
@@ -364,6 +367,7 @@ func show_empty() -> void:
 	_clear_resource_rows()
 
 	drone_orbit_label.visible = false
+	mining_ship_count_label.visible = false
 	mine_orbit_label.visible = false
 	mining_bonus_label.visible = false
 
@@ -464,6 +468,9 @@ func _apply_info(info: Dictionary) -> void:
 		"mine_blocked_reason": str(info.get("mine_blocked_reason", "")).strip_edges(),
 		"scan_blocked_reason": str(info.get("scan_blocked_reason", "")).strip_edges(),
 		"scan_button_text": str(info.get("scan_button_text", _scan_button_text_default)).strip_edges(),
+		"mining_button_text": str(info.get("mining_button_text", "")).strip_edges(),
+		"assigned_mining_ship_count": int(info.get("assigned_mining_ship_count", 0)),
+		"show_mining_ship_status": bool(info.get("show_mining_ship_status", false)),
 		"can_mine": bool(info.get("can_mine_with_ship", false)),
 		"can_recall_drone": bool(info.get("can_recall_drone", false)),
 		"can_recall_mining_ship": bool(info.get("can_recall_mining_ship", false)),
@@ -555,6 +562,7 @@ func _apply_signal_discovery_controls() -> void:
 
 	if is_signal:
 		drone_orbit_label.visible = false
+		mining_ship_count_label.visible = false
 		mine_orbit_label.visible = false
 		mining_bonus_label.visible = false
 
@@ -618,6 +626,7 @@ func _apply_live_action_controls() -> void:
 	var show_scan: bool = bool(_live_action_cache.get("show_scan", false))
 	var scan_blocked: String = str(_live_action_cache.get("scan_blocked_reason", "")).strip_edges()
 	var scan_button_text: String = str(_live_action_cache.get("scan_button_text", _scan_button_text_default)).strip_edges()
+	var mining_button_text: String = str(_live_action_cache.get("mining_button_text", "")).strip_edges()
 	var can_mine: bool = bool(_live_action_cache.get("can_mine", false))
 	var show_mine: bool = bool(_live_action_cache.get("show_mine", false))
 	var mine_blocked: String = str(_live_action_cache.get("mine_blocked_reason", "")).strip_edges()
@@ -677,6 +686,7 @@ func _apply_live_action_controls() -> void:
 			scan_blocked,
 			mining_block_depleted,
 			mine_blocked,
+			mining_button_text,
 		)
 		_set_recall_buttons(can_recall_drone, can_recall_mining_ship)
 
@@ -798,6 +808,8 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var drone_on_mission: int = maxi(0, drone_total_assigned - drone_supporting)
 
 	var mining_mining_count: int = int(info.get("mining_ship_mining_count", 0))
+	var assigned_mining_count: int = int(info.get("assigned_mining_ship_count", 0))
+	var show_mining_ship_status: bool = bool(info.get("show_mining_ship_status", false))
 	var upgrade_base_id: String = str(info.get("mining_yield_upgrade_base_id", "")).strip_edges()
 	if upgrade_base_id.is_empty():
 		upgrade_base_id = BaseStore.BASE_EARTH
@@ -811,8 +823,15 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var activity_any: bool = drone_line_visible or mine_line_visible
 
 	drone_orbit_label.visible = drone_line_visible
+	mining_ship_count_label.visible = show_mining_ship_status
 	mine_orbit_label.visible = mine_line_visible
 	mining_bonus_label.visible = activity_any
+
+	if show_mining_ship_status:
+		mining_ship_count_label.text = _meta_label(
+			_mining_ship_count_label_prefix,
+			NumberFormat.format_compact(assigned_mining_count),
+		)
 
 	var drone_parts: PackedStringArray = []
 
@@ -987,6 +1006,7 @@ func _set_action_buttons(
 	scan_blocked_reason: String = "",
 	mining_depleted: bool = false,
 	mine_blocked_reason: String = "",
+	mining_button_text: String = "",
 ) -> void:
 	scan_with_drone_button.visible = show_scan
 	scan_with_drone_button.disabled = not can_scan
@@ -1002,7 +1022,10 @@ func _set_action_buttons(
 	if mining_depleted:
 		send_mining_ship_button.text = _mining_button_text_depleted
 	else:
-		send_mining_ship_button.text = _mining_button_text_default
+		var mine_label := mining_button_text.strip_edges()
+		if mine_label.is_empty():
+			mine_label = _mining_button_text_default
+		send_mining_ship_button.text = mine_label
 
 
 func _set_recall_buttons(can_recall_drone: bool, can_recall_mining_ship: bool) -> void:

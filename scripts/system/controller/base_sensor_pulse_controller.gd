@@ -123,6 +123,50 @@ func try_start_sensor_pulse(base_id: String = "") -> bool:
 	return true
 
 
+func capture_runtime_snapshot() -> Dictionary:
+	if not _pulse_active:
+		return {}
+	return {
+		"system_id": _system_id,
+		"base_id": _paid_pulse_base_id if not _paid_pulse_base_id.is_empty() else _base_body_id,
+		"pulse_active": true,
+		"pulse_elapsed": _pulse_elapsed,
+		"pulse_duration": _pulse_duration,
+		"paid_pulse_cost": _paid_pulse_cost.duplicate(true),
+		"paid_pulse_base_id": _paid_pulse_base_id,
+		"captured_at_msec": Time.get_ticks_msec(),
+		"cost_already_spent": true,
+	}
+
+
+func restore_from_runtime_snapshot(snap: Dictionary) -> void:
+	if snap.is_empty():
+		return
+	if not bool(snap.get("pulse_active", false)):
+		return
+	if _pulse_active:
+		return
+
+	_pulse_active = true
+	_pulse_elapsed = float(snap.get("pulse_elapsed", 0.0))
+	_pulse_duration = maxf(0.1, float(snap.get("pulse_duration", FALLBACK_PULSE_DURATION_SECONDS)))
+	_paid_pulse_cost = (snap.get("paid_pulse_cost", {}) as Dictionary).duplicate(true)
+	_paid_pulse_base_id = str(snap.get("paid_pulse_base_id", "")).strip_edges()
+	_last_progress_emit = -1.0
+	_cooldown_remaining = 0.0
+
+	var captured_at_msec: int = int(snap.get("captured_at_msec", 0))
+	if captured_at_msec > 0:
+		var away_seconds: float = maxf(0.0, float(Time.get_ticks_msec() - captured_at_msec) / 1000.0)
+		_pulse_elapsed += away_seconds
+
+	if _pulse_elapsed >= _pulse_duration:
+		_complete_pulse()
+	else:
+		sensor_pulse_changed.emit()
+		_emit_progress_if_changed()
+
+
 func cancel_pulse_before_save() -> void:
 	if not _pulse_active:
 		return

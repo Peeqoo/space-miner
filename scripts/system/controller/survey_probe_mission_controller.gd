@@ -187,10 +187,14 @@ func try_start_investigate_signal(object_id: String, base_id: String = "") -> bo
 	if not unit.investigation_finished.is_connected(_on_probe_investigation_finished):
 		unit.investigation_finished.connect(_on_probe_investigation_finished)
 
+	var investigate_s: float = _sample_investigate_duration_seconds()
+
 	_active_missions[oid] = {
 		"object_id": oid,
 		"base_id": bid,
 		"unit": unit,
+		"duration_seconds": investigate_s,
+		"started_at_msec": Time.get_ticks_msec(),
 	}
 
 	var consume_ok: bool = GameSession.bases.consume_survey_probe(bid)
@@ -202,12 +206,195 @@ func try_start_investigate_signal(object_id: String, base_id: String = "") -> bo
 		return false
 	GameSession.base_resources_changed.emit(bid)
 
-	var investigate_s: float = _sample_investigate_duration_seconds()
 	_launch_survey_probe_investigation(unit, target_node, investigate_s)
 
 	_launch_guard_object_ids.erase(oid)
 	investigate_mission_changed.emit()
 	return true
+
+
+## Scene-transition snapshot (probe already consumed).
+func capture_runtime_snapshot() -> Array:
+	var out: Array = []
+	for oid_variant: Variant in _active_missions.keys():
+		var oid: String = str(oid_variant).strip_edges()
+		if oid.is_empty():
+			continue
+		var mission: Dictionary = _active_missions[oid_variant]
+		var unit: SurveyProbeUnit = mission.get("unit") as SurveyProbeUnit
+		var duration_s: float = float(mission.get("duration_seconds", 0.0))
+		var work_elapsed: float = 0.0
+		var unit_state: int = int(AutomationUnit.State.IDLE)
+		var travel_progress: float = 0.0
+		var pos: Vector2 = Vector2.ZERO
+		if unit != null and is_instance_valid(unit):
+			duration_s = maxf(duration_s, unit.investigate_duration_seconds)
+			work_elapsed = unit.investigate_elapsed_seconds
+			unit_state = int(unit.state)
+			travel_progress = unit.travel_progress
+			pos = unit.global_position
+		out.append({
+			"object_id": oid,
+			"base_id": str(mission.get("base_id", "")).strip_edges(),
+			"system_id": _system_id,
+			"duration_seconds": duration_s,
+			"work_elapsed_seconds": work_elapsed,
+			"unit_state": unit_state,
+			"travel_progress": travel_progress,
+			"global_position_x": pos.x,
+			"global_position_y": pos.y,
+			"captured_at_msec": Time.get_ticks_msec(),
+			"consumed_probe_already": true,
+		})
+	return out
+
+
+func restore_from_runtime_snapshot(ops: Array) -> void:
+	if ops.is_empty():
+		return
+	for op_variant: Variant in ops:
+		if op_variant is Dictionary:
+			_restore_one_mission_from_snapshot(op_variant as Dictionary)
+
+
+func _restore_one_mission_from_snapshot(op: Dictionary) -> void:
+	var oid: String = str(op.get("object_id", "")).strip_edges()
+	if oid.is_empty() or _active_missions.has(oid):
+		return
+	if _system_id.is_empty():
+		return
+	if GameSession.get_object_discovery_state(_system_id, oid) == GameSession.DISCOVERY_KNOWN:
+		return
+
+	var bid: String = str(op.get("base_id", "")).strip_edges()
+	if bid.is_empty():
+		bid = _resolve_base_id(_primary_base_body_id)
+
+	var duration_s: float = maxf(0.1, float(op.get("duration_seconds", 1.0)))
+	var work_elapsed: float = maxf(0.0, float(op.get("work_elapsed_seconds", 0.0)))
+	var unit_state: int = int(op.get("unit_state", AutomationUnit.State.IDLE))
+	var captured_at_msec: int = int(op.get("captured_at_msec", 0))
+	var away_seconds: float = 0.0
+	if captured_at_msec > 0:
+		away_seconds = maxf(0.0, float(Time.get_ticks_msec() - captured_at_msec) / 1000.0)
+
+	if unit_state == int(AutomationUnit.State.WORKING):
+		work_elapsed += away_seconds
+
+	if unit_state == int(AutomationUnit.State.WORKING) and work_elapsed >= duration_s:
+		_complete_mission_restored(oid, bid)
+		return
+
+	if automation_controller == null or spawner == null:
+		push_warning(
+			"SurveyProbeMissionController: cannot restore investigate for '%s' (missing controllers)."
+			% oid
+		)
+		return
+
+	var base_node: Node2D = _resolve_base_node(bid)
+	var target_resolve: Dictionary = _resolve_investigate_target(oid)
+	if base_node == null or target_resolve.is_empty():
+		push_warning(
+			"SurveyProbeMissionController: cannot restore investigate for '%s' (nodes missing)."
+			% oid
+		)
+		return
+
+	var signal_marker: Node2D = target_resolve.get("signal_marker") as Node2D
+	var world_node: Node2D = target_resolve.get("world_node") as Node2D
+	var target_node: Node2D = signal_marker if signal_marker != null else world_node
+	if target_node == null or not is_instance_valid(target_node):
+		push_warning(
+			"SurveyProbeMissionController: cannot restore investigate for '%s' (target missing)."
+			% oid
+		)
+		return
+
+	var unit: SurveyProbeUnit = automation_controller.take_idle_survey_probe_for_base(bid)
+	if unit == null:
+		push_warning(
+			"SurveyProbeMissionController: cannot restore investigate for '%s' (no probe unit)."
+			% oid
+		)
+		return
+
+	_disconnect_probe_unit_signals(unit)
+	_connect_probe_progress_signal(unit, oid)
+	if not unit.investigation_finished.is_connected(_on_probe_investigation_finished):
+		unit.investigation_finished.connect(_on_probe_investigation_finished)
+
+	unit.one_way_investigate = true
+	unit.mission_succeeded = false
+	unit.investigate_duration_seconds = duration_s
+	unit.investigate_elapsed_seconds = 0.0
+
+	_active_missions[oid] = {
+		"object_id": oid,
+		"base_id": bid,
+		"unit": unit,
+		"duration_seconds": duration_s,
+		"started_at_msec": Time.get_ticks_msec(),
+	}
+
+	var saved_pos := Vector2(
+		float(op.get("global_position_x", 0.0)),
+		float(op.get("global_position_y", 0.0)),
+	)
+	var has_saved_pos: bool = saved_pos.is_finite() and saved_pos != Vector2.ZERO
+
+	if unit_state == int(AutomationUnit.State.WORKING):
+		unit.investigate_elapsed_seconds = work_elapsed
+		unit.restore_mission_visual_state(
+			AutomationUnit.State.WORKING,
+			base_node,
+			target_node,
+			target_node,
+			work_elapsed,
+			duration_s,
+			1.0,
+			saved_pos if has_saved_pos else Vector2.INF,
+		)
+	elif unit_state == int(AutomationUnit.State.TRAVEL_TO_TARGET) or unit_state == int(
+		AutomationUnit.State.APPROACH_ORBIT
+	):
+		var restore_state: AutomationUnit.State = unit_state as AutomationUnit.State
+		unit.restore_mission_visual_state(
+			restore_state,
+			base_node,
+			target_node,
+			target_node,
+			0.0,
+			duration_s,
+			float(op.get("travel_progress", 0.0)),
+			saved_pos if has_saved_pos else Vector2.INF,
+		)
+	else:
+		_launch_survey_probe_investigation(unit, target_node, duration_s)
+
+	investigate_mission_changed.emit()
+
+
+func _complete_mission_restored(object_id: String, base_id: String) -> void:
+	var oid := object_id.strip_edges()
+	var bid := _resolve_base_id(base_id)
+	_active_missions.erase(oid)
+	_launch_guard_object_ids.erase(oid)
+
+	if oid.is_empty() or _system_id.is_empty():
+		investigate_mission_changed.emit()
+		return
+
+	GameSession.set_object_discovery_state(_system_id, oid, GameSession.DISCOVERY_KNOWN)
+
+	if discovery_controller != null and not discovery_controller.refresh_object(oid):
+		push_warning(
+			"SurveyProbeMissionController: discovery refresh failed for restored '%s'." % oid
+		)
+
+	_grant_survey_data_reward(bid)
+	_refresh_selection_after_reveal(oid)
+	investigate_mission_changed.emit()
 
 
 ## Pre-save safety (v0.1): refund probes and tear down visuals without revealing signals.

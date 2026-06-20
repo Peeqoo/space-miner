@@ -810,6 +810,152 @@ func get_active_scan_drone_support_count_for_target(target_id: String) -> int:
 	return 0
 
 
+## Read-only telemetry: all ScanDrones with `scan_drone_target_by_unit_id` assignment.
+func get_scan_drone_assigned_counts_by_target() -> Dictionary:
+	var counts: Dictionary = {}
+
+	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
+		var target_id: String = str(scan_drone_target_by_unit_id.get(unit_id_variant, "")).strip_edges()
+		if target_id.is_empty():
+			continue
+		counts[target_id] = int(counts.get(target_id, 0)) + 1
+
+	return counts
+
+
+## Read-only telemetry: ScanDrones with an in-flight AutomationStore scan mission.
+func get_active_scan_mission_counts_by_target() -> Dictionary:
+	var counts: Dictionary = {}
+
+	for mission_id_variant: Variant in active_units_by_mission_id.keys():
+		var mission_id: int = int(mission_id_variant)
+		var unit: AutomationUnit = active_units_by_mission_id[mission_id_variant] as AutomationUnit
+		var target_id: String = ""
+
+		if unit != null and is_instance_valid(unit):
+			var unit_id: int = unit.get_instance_id()
+			target_id = str(scan_drone_target_by_unit_id.get(unit_id, "")).strip_edges()
+
+		if target_id.is_empty():
+			var mission: Dictionary = GameSession.get_automation_mission(mission_id)
+			target_id = str(mission.get("target_id", "")).strip_edges()
+
+		if target_id.is_empty():
+			continue
+
+		counts[target_id] = int(counts.get(target_id, 0)) + 1
+
+	return counts
+
+
+## Read-only telemetry: post-completion support orbit (no active scan mission on unit).
+func get_scan_drone_support_counts_by_target() -> Dictionary:
+	var counts: Dictionary = {}
+
+	for unit_id_variant: Variant in scan_drone_target_by_unit_id.keys():
+		var target_id: String = str(scan_drone_target_by_unit_id.get(unit_id_variant, "")).strip_edges()
+		if target_id.is_empty():
+			continue
+
+		var unit := instance_from_id(int(unit_id_variant)) as AutomationUnit
+		if not _is_scan_drone_in_support_orbit_at_target(unit, target_id):
+			continue
+
+		counts[target_id] = int(counts.get(target_id, 0)) + 1
+
+	for idle_drone: AutomationUnit in idle_drones:
+		if idle_drone == null or not is_instance_valid(idle_drone):
+			continue
+
+		var idle_uid: int = idle_drone.get_instance_id()
+		if scan_drone_target_by_unit_id.has(idle_uid):
+			continue
+
+		var orbit_target_id: String = _scan_drone_support_orbit_target_id(idle_drone)
+		if orbit_target_id.is_empty():
+			continue
+
+		if not _is_scan_drone_in_support_orbit_at_target(idle_drone, orbit_target_id):
+			continue
+
+		counts[orbit_target_id] = int(counts.get(orbit_target_id, 0)) + 1
+
+	return counts
+
+
+## Read-only telemetry snapshot for SharedScanJob Step 2 (no gameplay side effects).
+func get_scan_drone_target_debug_snapshot() -> Dictionary:
+	var assigned: Dictionary = get_scan_drone_assigned_counts_by_target()
+	var active_missions: Dictionary = get_active_scan_mission_counts_by_target()
+	var support: Dictionary = get_scan_drone_support_counts_by_target()
+
+	return {
+		"assigned_drones_per_target": assigned.duplicate(true),
+		"active_scan_missions_per_target": active_missions.duplicate(true),
+		"support_drones_per_target": support.duplicate(true),
+		"targets_with_assigned_scan_drones": _count_nonempty_target_keys(assigned),
+		"targets_with_active_scan_missions": _count_nonempty_target_keys(active_missions),
+		"targets_with_support_drones": _count_nonempty_target_keys(support),
+	}
+
+
+func _count_nonempty_target_keys(per_target: Dictionary) -> int:
+	var n: int = 0
+	for target_variant: Variant in per_target.keys():
+		if int(per_target.get(target_variant, 0)) > 0:
+			n += 1
+	return n
+
+
+func _unit_has_active_scan_mission(unit: AutomationUnit) -> bool:
+	if unit == null or not is_instance_valid(unit):
+		return false
+
+	for assigned_unit: Variant in active_units_by_mission_id.values():
+		if assigned_unit == unit:
+			return true
+
+	return false
+
+
+func _scan_drone_support_orbit_target_id(unit: AutomationUnit) -> String:
+	if unit == null or not is_instance_valid(unit):
+		return ""
+
+	if unit.state != AutomationUnit.State.ORBITING_BASE:
+		return ""
+
+	if unit.base_node == null or not is_instance_valid(unit.base_node):
+		return ""
+
+	var anchor_id: String = _get_object_id_from_node(unit.base_node).strip_edges()
+	var session_home_id: String = _get_session_base_id().strip_edges()
+
+	if anchor_id.is_empty() or anchor_id == session_home_id:
+		return ""
+
+	return anchor_id
+
+
+func _is_scan_drone_in_support_orbit_at_target(
+	unit: AutomationUnit,
+	normalized_target_id: String,
+) -> bool:
+	if unit == null or not is_instance_valid(unit):
+		return false
+
+	if unit.unit_type != AutomationUnit.UnitType.DRONE:
+		return false
+
+	if normalized_target_id.is_empty():
+		return false
+
+	if _unit_has_active_scan_mission(unit):
+		return false
+
+	return _scan_drone_support_orbit_target_id(unit) == normalized_target_id
+
+
 func _is_scan_drone_providing_mining_support_at_target(
 	unit: AutomationUnit,
 	normalized_target_id: String,

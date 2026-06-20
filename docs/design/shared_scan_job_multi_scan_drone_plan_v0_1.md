@@ -6,6 +6,8 @@
 **Parent plan:** `docs/design/unlimited_production_multi_unit_target_plan_v0_1.md` (Step 5)  
 **Audit reference:** `docs/audits/base_panel_unload_and_limits_audit_v0_1.md`
 
+**Implementation status (2026-06-20):** Step 2 target telemetry done (`docs/audits/shared_scan_job_step_2_telemetry_v0_1.md`). No Multi-SD gameplay unlock. `KEY_SCAN_ALREADY_IN_PROGRESS` unchanged.
+
 ---
 
 ## Summary

@@ -135,6 +135,11 @@ func record_snapshot(event_name: String = "manual", notes: String = "") -> void:
 	print_debug("[BalanceTelemetry] Snapshot '%s' @ %.0f s" % [event_name, _elapsed])
 
 
+## Debug/smoke helper: scan section only (includes Step 2 target telemetry).
+func peek_scan_telemetry_section(base_id: String, system_id: String) -> Dictionary:
+	return _snap_scan(base_id, system_id)
+
+
 ## Records a named milestone and a snapshot at that moment.
 func record_marker(event_name: String, notes: String = "") -> void:
 	if not OS.is_debug_build() or not _running:
@@ -562,7 +567,7 @@ func _snap_scan(base_id: String, system_id: String) -> Dictionary:
 		sd_ug = GameSession.get_buy_next_base_upgrade_gate(base_id, &"scan_drone")
 		sd_level = GameSession.get_base_upgrade_level(base_id, &"scan_drone")
 
-	return {
+	var scan_section: Dictionary = {
 		"scan_drone_count": GameSession.get_base_drone_count(base_id),
 		"scan_drone_upgrade_level": sd_level,
 		"active_scan_jobs": active_scan_jobs,
@@ -583,6 +588,163 @@ func _snap_scan(base_id: String, system_id: String) -> Dictionary:
 			"three_deep_scans_done": _milestone_times.get("three_deep_scans_done", -1.0),
 		},
 	}
+	scan_section.merge(_snap_scan_target_telemetry(base_id, system_id, ac))
+	return scan_section
+
+
+func _snap_scan_target_telemetry(
+	base_id: String,
+	system_id: String,
+	ac: AutomationController,
+) -> Dictionary:
+	var empty: Dictionary = {
+		"assigned_drones_per_target": {},
+		"active_scan_missions_per_target": {},
+		"support_drones_per_target": {},
+		"targets_with_assigned_scan_drones": 0,
+		"targets_with_active_scan_missions": 0,
+		"targets_with_support_drones": 0,
+		"already_in_progress_blocks": 0,
+		"already_in_progress_block_targets": {},
+		"potential_support_blocks": {},
+		"scan_target_telemetry_available": false,
+	}
+
+	if ac == null or not is_instance_valid(ac):
+		return empty
+
+	if not ac.has_method("get_scan_drone_target_debug_snapshot"):
+		return empty
+
+	var snap_variant: Variant = ac.call("get_scan_drone_target_debug_snapshot")
+	if not snap_variant is Dictionary:
+		return empty
+
+	var snap: Dictionary = (snap_variant as Dictionary).duplicate(true)
+	snap["scan_target_telemetry_available"] = true
+
+	var assigned: Dictionary = snap.get("assigned_drones_per_target", {}) as Dictionary
+	var active_missions: Dictionary = snap.get("active_scan_missions_per_target", {}) as Dictionary
+	var support: Dictionary = snap.get("support_drones_per_target", {}) as Dictionary
+
+	snap["potential_support_blocks"] = _build_potential_support_block_flags(
+		assigned,
+		active_missions,
+		support,
+	)
+
+	var block_data: Dictionary = _count_scan_already_in_progress_blocks(base_id, system_id, ac)
+	snap["already_in_progress_blocks"] = int(block_data.get("count", 0))
+	snap["already_in_progress_block_targets"] = block_data.get("targets", {})
+
+	return snap
+
+
+func _build_potential_support_block_flags(
+	assigned: Dictionary,
+	active_missions: Dictionary,
+	support: Dictionary,
+) -> Dictionary:
+	var out: Dictionary = {}
+	var all_targets: Dictionary = {}
+
+	for target_variant: Variant in assigned.keys():
+		all_targets[str(target_variant)] = true
+	for target_variant: Variant in support.keys():
+		all_targets[str(target_variant)] = true
+	for target_variant: Variant in active_missions.keys():
+		all_targets[str(target_variant)] = true
+
+	for target_key: Variant in all_targets.keys():
+		var target_id: String = str(target_key).strip_edges()
+		if target_id.is_empty():
+			continue
+
+		var active_n: int = int(active_missions.get(target_id, 0))
+		var assigned_n: int = int(assigned.get(target_id, 0))
+		var support_n: int = int(support.get(target_id, 0))
+
+		if active_n <= 0 and (assigned_n > 0 or support_n > 0):
+			out[target_id] = true
+
+	return out
+
+
+func _count_scan_already_in_progress_blocks(
+	base_id: String,
+	system_id: String,
+	ac: AutomationController,
+) -> Dictionary:
+	var blocked_targets: Dictionary = {}
+	var count: int = 0
+
+	if system_id.is_empty() or not GameSession.has_established_base(base_id):
+		return {"count": 0, "targets": blocked_targets}
+
+	for object_id: String in _collect_known_scannable_object_ids(system_id, base_id):
+		var scan_active: bool = ac.get_active_scan_drone_count_for_target(object_id) > 0
+		var gate: Dictionary = GameSession.can_scan_object(
+			system_id,
+			object_id,
+			base_id,
+			true,
+			scan_active,
+		)
+		var block_key: String = str(gate.get("blocked_reason_key", "")).strip_edges()
+		if block_key != str(GateUiTextDefinition.KEY_SCAN_ALREADY_IN_PROGRESS):
+			continue
+		count += 1
+		blocked_targets[object_id] = true
+
+	return {"count": count, "targets": blocked_targets}
+
+
+func _collect_known_scannable_object_ids(system_id: String, base_id: String) -> Array[String]:
+	var out: Array[String] = []
+	if system_id.is_empty():
+		return out
+
+	var sys_def: SystemDefinition = GameSession.current_system_definition
+	if sys_def == null:
+		return out
+
+	for body_variant: Variant in sys_def.bodies:
+		var body: SystemBodyDefinition = body_variant as SystemBodyDefinition
+		if body == null:
+			continue
+		var oid: String = body.id.strip_edges()
+		if oid.is_empty():
+			continue
+		if GameSession.get_object_discovery_state(system_id, oid) != GameSession.DISCOVERY_KNOWN:
+			continue
+		var scan_target: Dictionary = GameSession.get_scan_target_state_or_rescan_state(
+			system_id,
+			oid,
+			base_id,
+		)
+		if str(scan_target.get("target_scan_state", "")).strip_edges().is_empty():
+			continue
+		out.append(oid)
+
+	for poi_variant: Variant in sys_def.pois:
+		var poi: PointOfInterestDefinition = poi_variant as PointOfInterestDefinition
+		if poi == null:
+			continue
+		var oid: String = poi.id.strip_edges()
+		if oid.is_empty():
+			continue
+		if GameSession.get_object_discovery_state(system_id, oid) != GameSession.DISCOVERY_KNOWN:
+			continue
+		var scan_target_poi: Dictionary = GameSession.get_scan_target_state_or_rescan_state(
+			system_id,
+			oid,
+			base_id,
+		)
+		if str(scan_target_poi.get("target_scan_state", "")).strip_edges().is_empty():
+			continue
+		out.append(oid)
+
+	return out
 
 
 # ─── SensorPulse ──────────────────────────────────────────────────────────────

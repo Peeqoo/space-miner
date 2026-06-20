@@ -49,6 +49,9 @@ var _automation_runtime_pending: Dictionary = {}
 ## Pending system camera state from save; consumed when SystemScene finishes setup.
 var _camera_state_pending: Dictionary = {}
 
+## Scene-transition restore payload (survey probe / sensor pulse metadata). Automation/camera use their own pending dicts.
+var _pending_system_process_restore: Dictionary = {}
+
 var scanner := ScannerStore.new()
 
 ## Phase 5.5: data-driven upgrade tiers (`data/upgrades/*.tres`).
@@ -2745,6 +2748,8 @@ func reset_for_new_game() -> void:
 	automation.missions.clear()
 	automation.next_mission_id = 1
 	_automation_runtime_pending.clear()
+	_camera_state_pending.clear()
+	_pending_system_process_restore.clear()
 
 	_galaxy_progression_seeded = true
 	_apply_galaxy_progression_from_game_start(def)
@@ -2761,6 +2766,65 @@ func reset_for_new_game() -> void:
 
 func refresh_automation_snapshot_from_scene() -> void:
 	_automation_runtime_pending = _capture_live_automation_runtime_snapshot()
+
+
+## Before SystemScene is freed (e.g. GalaxyMap). Preserves in-flight scene-owned processes.
+func capture_system_scene_processes_before_leave() -> void:
+	var system_id: String = current_system_id.strip_edges()
+	if system_id.is_empty():
+		return
+
+	refresh_automation_snapshot_from_scene()
+	refresh_camera_snapshot_from_scene()
+
+	_pending_system_process_restore = {
+		"system_id": system_id,
+		"captured_at_msec": Time.get_ticks_msec(),
+		"survey_probe_missions": _capture_survey_probe_missions_snapshot(),
+		"sensor_pulse": _capture_sensor_pulse_snapshot(),
+	}
+
+
+func has_pending_system_process_restore(expected_system_id: String) -> bool:
+	if _pending_system_process_restore.is_empty():
+		return false
+	var saved_sid: String = str(_pending_system_process_restore.get("system_id", "")).strip_edges()
+	var want_sid: String = expected_system_id.strip_edges()
+	if saved_sid.is_empty() or want_sid.is_empty():
+		return false
+	return saved_sid == want_sid
+
+
+func take_pending_system_process_restore(expected_system_id: String) -> Dictionary:
+	if not has_pending_system_process_restore(expected_system_id):
+		return {}
+	var pending: Dictionary = _pending_system_process_restore.duplicate(true)
+	_pending_system_process_restore.clear()
+	return pending
+
+
+func _capture_survey_probe_missions_snapshot() -> Array:
+	var controller: SurveyProbeMissionController = _find_survey_probe_mission_controller_in_tree()
+	if controller == null:
+		return []
+	if not controller.has_method("capture_runtime_snapshot"):
+		return []
+	var captured: Variant = controller.call("capture_runtime_snapshot")
+	if captured is Array:
+		return (captured as Array).duplicate(true)
+	return []
+
+
+func _capture_sensor_pulse_snapshot() -> Dictionary:
+	var controller: BaseSensorPulseController = _find_base_sensor_pulse_controller_in_tree()
+	if controller == null:
+		return {}
+	if not controller.has_method("capture_runtime_snapshot"):
+		return {}
+	var captured: Variant = controller.call("capture_runtime_snapshot")
+	if captured is Dictionary:
+		return (captured as Dictionary).duplicate(true)
+	return {}
 
 
 ## Pre-save (v0.1): cancel in-flight survey-probe missions and refund probes (no mission restore on load).
@@ -2935,6 +2999,8 @@ func apply_save_data(data: Dictionary) -> bool:
 	current_system_id = str(data.get("current_system_id", START_SYSTEM_ID)).strip_edges()
 	if current_system_id.is_empty():
 		current_system_id = START_SYSTEM_ID
+
+	_pending_system_process_restore.clear()
 
 	discovered_system_ids.clear()
 	for sid_var: Variant in data.get("discovered_system_ids", []):

@@ -72,6 +72,8 @@ func _finish_initial_setup() -> void:
 
 	automation_controller.ensure_starting_units(_resolved_start_body_id)
 
+	_restore_pending_system_processes()
+
 	var restored_camera := _try_restore_saved_camera_state()
 
 	if not restored_camera:
@@ -202,9 +204,32 @@ func _connect_navigation_hud_signal() -> void:
 
 
 func _on_navigation_galaxy_requested() -> void:
+	GameSession.capture_system_scene_processes_before_leave()
 	if system_definition != null:
 		GameSession.set_current_system(system_definition)
 	SceneFlow.goto_galaxy()
+
+
+func _restore_pending_system_processes() -> void:
+	var system_id: String = GameSession.current_system_id.strip_edges()
+	if system_id.is_empty():
+		return
+	if not GameSession.has_pending_system_process_restore(system_id):
+		return
+
+	var pending: Dictionary = GameSession.take_pending_system_process_restore(system_id)
+	if pending.is_empty():
+		return
+
+	if survey_probe_mission_controller != null:
+		var survey_ops: Variant = pending.get("survey_probe_missions", [])
+		if survey_ops is Array and not (survey_ops as Array).is_empty():
+			survey_probe_mission_controller.restore_from_runtime_snapshot(survey_ops as Array)
+
+	if base_sensor_pulse_controller != null:
+		var pulse_snap: Variant = pending.get("sensor_pulse", {})
+		if pulse_snap is Dictionary and not (pulse_snap as Dictionary).is_empty():
+			base_sensor_pulse_controller.restore_from_runtime_snapshot(pulse_snap as Dictionary)
 
 
 func _wire_camera_follow_to_selection() -> void:
