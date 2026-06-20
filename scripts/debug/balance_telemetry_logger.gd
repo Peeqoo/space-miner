@@ -637,6 +637,11 @@ func _snap_scan_target_telemetry(
 	snap["already_in_progress_blocks"] = int(block_data.get("count", 0))
 	snap["already_in_progress_block_targets"] = block_data.get("targets", {})
 
+	if ac.has_method("get_shared_scan_job_debug_snapshot"):
+		var shared_jobs_variant: Variant = ac.call("get_shared_scan_job_debug_snapshot")
+		if shared_jobs_variant is Dictionary:
+			snap["shared_scan_jobs"] = (shared_jobs_variant as Dictionary).duplicate(true)
+
 	return snap
 
 

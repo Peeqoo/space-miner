@@ -52,6 +52,10 @@ var mining_ship_runtime_by_unit_id: Dictionary = {}
 ## Mirrors mining runtime: used for UI mission counts independent of orbit position / AutomationStore lifecycle.
 var scan_drone_target_by_unit_id: Dictionary = {}
 
+## SharedScanJob runtime (Step 3): one job per system+target+scan_state; multi-SD not enabled yet.
+var shared_scan_jobs_by_job_id: Dictionary = {}
+var shared_scan_job_id_by_unit_id: Dictionary = {}
+
 ## Coalesces automation_state_changed emits to at most once per idle frame (fewer UI rebuilds).
 var _automation_state_emit_scheduled: bool = false
 
@@ -611,6 +615,19 @@ func launch_scan_drone(target_id: String) -> void:
 		target_scan_state = GameSession.SCAN_BASIC
 	var scan_is_progression: bool = bool(scan_gate.get("scan_is_progression", true))
 
+	var work_duration: float = GameSession.get_scan_duration_seconds_for_target_state(
+		target_scan_state,
+		session_bid_ls,
+	)
+	var shared_job_id: String = _create_shared_scan_job_for_scan_mission(
+		system_id,
+		target_id,
+		session_bid_ls,
+		target_scan_state,
+		scan_is_progression,
+		work_duration,
+	)
+
 	var mission_id := GameSession.create_scan_mission(
 		session_bid_ls,
 		target_id,
@@ -628,12 +645,12 @@ func launch_scan_drone(target_id: String) -> void:
 	var drone_uid_launch: int = unit.get_instance_id()
 	scan_drone_target_by_unit_id[drone_uid_launch] = target_id
 
+	if not shared_job_id.is_empty():
+		_assign_scan_drone_to_shared_scan_job(shared_job_id, drone_uid_launch, mission_id)
+
 	_ensure_returned_to_base_connected(unit)
 
-	unit.work_duration = GameSession.get_scan_duration_seconds_for_target_state(
-		target_scan_state,
-		session_bid_ls,
-	)
+	unit.work_duration = work_duration
 
 	_scan_drone_start_outbound(unit, target_node)
 
@@ -937,6 +954,230 @@ func _count_nonempty_target_keys(per_target: Dictionary) -> int:
 	return n
 
 
+func _make_shared_scan_job_id(
+	system_id: String,
+	target_id: String,
+	target_scan_state: String,
+) -> String:
+	var sid: String = system_id.strip_edges()
+	var tid: String = target_id.strip_edges()
+	var tss: String = target_scan_state.strip_edges()
+	if sid.is_empty() or tid.is_empty() or tss.is_empty():
+		return ""
+	return "%s:%s:%s" % [sid, tid, tss]
+
+
+func _create_shared_scan_job_for_scan_mission(
+	system_id: String,
+	target_id: String,
+	base_id: String,
+	target_scan_state: String,
+	scan_is_progression: bool,
+	work_required: float,
+) -> String:
+	var job_id: String = _make_shared_scan_job_id(system_id, target_id, target_scan_state)
+	if job_id.is_empty():
+		return ""
+
+	if shared_scan_jobs_by_job_id.has(job_id):
+		return job_id
+
+	var tss: String = target_scan_state.strip_edges()
+	shared_scan_jobs_by_job_id[job_id] = {
+		"job_id": job_id,
+		"system_id": system_id.strip_edges(),
+		"target_id": target_id.strip_edges(),
+		"base_id": base_id.strip_edges(),
+		"target_scan_state": tss,
+		"scan_layer": GameSession.scan_state_rank(tss),
+		"scan_is_progression": scan_is_progression,
+		"assigned_unit_ids": [],
+		"active_mission_ids": [],
+		"progress": 0.0,
+		"work_required": maxf(0.0, work_required),
+		"completed": false,
+		"completion_applied": false,
+		"reward_given": false,
+		"created_at_msec": Time.get_ticks_msec(),
+		"completed_at_msec": 0,
+	}
+	return job_id
+
+
+func _assign_scan_drone_to_shared_scan_job(job_id: String, unit_id: int, mission_id: int) -> void:
+	if job_id.is_empty() or not shared_scan_jobs_by_job_id.has(job_id):
+		return
+
+	var job: Dictionary = shared_scan_jobs_by_job_id[job_id] as Dictionary
+	var unit_ids: Array = (job.get("assigned_unit_ids", []) as Array).duplicate()
+	if not unit_ids.has(unit_id):
+		unit_ids.append(unit_id)
+	job["assigned_unit_ids"] = unit_ids
+
+	if mission_id > 0:
+		var mission_ids: Array = (job.get("active_mission_ids", []) as Array).duplicate()
+		if not mission_ids.has(mission_id):
+			mission_ids.append(mission_id)
+		job["active_mission_ids"] = mission_ids
+
+	shared_scan_jobs_by_job_id[job_id] = job
+	shared_scan_job_id_by_unit_id[unit_id] = job_id
+
+
+func _get_shared_scan_job_for_unit(unit_id: int) -> Dictionary:
+	var job_id: String = str(shared_scan_job_id_by_unit_id.get(unit_id, "")).strip_edges()
+	if job_id.is_empty() or not shared_scan_jobs_by_job_id.has(job_id):
+		return {}
+	return (shared_scan_jobs_by_job_id[job_id] as Dictionary).duplicate(true)
+
+
+func _mark_shared_scan_job_completed(job_id: String, reward_given: bool) -> void:
+	if job_id.is_empty() or not shared_scan_jobs_by_job_id.has(job_id):
+		return
+
+	var job: Dictionary = shared_scan_jobs_by_job_id[job_id] as Dictionary
+	job["completed"] = true
+	job["completion_applied"] = true
+	job["reward_given"] = reward_given
+	job["completed_at_msec"] = Time.get_ticks_msec()
+	job["active_mission_ids"] = []
+	shared_scan_jobs_by_job_id[job_id] = job
+
+	for uid_variant: Variant in job.get("assigned_unit_ids", []):
+		shared_scan_job_id_by_unit_id.erase(int(uid_variant))
+
+	shared_scan_jobs_by_job_id.erase(job_id)
+
+
+func _clear_shared_scan_job_for_unit(unit_id: int) -> void:
+	var job_id: String = str(shared_scan_job_id_by_unit_id.get(unit_id, "")).strip_edges()
+	shared_scan_job_id_by_unit_id.erase(unit_id)
+	if job_id.is_empty() or not shared_scan_jobs_by_job_id.has(job_id):
+		return
+
+	var job: Dictionary = shared_scan_jobs_by_job_id[job_id] as Dictionary
+	if bool(job.get("completed", false)):
+		return
+
+	var unit_ids: Array = (job.get("assigned_unit_ids", []) as Array).duplicate()
+	unit_ids.erase(unit_id)
+	if unit_ids.is_empty():
+		shared_scan_jobs_by_job_id.erase(job_id)
+		return
+
+	job["assigned_unit_ids"] = unit_ids
+	shared_scan_jobs_by_job_id[job_id] = job
+
+
+func _clear_all_shared_scan_jobs() -> void:
+	shared_scan_jobs_by_job_id.clear()
+	shared_scan_job_id_by_unit_id.clear()
+
+
+func get_shared_scan_job_debug_snapshot() -> Dictionary:
+	var jobs_out: Dictionary = {}
+	for job_id_variant: Variant in shared_scan_jobs_by_job_id.keys():
+		var job_id: String = str(job_id_variant).strip_edges()
+		if job_id.is_empty():
+			continue
+		var job: Dictionary = shared_scan_jobs_by_job_id[job_id_variant] as Dictionary
+		if bool(job.get("completed", false)):
+			continue
+		var assigned: Array = job.get("assigned_unit_ids", []) as Array
+		var missions: Array = job.get("active_mission_ids", []) as Array
+		jobs_out[job_id] = {
+			"target_id": str(job.get("target_id", "")),
+			"target_scan_state": str(job.get("target_scan_state", "")),
+			"assigned_unit_count": assigned.size(),
+			"active_mission_count": missions.size(),
+			"completed": bool(job.get("completed", false)),
+			"completion_applied": bool(job.get("completion_applied", false)),
+			"reward_given": bool(job.get("reward_given", false)),
+			"progress": float(job.get("progress", 0.0)),
+			"work_required": float(job.get("work_required", 0.0)),
+		}
+
+	return {
+		"enabled": true,
+		"active_count": jobs_out.size(),
+		"jobs": jobs_out,
+	}
+
+
+func get_active_shared_scan_job_count() -> int:
+	var count: int = 0
+	for job_variant: Variant in shared_scan_jobs_by_job_id.values():
+		if job_variant is Dictionary and not bool((job_variant as Dictionary).get("completed", false)):
+			count += 1
+	return count
+
+
+func get_shared_scan_job_count_for_target(target_id: String) -> int:
+	var tid: String = target_id.strip_edges()
+	if tid.is_empty():
+		return 0
+	var count: int = 0
+	for job_variant: Variant in shared_scan_jobs_by_job_id.values():
+		if not job_variant is Dictionary:
+			continue
+		var job: Dictionary = job_variant as Dictionary
+		if bool(job.get("completed", false)):
+			continue
+		if str(job.get("target_id", "")).strip_edges() == tid:
+			count += 1
+	return count
+
+
+func _try_complete_scan_mission_with_shared_job_guard(
+	unit: AutomationUnit,
+	target_id: String,
+	target_node: Node2D,
+	target_scan_state: String,
+	scan_is_progression: bool,
+) -> void:
+	var unit_id: int = unit.get_instance_id()
+	var job_id: String = str(shared_scan_job_id_by_unit_id.get(unit_id, "")).strip_edges()
+
+	if not job_id.is_empty():
+		var job: Dictionary = shared_scan_jobs_by_job_id.get(job_id, {}) as Dictionary
+		if bool(job.get("completion_applied", false)):
+			push_warning(
+				"AutomationController: duplicate scan completion blocked (job_id=%s target=%s)."
+				% [job_id, target_id]
+			)
+			return
+
+	_complete_scan_mission(target_id, target_node, target_scan_state, scan_is_progression)
+
+	if job_id.is_empty():
+		return
+
+	_mark_shared_scan_job_completed(job_id, scan_is_progression)
+
+
+func _reconstruct_shared_scan_job_for_restored_mission(
+	system_id: String,
+	target_id: String,
+	base_id: String,
+	target_scan_state: String,
+	scan_is_progression: bool,
+	work_required: float,
+	unit_id: int,
+	mission_id: int,
+) -> void:
+	var job_id: String = _create_shared_scan_job_for_scan_mission(
+		system_id,
+		target_id,
+		base_id,
+		target_scan_state,
+		scan_is_progression,
+		work_required,
+	)
+	if job_id.is_empty():
+		return
+	_assign_scan_drone_to_shared_scan_job(job_id, unit_id, mission_id)
+
+
 func _unit_has_active_scan_mission(unit: AutomationUnit) -> bool:
 	if unit == null or not is_instance_valid(unit):
 		return false
@@ -1128,6 +1369,8 @@ func _abort_scan_mission_for_unit(unit: AutomationUnit) -> void:
 
 		break
 
+	_clear_shared_scan_job_for_unit(unit.get_instance_id())
+
 
 func recall_one_mining_ship_from_target(target_id: String) -> bool:
 	if target_id.is_empty():
@@ -1260,6 +1503,8 @@ func _on_scan_drone_arrived_at_target(
 		if scan_drone_target_by_unit_id.has(drone_uid_miss):
 			scan_drone_target_by_unit_id.erase(drone_uid_miss)
 
+		_clear_shared_scan_job_for_unit(drone_uid_miss)
+
 		_stop_scan_orbit_audio(unit)
 		_request_automation_state_changed()
 		return
@@ -1268,7 +1513,13 @@ func _on_scan_drone_arrived_at_target(
 
 	var target_scan_state: String = str(mission.get("target_scan_state", "")).strip_edges()
 	var scan_is_progression: bool = bool(mission.get("scan_is_progression", true))
-	_complete_scan_mission(target_id, target_node, target_scan_state, scan_is_progression)
+	_try_complete_scan_mission_with_shared_job_guard(
+		unit,
+		target_id,
+		target_node,
+		target_scan_state,
+		scan_is_progression,
+	)
 	active_units_by_mission_id.erase(mission_id)
 
 	if target_node == null:
@@ -2594,6 +2845,7 @@ func _clear_automation_visuals_and_mission_state() -> void:
 
 	active_units_by_mission_id.clear()
 	scan_drone_target_by_unit_id.clear()
+	_clear_all_shared_scan_jobs()
 	mining_ship_runtime_by_unit_id.clear()
 	idle_drones.clear()
 	idle_mining_ships.clear()
@@ -2662,6 +2914,23 @@ func _restore_scan_mission(job: Dictionary) -> void:
 	var unit_id: int = unit.get_instance_id()
 	scan_drone_target_by_unit_id[unit_id] = target_id
 
+	var target_scan_state: String = GameSession.SCAN_BASIC
+	var scan_is_progression: bool = true
+	if mission_id > 0:
+		var mission_rec_pre: Dictionary = GameSession.get_automation_mission(mission_id)
+		target_scan_state = str(mission_rec_pre.get("target_scan_state", "")).strip_edges()
+		scan_is_progression = bool(mission_rec_pre.get("scan_is_progression", true))
+	if target_scan_state.is_empty():
+		var scan_gate: Dictionary = GameSession.get_scan_target_state_or_rescan_state(
+			GameSession.current_system_id,
+			target_id,
+			home_base_id,
+		)
+		target_scan_state = str(scan_gate.get("target_scan_state", GameSession.SCAN_BASIC)).strip_edges()
+		if target_scan_state.is_empty():
+			target_scan_state = GameSession.SCAN_BASIC
+		scan_is_progression = bool(scan_gate.get("scan_is_progression", true))
+
 	if not scan_reveal_done and mission_id > 0:
 		var mission_rec: Dictionary = GameSession.get_automation_mission(mission_id)
 
@@ -2672,6 +2941,8 @@ func _restore_scan_mission(job: Dictionary) -> void:
 					"type": AutomationStore.MissionType.SCAN,
 					"base_id": home_base_id,
 					"target_id": target_id,
+					"target_scan_state": target_scan_state,
+					"scan_is_progression": scan_is_progression,
 				}
 			)
 
@@ -2679,6 +2950,17 @@ func _restore_scan_mission(job: Dictionary) -> void:
 
 		if not unit.arrived_at_target.is_connected(_on_scan_drone_arrived_at_target):
 			unit.arrived_at_target.connect(_on_scan_drone_arrived_at_target.bind(mission_id, target_id))
+
+		_reconstruct_shared_scan_job_for_restored_mission(
+			GameSession.current_system_id,
+			target_id,
+			home_base_id,
+			target_scan_state,
+			scan_is_progression,
+			unit.work_duration,
+			unit_id,
+			mission_id,
+		)
 
 	unit.restore_mission_visual_state(
 		int(job.get("unit_state", AutomationUnit.State.TRAVEL_TO_TARGET)) as AutomationUnit.State,
