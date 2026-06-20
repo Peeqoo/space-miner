@@ -273,7 +273,7 @@ func _test_colony_ship_unchanged() -> void:
 		_fail("ColonyShip scaling_excluded expected true")
 
 	var cost: Dictionary = GameSession.get_colony_ship_build_cost()
-	_expect_cost_amount(cost, "Iron", 1500)
+	_expect_cost_amount(cost, "Iron", 900)
 	_expect_cost_amount(cost, "Silicon", 300)
 	_expect_cost_amount(cost, "Water", 350)
 	_expect_cost_amount(cost, "SurveyData", 150)

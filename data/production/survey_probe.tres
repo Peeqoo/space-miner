@@ -7,7 +7,7 @@ script = ExtResource("1")
 id = "survey_probe"
 unit_key = "survey_probes"
 cost = {
-"Iron": 40
+"Iron": 30
 }
 sort_order = 2
 short_description = "Consumable probe for investigating unknown signals."

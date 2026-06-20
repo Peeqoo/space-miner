@@ -2435,9 +2435,9 @@ func get_production_definition(production_id: String) -> ProductionDefinition:
 const SCALED_PRODUCTION_FORMULA := "ceil(base_cost * multiplier^production_lifetime_count)"
 
 ## Step 2b multiplier candidates (hardcoded; not in .tres yet).
-const SCALED_PRODUCTION_MULT_SCAN_DRONE: float = 1.20
-const SCALED_PRODUCTION_MULT_MINING_SHIP: float = 1.25
-const SCALED_PRODUCTION_MULT_SURVEY_PROBE: float = 1.15
+const SCALED_PRODUCTION_MULT_SCAN_DRONE: float = 1.12
+const SCALED_PRODUCTION_MULT_MINING_SHIP: float = 1.15
+const SCALED_PRODUCTION_MULT_SURVEY_PROBE: float = 1.10
 
 
 ## Actual build spend cost: scaled for SD/MS/SP, flat for ColonyShip / unknown.

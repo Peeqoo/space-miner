@@ -1,16 +1,16 @@
 ## Step 2b smoke test — scaled costs active for SD/MS/SP spend path.
-## Debug-only. Does NOT auto-run. Execute manually:
-##   godot --headless --path . --script res://scripts/debug/smoke_tests/step_2b_production_scaled_cost_smoke_test.gd
-extends SceneTree
+## Debug-only. Run:
+##   godot --headless --path . --scene res://scripts/debug/smoke_tests/step_2b_smoke_runner.tscn
+extends Node
 
 var _failures: Array[String] = []
 var _notes: Array[String] = []
 
 
-func _init() -> void:
+func _ready() -> void:
 	if not OS.is_debug_build():
 		_notes.append("Not a debug build — runtime smoke skipped")
-		call_deferred("_finish")
+		_finish()
 		return
 	call_deferred("_run_all")
 
@@ -43,13 +43,13 @@ func _primary_base_id() -> String:
 
 
 func _test_start_scaled_costs(base_id: String) -> void:
-	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_SCAN_DRONE, {"Iron": 108})
-	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_MINING_SHIP, {"Iron": 300, "Silicon": 50})
-	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_SURVEY_PROBE, {"Iron": 53})
+	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_SCAN_DRONE, {"Iron": 68})
+	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_MINING_SHIP, {"Iron": 173, "Silicon": 29})
+	_expect_scaled_cost(base_id, BaseStore.PRODUCTION_SURVEY_PROBE, {"Iron": 37})
 
 
 func _test_scan_drone_build_spend(base_id: String) -> void:
-	GameSession.add_base_resource(base_id, "Iron", 500)
+	GameSession.add_base_resource(base_id, "Iron", 400)
 	var expected: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_SCAN_DRONE, base_id
 	)
@@ -70,12 +70,12 @@ func _test_scan_drone_build_spend(base_id: String) -> void:
 	var next_cost: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_SCAN_DRONE, base_id
 	)
-	_expect_amount(int(next_cost.get("Iron", 0)), 130, "ScanDrone next cost after build")
+	_expect_amount(int(next_cost.get("Iron", 0)), 76, "ScanDrone next cost after build")
 
 
 func _test_mining_ship_build_spend(base_id: String) -> void:
-	GameSession.add_base_resource(base_id, "Iron", 2000)
 	GameSession.add_base_resource(base_id, "Silicon", 500)
+	GameSession.add_base_resource(base_id, "Iron", 2000)
 	var expected: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_MINING_SHIP, base_id
 	)
@@ -94,15 +94,15 @@ func _test_mining_ship_build_spend(base_id: String) -> void:
 	var next_cost: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_MINING_SHIP, base_id
 	)
-	_expect_amount(int(next_cost.get("Iron", 0)), 375, "MiningShip next Iron after build")
-	_expect_amount(int(next_cost.get("Silicon", 0)), 63, "MiningShip next Silicon after build")
+	_expect_amount(int(next_cost.get("Iron", 0)), 199, "MiningShip next Iron after build")
+	_expect_amount(int(next_cost.get("Silicon", 0)), 34, "MiningShip next Silicon after build")
 
 
 func _test_survey_probe_consume_and_build(base_id: String) -> void:
 	var cost_before_consume: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_SURVEY_PROBE, base_id
 	)
-	_expect_amount(int(cost_before_consume.get("Iron", 0)), 53, "SurveyProbe start scaled cost")
+	_expect_amount(int(cost_before_consume.get("Iron", 0)), 37, "SurveyProbe start scaled cost")
 
 	var life_before: int = GameSession.get_production_lifetime_count(
 		base_id, BaseStore.PRODUCTION_SURVEY_PROBE
@@ -132,7 +132,7 @@ func _test_survey_probe_consume_and_build(base_id: String) -> void:
 	var next_cost: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_SURVEY_PROBE, base_id
 	)
-	_expect_amount(int(next_cost.get("Iron", 0)), 61, "SurveyProbe next cost after build")
+	_expect_amount(int(next_cost.get("Iron", 0)), 40, "SurveyProbe next cost after build")
 
 
 func _test_colony_ship_flat(base_id: String) -> void:
@@ -147,10 +147,10 @@ func _test_colony_ship_flat(base_id: String) -> void:
 	var cost: Dictionary = GameSession.get_scaled_production_cost(
 		BaseStore.PRODUCTION_COLONY_SHIP, base_id
 	)
-	_expect_amount(int(cost.get("Iron", 0)), 1500, "ColonyShip flat Iron")
-	_expect_amount(int(cost.get("Silicon", 0)), 300, "ColonyShip flat Silicon")
-	_expect_amount(int(cost.get("Water", 0)), 350, "ColonyShip flat Water")
-	_expect_amount(int(cost.get("SurveyData", 0)), 150, "ColonyShip flat SurveyData")
+	_expect_amount(int(cost.get("Iron", 0)), 900, "ColonyShip flat Iron")
+	_expect_amount(int(cost.get("Silicon", 0)), 180, "ColonyShip flat Silicon")
+	_expect_amount(int(cost.get("Water", 0)), 250, "ColonyShip flat Water")
+	_expect_amount(int(cost.get("SurveyData", 0)), 100, "ColonyShip flat SurveyData")
 
 
 func _test_preview_used_for_gameplay(base_id: String) -> void:
@@ -218,4 +218,4 @@ func _finish() -> void:
 	for note: String in _notes:
 		print("  NOTE: %s" % note)
 	print("===========================================")
-	quit(1 if not _failures.is_empty() else 0)
+	get_tree().quit(1 if not _failures.is_empty() else 0)

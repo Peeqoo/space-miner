@@ -9,8 +9,8 @@ category = &"storage"
 level = 1
 title = "Storage Upgrade I"
 cost = {
-"Copper": 10,
-"Iron": 30
+"Copper": 5,
+"Iron": 20
 }
 storage_capacity_units = 1600
 short_description = "Increases base storage capacity."
