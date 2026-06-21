@@ -472,6 +472,9 @@ func _apply_info(info: Dictionary) -> void:
 		"scan_blocked_reason": str(info.get("scan_blocked_reason", "")).strip_edges(),
 		"scan_button_text": str(info.get("scan_button_text", _scan_button_text_default)).strip_edges(),
 		"mining_button_text": str(info.get("mining_button_text", "")).strip_edges(),
+		"assigned_scan_drone_count": int(info.get("assigned_scan_drone_count", 0)),
+		"show_scan_drone_status": bool(info.get("show_scan_drone_status", false)),
+		"has_active_shared_scan_job": bool(info.get("has_active_shared_scan_job", false)),
 		"assigned_mining_ship_count": int(info.get("assigned_mining_ship_count", 0)),
 		"show_mining_ship_status": bool(info.get("show_mining_ship_status", false)),
 		"can_mine": bool(info.get("can_mine_with_ship", false)),
@@ -660,10 +663,11 @@ func _apply_live_action_controls() -> void:
 	)
 	var can_mine_effective: bool = can_mine and not mining_block_depleted
 	var mine_visible: bool = show_mine or can_mine
+	var scan_visible: bool = show_scan or can_scan
 
 	if block_rs.is_empty() and is_instance_valid(economy_block_label):
 		var action_block := ""
-		if show_scan and not can_scan and not scan_blocked.is_empty():
+		if scan_visible and not can_scan and not scan_blocked.is_empty():
 			action_block = scan_blocked
 		elif mine_visible and not can_mine_effective and not mine_blocked.is_empty():
 			action_block = mine_blocked
@@ -682,7 +686,7 @@ func _apply_live_action_controls() -> void:
 		_hide_sensor_pulse_progress_ui()
 		_set_action_buttons(
 			can_scan,
-			show_scan,
+			scan_visible,
 			can_mine_effective,
 			mine_visible,
 			scan_button_text,

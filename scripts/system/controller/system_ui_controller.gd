@@ -690,8 +690,17 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 	var has_active_job: bool = _has_active_shared_scan_job_for_target(object_id)
 	var assigned_count: int = _get_assigned_scan_drone_count(object_id)
 	info["assigned_scan_drone_count"] = assigned_count
-	info["show_scan_drone_status"] = assigned_count > 0 or has_active_job
 	info["has_active_shared_scan_job"] = has_active_job
+
+	var scan_gate: Dictionary = GameSession.can_scan_object(
+		sys_id,
+		object_id,
+		base_id,
+		_has_available_drone(),
+		has_active_job,
+	)
+	var target_state: String = str(scan_gate.get("target_scan_state", "")).strip_edges()
+	var show_scan_button: bool = not target_state.is_empty()
 
 	if has_active_job:
 		var assign_gate: Dictionary = _get_assign_scan_drone_gate(object_id)
@@ -699,21 +708,36 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 		info["can_scan_with_drone"] = bool(assign_gate.get("ok", false))
 		info["scan_blocked_reason"] = str(assign_gate.get("blocked_reason", "")).strip_edges()
 		info["scan_button_text"] = SCAN_BUTTON_TEXT_ASSIGN
-		return
+	elif show_scan_button:
+		info["show_scan_with_drone"] = true
+		info["can_scan_with_drone"] = bool(scan_gate.get("ok", false))
+		info["scan_blocked_reason"] = str(scan_gate.get("blocked_reason", "")).strip_edges()
+		info["scan_button_text"] = _scan_button_label_for_target_state(target_state)
 
-	var scan_active: bool = has_active_job
-	var scan_gate: Dictionary = GameSession.can_scan_object(
-		sys_id,
-		object_id,
-		base_id,
-		_has_available_drone(),
-		scan_active,
-	)
-	var target_state: String = str(scan_gate.get("target_scan_state", "")).strip_edges()
+	info["show_scan_drone_status"] = bool(info["show_scan_with_drone"]) or assigned_count > 0
 
-	info["show_scan_with_drone"] = not target_state.is_empty()
-	info["can_scan_with_drone"] = bool(scan_gate.get("ok", false))
-	info["scan_blocked_reason"] = str(scan_gate.get("blocked_reason", "")).strip_edges()
+
+func _scan_button_label_for_target_state(target_scan_state: String) -> String:
+	var state: String = target_scan_state.strip_edges()
+	if state.is_empty():
+		return ""
+	var layer_label: String = _title_case_token(state)
+	if layer_label.is_empty():
+		return ""
+	return "%s Scan" % layer_label
+
+
+func _title_case_token(value: String) -> String:
+	var cleaned: String = value.strip_edges().replace("_", " ")
+	if cleaned.is_empty():
+		return ""
+	var words: PackedStringArray = cleaned.split(" ", false)
+	var result_words: PackedStringArray = []
+	for word: String in words:
+		if word.is_empty():
+			continue
+		result_words.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
+	return " ".join(result_words)
 
 
 func _apply_sensor_pulse_info_to_dict(info: Dictionary) -> void:

@@ -9,7 +9,7 @@ const TARGET_OBJECT_ID: String = "mars"
 const BASE_ID: String = BaseStore.BASE_EARTH
 const TEST_SAVE_SLOT: int = 3
 
-const SCAN_BUTTON_DEFAULT: String = "Scan"
+const SCAN_BUTTON_BASIC: String = "Basic Scan"
 const SCAN_BUTTON_ASSIGN: String = "Assign ScanDrone"
 
 var _failures: Array[String] = []
@@ -85,8 +85,8 @@ func _test_a_baseline() -> void:
 	_results["test_a_button"] = _scan_button.text
 	if assigned != 0:
 		_fail("Test A: expected assigned count 0, got %d" % assigned)
-	if _scan_button.text != SCAN_BUTTON_DEFAULT:
-		_fail("Test A: expected button '%s', got '%s'" % [SCAN_BUTTON_DEFAULT, _scan_button.text])
+	if _scan_button.text != SCAN_BUTTON_BASIC:
+		_fail("Test A: expected button '%s', got '%s'" % [SCAN_BUTTON_BASIC, _scan_button.text])
 	_automation.launch_scan_drone(TARGET_OBJECT_ID)
 	if not _automation.has_active_shared_scan_job_for_target(TARGET_OBJECT_ID):
 		_fail("Test A: launch_scan_drone did not create SharedScanJob")
