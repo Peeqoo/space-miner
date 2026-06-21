@@ -642,6 +642,11 @@ func _snap_scan_target_telemetry(
 		if shared_jobs_variant is Dictionary:
 			snap["shared_scan_jobs"] = (shared_jobs_variant as Dictionary).duplicate(true)
 
+	if ac.has_method("get_scan_drone_support_effects_by_target"):
+		var effects_variant: Variant = ac.call("get_scan_drone_support_effects_by_target")
+		if effects_variant is Dictionary:
+			snap["scan_support_effects"] = (effects_variant as Dictionary).duplicate(true)
+
 	return snap
 
 
@@ -687,7 +692,11 @@ func _count_scan_already_in_progress_blocks(
 		return {"count": 0, "targets": blocked_targets}
 
 	for object_id: String in _collect_known_scannable_object_ids(system_id, base_id):
-		var scan_active: bool = ac.get_active_scan_drone_count_for_target(object_id) > 0
+		var scan_active: bool = false
+		if ac.has_method("has_active_shared_scan_job_for_target"):
+			scan_active = bool(ac.call("has_active_shared_scan_job_for_target", object_id))
+		else:
+			scan_active = ac.get_active_scan_drone_count_for_target(object_id) > 0
 		var gate: Dictionary = GameSession.can_scan_object(
 			system_id,
 			object_id,

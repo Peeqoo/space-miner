@@ -161,6 +161,11 @@ layout_mode = 2
 text = "Drones in Orbit: 0"
 label_settings = ExtResource("6_oi0nm")
 
+[node name="ScanDroneCountLabel" type="Label" parent="Margin/Root/OrbitStatusSection" unique_id=920000104]
+layout_mode = 2
+text = "ScanDrones assigned: 0"
+label_settings = ExtResource("6_oi0nm")
+
 [node name="MiningShipCountLabel" type="Label" parent="Margin/Root/OrbitStatusSection" unique_id=920000103]
 layout_mode = 2
 text = "MiningShips assigned: 0"

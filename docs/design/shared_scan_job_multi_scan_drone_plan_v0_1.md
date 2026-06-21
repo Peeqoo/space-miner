@@ -6,7 +6,7 @@
 **Parent plan:** `docs/design/unlimited_production_multi_unit_target_plan_v0_1.md` (Step 5)  
 **Audit reference:** `docs/audits/base_panel_unload_and_limits_audit_v0_1.md`
 
-**Implementation status (2026-06-07):** Step 3 runtime model done (`docs/audits/shared_scan_job_step_3_runtime_model_v0_1.md`). Step 2 target telemetry done (`docs/audits/shared_scan_job_step_2_telemetry_v0_1.md`). No Multi-SD gameplay unlock. No UI Assign. No progress-speed stacking. `KEY_SCAN_ALREADY_IN_PROGRESS` unchanged. SAVE_VERSION unchanged.
+**Implementation status (2026-06-07):** Step 7 **existing effect stacking done** (`docs/audits/shared_scan_job_step_7_existing_effect_stacking_v0_1.md`). Step 6 UI Assign ScanDrone done. Multi-SD assignment enabled. No scan-speed scaling; no diminishing returns. Multiple ScanDrones stack `mining_yield_bonus_per_support_drone_percent` linearly from `.tres`. SAVE_VERSION 1.
 
 ---
 

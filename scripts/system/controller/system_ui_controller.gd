@@ -30,6 +30,7 @@ const _MS_RT_TO_TARGET := 0
 const _MS_RT_MINING := 1
 
 const MINING_BUTTON_TEXT_ASSIGN: String = "Assign MiningShip"
+const SCAN_BUTTON_TEXT_ASSIGN: String = "Assign ScanDrone"
 const _MS_RT_TO_BASE := 2
 const _MS_RT_UNLOADING := 3
 const _MS_RT_WAITING_STORAGE := 4
@@ -664,6 +665,10 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 	info["show_scan_with_drone"] = false
 	info["can_scan_with_drone"] = false
 	info["scan_blocked_reason"] = ""
+	info["scan_button_text"] = ""
+	info["assigned_scan_drone_count"] = 0
+	info["show_scan_drone_status"] = false
+	info["has_active_shared_scan_job"] = false
 
 	if selected_node == null:
 		return
@@ -682,7 +687,21 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 		return
 
 	var base_id: String = _economy_body_id_for_ui()
-	var scan_active: bool = _get_active_scan_drone_count(object_id) > 0
+	var has_active_job: bool = _has_active_shared_scan_job_for_target(object_id)
+	var assigned_count: int = _get_assigned_scan_drone_count(object_id)
+	info["assigned_scan_drone_count"] = assigned_count
+	info["show_scan_drone_status"] = assigned_count > 0 or has_active_job
+	info["has_active_shared_scan_job"] = has_active_job
+
+	if has_active_job:
+		var assign_gate: Dictionary = _get_assign_scan_drone_gate(object_id)
+		info["show_scan_with_drone"] = true
+		info["can_scan_with_drone"] = bool(assign_gate.get("ok", false))
+		info["scan_blocked_reason"] = str(assign_gate.get("blocked_reason", "")).strip_edges()
+		info["scan_button_text"] = SCAN_BUTTON_TEXT_ASSIGN
+		return
+
+	var scan_active: bool = has_active_job
 	var scan_gate: Dictionary = GameSession.can_scan_object(
 		sys_id,
 		object_id,
@@ -1037,13 +1056,21 @@ func _on_object_scan_requested(object_id: String) -> void:
 	if automation_controller == null:
 		return
 
+	if _has_active_shared_scan_job_for_target(object_id):
+		if automation_controller.assign_scan_drone_to_shared_job(object_id):
+			update_object_info()
+		else:
+			AudioManager.play_sfx_optional(&"not_enough_resources")
+			update_object_info()
+		return
+
 	var sys_id: String = system_definition.id.strip_edges()
 	var scan_gate: Dictionary = GameSession.can_scan_object(
 		sys_id,
 		object_id,
 		_economy_body_id_for_ui(),
 		_has_available_drone(),
-		_get_active_scan_drone_count(object_id) > 0,
+		_has_active_shared_scan_job_for_target(object_id),
 	)
 	if not bool(scan_gate.get("ok", false)):
 		AudioManager.play_sfx_optional(&"not_enough_resources")
@@ -1185,6 +1212,24 @@ func _get_active_scan_drone_count(object_id: String) -> int:
 		return automation_controller.get_active_scan_drone_count_for_target(object_id)
 
 	return 0
+
+
+func _get_assigned_scan_drone_count(object_id: String) -> int:
+	if object_id.is_empty() or automation_controller == null:
+		return 0
+	return automation_controller.get_assigned_scan_drone_count_for_target(object_id)
+
+
+func _has_active_shared_scan_job_for_target(object_id: String) -> bool:
+	if object_id.is_empty() or automation_controller == null:
+		return false
+	return automation_controller.has_active_shared_scan_job_for_target(object_id)
+
+
+func _get_assign_scan_drone_gate(object_id: String) -> Dictionary:
+	if object_id.is_empty() or automation_controller == null:
+		return {"ok": false, "blocked_reason": "", "blocked_reason_key": &""}
+	return automation_controller.can_assign_scan_drone_to_shared_job(object_id)
 
 
 func _get_active_mining_ship_count(object_id: String) -> int:

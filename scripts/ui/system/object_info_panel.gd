@@ -33,6 +33,7 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var orbit_status_section: VBoxContainer = $Margin/Root/OrbitStatusSection
 
 @onready var drone_orbit_label: Label = $Margin/Root/OrbitStatusSection/DroneOrbitLabel
+@onready var scan_drone_count_label: Label = $Margin/Root/OrbitStatusSection/ScanDroneCountLabel
 @onready var mining_ship_count_label: Label = $Margin/Root/OrbitStatusSection/MiningShipCountLabel
 @onready var mine_orbit_label: Label = $Margin/Root/OrbitStatusSection/MineOrbitLabel
 @onready var mining_bonus_label: Label = $Margin/Root/OrbitStatusSection/MiningBonusLabel
@@ -103,6 +104,7 @@ var _type_label_prefix: String = ""
 var _scan_status_label_prefix: String = ""
 var _distance_label_prefix: String = ""
 var _drone_orbit_label_prefix: String = ""
+var _scan_drone_count_label_prefix: String = ""
 var _mining_ship_count_label_prefix: String = ""
 var _mine_orbit_label_prefix: String = ""
 var _mining_bonus_label_prefix: String = ""
@@ -195,6 +197,7 @@ func _capture_editor_text_templates() -> void:
 	_scan_status_label_prefix = _label_prefix(scan_status_label)
 	_distance_label_prefix = _label_prefix(distance_label)
 	_drone_orbit_label_prefix = _label_prefix(drone_orbit_label)
+	_scan_drone_count_label_prefix = _label_prefix(scan_drone_count_label)
 	_mining_ship_count_label_prefix = _label_prefix(mining_ship_count_label)
 	_mine_orbit_label_prefix = _label_prefix(mine_orbit_label)
 	_mining_bonus_label_prefix = _label_prefix(mining_bonus_label)
@@ -810,6 +813,8 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var mining_mining_count: int = int(info.get("mining_ship_mining_count", 0))
 	var assigned_mining_count: int = int(info.get("assigned_mining_ship_count", 0))
 	var show_mining_ship_status: bool = bool(info.get("show_mining_ship_status", false))
+	var assigned_scan_count: int = int(info.get("assigned_scan_drone_count", 0))
+	var show_scan_drone_status: bool = bool(info.get("show_scan_drone_status", false))
 	var upgrade_base_id: String = str(info.get("mining_yield_upgrade_base_id", "")).strip_edges()
 	if upgrade_base_id.is_empty():
 		upgrade_base_id = BaseStore.BASE_EARTH
@@ -823,9 +828,16 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var activity_any: bool = drone_line_visible or mine_line_visible
 
 	drone_orbit_label.visible = drone_line_visible
+	scan_drone_count_label.visible = show_scan_drone_status
 	mining_ship_count_label.visible = show_mining_ship_status
 	mine_orbit_label.visible = mine_line_visible
 	mining_bonus_label.visible = activity_any
+
+	if show_scan_drone_status:
+		scan_drone_count_label.text = _meta_label(
+			_scan_drone_count_label_prefix,
+			NumberFormat.format_compact(assigned_scan_count),
+		)
 
 	if show_mining_ship_status:
 		mining_ship_count_label.text = _meta_label(
