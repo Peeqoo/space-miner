@@ -7,8 +7,7 @@ const SYSTEM_SCENE_PATH: String = "res://scenes/system/system_scene.tscn"
 const SYSTEM_ID: String = "solar-system"
 const TARGET_OBJECT_ID: String = "mars"
 const BASE_ID: String = BaseStore.BASE_EARTH
-const MINE_BUTTON_DEFAULT: String = "Mine"
-const MINE_BUTTON_ASSIGN: String = "Assign MiningShip"
+const MINE_BUTTON_TEXT: String = "Mine"
 
 var _failures: Array[String] = []
 var _notes: Array[String] = []
@@ -87,8 +86,10 @@ func _test_a_zero_assigned() -> void:
 
 	if assigned != 0:
 		_fail("Test A: expected assigned count 0, got %d" % assigned)
-	if _mine_button.text != MINE_BUTTON_DEFAULT:
-		_fail("Test A: expected button '%s', got '%s'" % [MINE_BUTTON_DEFAULT, _mine_button.text])
+	if _mine_button.text != MINE_BUTTON_TEXT:
+		_fail("Test A: expected button '%s', got '%s'" % [MINE_BUTTON_TEXT, _mine_button.text])
+	if _mine_button.text == "Assign MiningShip":
+		_fail("Test A: must not show Assign MiningShip")
 	if not _mining_count_label.visible:
 		_fail("Test A: MiningShipCountLabel should be visible for mineable Mars")
 
@@ -104,8 +105,8 @@ func _test_b_one_assigned() -> void:
 
 	if assigned != 1:
 		_fail("Test B: expected assigned count 1, got %d" % assigned)
-	if _mine_button.text != MINE_BUTTON_ASSIGN:
-		_fail("Test B: expected button '%s', got '%s'" % [MINE_BUTTON_ASSIGN, _mine_button.text])
+	if _mine_button.text != MINE_BUTTON_TEXT:
+		_fail("Test B: expected button '%s', got '%s'" % [MINE_BUTTON_TEXT, _mine_button.text])
 
 
 func _test_c_two_assigned() -> void:
@@ -126,8 +127,8 @@ func _test_c_two_assigned() -> void:
 
 	if assigned != 2:
 		_fail("Test C: expected assigned count 2, got %d" % assigned)
-	if _mine_button.text != MINE_BUTTON_ASSIGN:
-		_fail("Test C: expected button '%s', got '%s'" % [MINE_BUTTON_ASSIGN, _mine_button.text])
+	if _mine_button.text != MINE_BUTTON_TEXT:
+		_fail("Test C: expected button '%s', got '%s'" % [MINE_BUTTON_TEXT, _mine_button.text])
 	if blocked.to_lower().contains("already"):
 		_fail("Test C: unexpected 'already mining' block: %s" % blocked)
 
@@ -152,6 +153,8 @@ func _test_d_no_idle_button_disabled() -> void:
 		_fail("Test D: mine button should be disabled when no idle MiningShip")
 	if assigned < 1:
 		_fail("Test D: expected assigned count >= 1, got %d" % assigned)
+	if _mine_button.text != MINE_BUTTON_TEXT:
+		_fail("Test D: disabled button must keep '%s', got '%s'" % [MINE_BUTTON_TEXT, _mine_button.text])
 
 
 func _test_e_base_panel_stays_closed_on_refresh() -> void:

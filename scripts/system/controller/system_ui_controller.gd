@@ -29,8 +29,8 @@ var _storage_context_base_id: String = ""
 const _MS_RT_TO_TARGET := 0
 const _MS_RT_MINING := 1
 
-const MINING_BUTTON_TEXT_ASSIGN: String = "Assign MiningShip"
-const SCAN_BUTTON_TEXT_ASSIGN: String = "Assign ScanDrone"
+const MINING_BUTTON_TEXT: String = "Mine"
+const SCAN_BUTTON_TEXT: String = "Scan"
 const _MS_RT_TO_BASE := 2
 const _MS_RT_UNLOADING := 3
 const _MS_RT_WAITING_STORAGE := 4
@@ -583,8 +583,8 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 			bool(info.get("show_mine_with_ship", false))
 			or int(info["assigned_mining_ship_count"]) > 0
 		)
-		if int(info["assigned_mining_ship_count"]) > 0 and bool(info.get("show_mine_with_ship", false)):
-			info["mining_button_text"] = MINING_BUTTON_TEXT_ASSIGN
+		if bool(info.get("show_mine_with_ship", false)):
+			info["mining_button_text"] = MINING_BUTTON_TEXT
 		else:
 			info["mining_button_text"] = ""
 		info["scan_drone_supporting_count"] = _get_orbiting_drone_count(object_id)
@@ -707,37 +707,15 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 		info["show_scan_with_drone"] = true
 		info["can_scan_with_drone"] = bool(assign_gate.get("ok", false))
 		info["scan_blocked_reason"] = str(assign_gate.get("blocked_reason", "")).strip_edges()
-		info["scan_button_text"] = SCAN_BUTTON_TEXT_ASSIGN
 	elif show_scan_button:
 		info["show_scan_with_drone"] = true
 		info["can_scan_with_drone"] = bool(scan_gate.get("ok", false))
 		info["scan_blocked_reason"] = str(scan_gate.get("blocked_reason", "")).strip_edges()
-		info["scan_button_text"] = _scan_button_label_for_target_state(target_state)
+
+	if bool(info["show_scan_with_drone"]):
+		info["scan_button_text"] = SCAN_BUTTON_TEXT
 
 	info["show_scan_drone_status"] = bool(info["show_scan_with_drone"]) or assigned_count > 0
-
-
-func _scan_button_label_for_target_state(target_scan_state: String) -> String:
-	var state: String = target_scan_state.strip_edges()
-	if state.is_empty():
-		return ""
-	var layer_label: String = _title_case_token(state)
-	if layer_label.is_empty():
-		return ""
-	return "%s Scan" % layer_label
-
-
-func _title_case_token(value: String) -> String:
-	var cleaned: String = value.strip_edges().replace("_", " ")
-	if cleaned.is_empty():
-		return ""
-	var words: PackedStringArray = cleaned.split(" ", false)
-	var result_words: PackedStringArray = []
-	for word: String in words:
-		if word.is_empty():
-			continue
-		result_words.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
-	return " ".join(result_words)
 
 
 func _apply_sensor_pulse_info_to_dict(info: Dictionary) -> void:
@@ -821,8 +799,8 @@ func _apply_mining_ship_info_to_dict(
 	info["assigned_mining_ship_count"] = assigned_count
 	info["show_mining_ship_status"] = bool(info["show_mine_with_ship"]) or assigned_count > 0
 	info["mining_button_text"] = ""
-	if assigned_count > 0 and bool(info["show_mine_with_ship"]):
-		info["mining_button_text"] = MINING_BUTTON_TEXT_ASSIGN
+	if bool(info["show_mine_with_ship"]):
+		info["mining_button_text"] = MINING_BUTTON_TEXT
 
 
 func _get_preview_texture(node: Node) -> Texture2D:

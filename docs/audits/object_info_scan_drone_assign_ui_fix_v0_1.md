@@ -42,10 +42,12 @@ No typo `"Assigned ScanDrone"` in codebase.
 
 | State | Before | After |
 |-------|--------|-------|
-| Scannable, 0 drones | Button `"Scan"`, count often hidden | Button `"Basic Scan"`, count visible |
-| Active job, idle SD | Assign text (if visible) | `"Assign ScanDrone"`, count N, enabled |
-| Active job, no idle SD | Assign sometimes hidden | `"Assign ScanDrone"`, count N, **disabled** |
-| Support-only post-scan | Risk of Assign label | Layer scan button (e.g. Deep Scan), no Assign |
+| Scannable, 0 drones | Button `"Scan"`, count visible | Button `"Scan"`, count visible |
+| Active job, idle SD | `"Assign ScanDrone"`, count N, enabled | unchanged |
+| Active job, no idle SD | Assign disabled | unchanged |
+| Support-only post-scan | Layer scan button | Button `"Scan"` if next layer scannable |
+
+**2026-06-07 follow-up:** Layer-specific button labels (`Basic Scan`, etc.) reverted — normal scan always `"Scan"`.
 
 ---
 

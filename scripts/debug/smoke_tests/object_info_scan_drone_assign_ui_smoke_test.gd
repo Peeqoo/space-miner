@@ -8,9 +8,8 @@ const SYSTEM_ID: String = "solar-system"
 const TARGET_OBJECT_ID: String = "mars"
 const BASE_ID: String = BaseStore.BASE_EARTH
 
-const SCAN_BUTTON_BASIC: String = "Basic Scan"
-const SCAN_BUTTON_ASSIGN: String = "Assign ScanDrone"
-const MINE_BUTTON_ASSIGN: String = "Assign MiningShip"
+const SCAN_BUTTON_TEXT: String = "Scan"
+const MINE_BUTTON_TEXT: String = "Mine"
 
 var _failures: Array[String] = []
 var _notes: Array[String] = []
@@ -90,8 +89,8 @@ func _test_a_normal_scan_button() -> void:
 	_results["test_a_count_visible"] = _scan_count_label.visible
 	if assigned != 0:
 		_fail("Test A: expected assigned count 0, got %d" % assigned)
-	if _scan_button.text != SCAN_BUTTON_BASIC:
-		_fail("Test A: expected '%s', got '%s'" % [SCAN_BUTTON_BASIC, _scan_button.text])
+	if _scan_button.text != SCAN_BUTTON_TEXT:
+		_fail("Test A: expected '%s', got '%s'" % [SCAN_BUTTON_TEXT, _scan_button.text])
 	if _scan_button.text == "Assigned ScanDrone":
 		_fail("Test A: typo 'Assigned ScanDrone' must not appear")
 	if not _scan_count_label.visible:
@@ -109,8 +108,8 @@ func _test_b_active_job_assign() -> void:
 	_results["test_b_count_visible"] = _scan_count_label.visible
 	if assigned < 1:
 		_fail("Test B: expected assigned count >= 1, got %d" % assigned)
-	if _scan_button.text != SCAN_BUTTON_ASSIGN:
-		_fail("Test B: expected '%s', got '%s'" % [SCAN_BUTTON_ASSIGN, _scan_button.text])
+	if _scan_button.text != SCAN_BUTTON_TEXT:
+		_fail("Test B: expected '%s', got '%s'" % [SCAN_BUTTON_TEXT, _scan_button.text])
 	if not _scan_count_label.visible:
 		_fail("Test B: ScanDroneCountLabel must stay visible with active job")
 
@@ -128,8 +127,8 @@ func _test_c_second_assign() -> void:
 	_results["test_c_button"] = _scan_button.text
 	if assigned != 2:
 		_fail("Test C: expected assigned count 2, got %d" % assigned)
-	if _has_idle_scan_drone() and _scan_button.text != SCAN_BUTTON_ASSIGN:
-		_fail("Test C: expected '%s' when idle drone remains" % SCAN_BUTTON_ASSIGN)
+	if _has_idle_scan_drone() and _scan_button.text != SCAN_BUTTON_TEXT:
+		_fail("Test C: expected '%s' when idle drone remains" % SCAN_BUTTON_TEXT)
 
 
 func _test_d_no_idle_disabled() -> void:
@@ -150,9 +149,9 @@ func _test_d_no_idle_disabled() -> void:
 		_fail("Test D: assigned count should remain visible (>= 1), got %d" % assigned)
 	if not _scan_count_label.visible:
 		_fail("Test D: ScanDroneCountLabel must stay visible when button disabled")
-	if _scan_button.text != SCAN_BUTTON_ASSIGN:
-		_fail("Test D: disabled assign state must keep '%s', got '%s'" % [
-			SCAN_BUTTON_ASSIGN, _scan_button.text,
+	if _scan_button.text != SCAN_BUTTON_TEXT:
+		_fail("Test D: disabled state must keep '%s', got '%s'" % [
+			SCAN_BUTTON_TEXT, _scan_button.text,
 		])
 
 
@@ -185,10 +184,10 @@ func _test_e_support_only_after_completion() -> void:
 	_results["test_e_has_active_job"] = _automation.has_active_shared_scan_job_for_target(TARGET_OBJECT_ID)
 	if _automation.has_active_shared_scan_job_for_target(TARGET_OBJECT_ID):
 		_fail("Test E: support-only must not show active SharedScanJob")
-	if _scan_button.text == SCAN_BUTTON_ASSIGN:
+	if _scan_button.text == "Assign ScanDrone":
 		_fail("Test E: support-only must not show Assign ScanDrone")
-	if _scan_button.text != SCAN_BUTTON_BASIC:
-		_notes.append("Test E: post-basic-scan button text is '%s'" % _scan_button.text)
+	if _scan_button.text != SCAN_BUTTON_TEXT:
+		_fail("Test E: support-only must show '%s', got '%s'" % [SCAN_BUTTON_TEXT, _scan_button.text])
 	var sd_after: int = GameSession.get_base_resource_amount(BASE_ID, "SurveyData")
 	if sd_after <= _sd_at_start:
 		_fail("Test E: expected SurveyData reward once during completion poll")
@@ -205,9 +204,9 @@ func _test_f_mining_regression() -> void:
 		return
 	_refresh_mars_selection()
 	_results["test_f_mine_button"] = _mine_button.text
-	if _mine_button.text != MINE_BUTTON_ASSIGN:
-		_fail("Test F: mining assign regression — expected '%s', got '%s'" % [
-			MINE_BUTTON_ASSIGN, _mine_button.text,
+	if _mine_button.text != MINE_BUTTON_TEXT:
+		_fail("Test F: mining regression — expected '%s', got '%s'" % [
+			MINE_BUTTON_TEXT, _mine_button.text,
 		])
 
 

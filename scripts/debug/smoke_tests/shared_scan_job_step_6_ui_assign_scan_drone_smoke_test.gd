@@ -9,8 +9,7 @@ const TARGET_OBJECT_ID: String = "mars"
 const BASE_ID: String = BaseStore.BASE_EARTH
 const TEST_SAVE_SLOT: int = 3
 
-const SCAN_BUTTON_BASIC: String = "Basic Scan"
-const SCAN_BUTTON_ASSIGN: String = "Assign ScanDrone"
+const SCAN_BUTTON_TEXT: String = "Scan"
 
 var _failures: Array[String] = []
 var _notes: Array[String] = []
@@ -85,8 +84,8 @@ func _test_a_baseline() -> void:
 	_results["test_a_button"] = _scan_button.text
 	if assigned != 0:
 		_fail("Test A: expected assigned count 0, got %d" % assigned)
-	if _scan_button.text != SCAN_BUTTON_BASIC:
-		_fail("Test A: expected button '%s', got '%s'" % [SCAN_BUTTON_BASIC, _scan_button.text])
+	if _scan_button.text != SCAN_BUTTON_TEXT:
+		_fail("Test A: expected button '%s', got '%s'" % [SCAN_BUTTON_TEXT, _scan_button.text])
 	_automation.launch_scan_drone(TARGET_OBJECT_ID)
 	if not _automation.has_active_shared_scan_job_for_target(TARGET_OBJECT_ID):
 		_fail("Test A: launch_scan_drone did not create SharedScanJob")
@@ -96,8 +95,8 @@ func _test_a_baseline() -> void:
 	if assigned_after_launch < 1:
 		_fail("Test A: expected assigned count >= 1 after launch")
 	_refresh_mars_selection()
-	if _has_idle_scan_drone() and _scan_button.text != SCAN_BUTTON_ASSIGN:
-		_fail("Test A: expected Assign button after launch when idle drone exists")
+	if _has_idle_scan_drone() and _scan_button.text != SCAN_BUTTON_TEXT:
+		_fail("Test A: expected Scan button after launch when idle drone exists")
 	_results["test_a_after_launch_button"] = _scan_button.text
 
 
@@ -114,9 +113,9 @@ func _test_b_assign_second() -> void:
 	_results["test_b_button"] = _scan_button.text
 	if assigned != 2:
 		_fail("Test B: expected assigned count 2, got %d" % assigned)
-	if _has_idle_scan_drone() and _scan_button.text != SCAN_BUTTON_ASSIGN:
+	if _has_idle_scan_drone() and _scan_button.text != SCAN_BUTTON_TEXT:
 		_fail("Test B: expected button '%s' when idle drone remains, got '%s'" % [
-			SCAN_BUTTON_ASSIGN, _scan_button.text,
+			SCAN_BUTTON_TEXT, _scan_button.text,
 		])
 	var sd_now: int = GameSession.get_base_resource_amount(BASE_ID, "SurveyData")
 	if sd_now != _sd_at_scan_start:
