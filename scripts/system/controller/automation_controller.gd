@@ -12,7 +12,10 @@ const SURVEY_PROBE_SCENE: PackedScene = preload("res://scenes/automation/survey_
 const UNIT_ID_SCAN_DRONE := "scan_drone"
 const UNIT_ID_MINING_SHIP := "mining_ship"
 
-## Safety fallbacks only when `UnitDefinition` fails to load — not the primary data source.
+## Emergency fallback only when ScanDrone `UnitDefinition` is missing or `scan_duration_seconds <= 0`.
+## Normal paths: idle/orbit drone stats use `data/units/scan_drone.tres`; active scan missions use
+## `GameSession.get_scan_duration_seconds_for_target_state()` (balance layer durations × upgrades).
+## SharedScanJob completion is arrival-driven — not gated by this constant.
 const DEFAULT_SCAN_DURATION_FALLBACK: float = 2.0
 const DEFAULT_MINING_CARGO_CAPACITY_FALLBACK: int = 20
 const DEFAULT_MINING_RATE_PER_SECOND_FALLBACK: float = 2.0

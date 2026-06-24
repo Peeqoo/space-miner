@@ -15,6 +15,8 @@ const KEY_MINE_NOT_SCANNED := &"mine_not_scanned"
 const KEY_MINE_NO_RESOURCES := &"mine_no_resources"
 const KEY_MINE_DEPLETED := &"mine_depleted"
 const KEY_MINE_NO_SHIP := &"mine_no_ship"
+## Reserved v0.1: mining unload uses `KEY_STORAGE_FULL` via `get_base_storage_blocked_reason_full()`.
+## Not emitted by `can_mine_object`. Fallback + optional future mine-specific copy.
 const KEY_MINE_STORAGE_FULL := &"mine_storage_full"
 
 const KEY_BUILD_NOT_ENOUGH_RESOURCES := &"build_not_enough_resources"
@@ -24,6 +26,8 @@ const KEY_BUILD_SCAN_DRONE_LIMIT := &"build_scan_drone_limit"
 const KEY_BUILD_MINING_SHIP_LIMIT := &"build_mining_ship_limit"
 
 const KEY_UPGRADE_NOT_ENOUGH_RESOURCES := &"upgrade_not_enough_resources"
+## Reserved v0.1: max-level upgrades return `KEY_NONE` (button hidden/disabled in `upgrade_panel.tscn`).
+## Template in `.tres` for future hover/block copy; not emitted by `get_buy_next_upgrade_blocked_reason_key`.
 const KEY_UPGRADE_MAX_LEVEL := &"upgrade_max_level"
 
 const KEY_STORAGE_FULL := &"storage_full"
