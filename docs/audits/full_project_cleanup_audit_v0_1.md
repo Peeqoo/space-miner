@@ -610,3 +610,7 @@ Siehe **Section 19** unten (vollständiger Pfad).
 ---
 
 *End of audit — no project files were modified except this document.*
+
+---
+
+> **Superseded for current status by** [`full_project_cleanup_audit_v0_2.md`](full_project_cleanup_audit_v0_2.md) **(2026-06-07).** This v0.1 file remains the historical baseline from commit `150a9b69`.
