@@ -93,6 +93,10 @@ static func format_investigate_progress(percent: int) -> String:
 	return format_str % maxi(0, percent)
 
 
+static func get_sensor_pulse_button_label() -> String:
+	return get_template(KEY_SENSOR_PULSE_BUTTON_LABEL)
+
+
 static func format_sensor_pulse_progress(percent: int) -> String:
 	var format_str := get_template(KEY_SENSOR_PULSE_PROGRESS)
 	if format_str.is_empty():

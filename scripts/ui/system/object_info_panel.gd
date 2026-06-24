@@ -165,6 +165,7 @@ func _ready() -> void:
 	if sensor_pulse_button != null:
 		if not sensor_pulse_button.pressed.is_connected(_on_sensor_pulse_pressed):
 			sensor_pulse_button.pressed.connect(_on_sensor_pulse_pressed)
+		sensor_pulse_button.text = DiscoverySignalUiTextDefinition.get_sensor_pulse_button_label()
 
 	_mining_button_text_default = send_mining_ship_button.text
 	_scan_button_text_default = scan_with_drone_button.text
@@ -575,6 +576,7 @@ func _apply_signal_discovery_controls() -> void:
 	if not is_signal:
 		if investigate_button != null:
 			investigate_button.visible = false
+		_hide_investigate_progress_ui()
 		return
 
 	if investigate_button == null:
