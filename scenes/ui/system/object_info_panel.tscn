@@ -243,7 +243,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 10
-text = "Recall Mining Ship"
+text = "Recall Ship"
 
 [node name="ColonizationButton" type="Button" parent="Margin/Root/GridContainer" unique_id=920113406]
 visible = false

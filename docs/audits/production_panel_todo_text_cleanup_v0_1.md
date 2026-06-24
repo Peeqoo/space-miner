@@ -49,8 +49,8 @@
 
 | Test | Result |
 |------|--------|
-| `production_panel_todo_text_cleanup_smoke_test` A–B | Run after creation |
-| `step_2b_production_scaled_cost_smoke_test` (build still works) | Existing regression |
+| `production_panel_todo_text_cleanup_smoke_test` A–B | **PASS** |
+| `step_2b_production_scaled_cost_smoke_test` (build still works) | **PASS** |
 
 ---
 
