@@ -5,16 +5,39 @@
 
 ---
 
+## Audit summary
+
+ProductionPanel shows **no unfinished TODO or timer planning text**. Phase 1 already removed visible strings such as `"instant build — timer TODO"`. Builds remain **instant**; `build_time_seconds` exists only in data/API for future queue UI. This task adds audit closure and smoke verification — **no gameplay, cost, gate, or save changes**.
+
+---
+
 ## Audit answers
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | Player-facing texts? | Button labels (`ScanDrone`, `MiningShip`, `Survey Probe`, `ColonyShip`), hover title/cost, `ProductionDefinition.short_description` / `effect_lines` from `.tres` |
-| 2 | TODOs only in code? | **Yes** — `production_panel.gd` line ~205 and `production_definition.gd` line ~8 are **comments only**; not shown in UI |
-| 3 | What does player see? | Build buttons + custom hover section (description, costs, block reasons, colony prerequisites) — **no build-time row** |
+| 1 | Player-facing texts? | Header (`Production`), build buttons, hover title/description/cost, colony prerequisite lines, gate `blocked_reason` strings |
+| 2 | TODOs only in code? | **Yes** — see table below; none rendered in UI |
+| 3 | What does player see? | Build buttons + hover (description, scaled costs, block reasons) — **no build-time row** |
 | 4 | Scene labels for build time? | **No** dedicated build-time label in `production_panel.tscn` |
-| 5 | Production instant? | **Yes** — `GameSession.build_base_*` completes immediately; `build_time_seconds` in data is not rendered |
-| 6 | Planned timers? | `build_time_seconds` / `get_colony_ship_build_time_seconds()` exist for future use; **no queue UI in v0.1** |
+| 5 | Production instant? | **Yes** — `GameSession.build_base_*` completes immediately |
+| 6 | Planned timers? | `build_time_seconds` on `colony_ship.tres`, balance fields, `get_*_build_time_seconds()` — **not wired to UI** |
+
+---
+
+## Found TODO / timer references
+
+| Location | Text / symbol | Player-visible? | Decision |
+|----------|---------------|-----------------|----------|
+| `production_panel.tscn` | *(none)* | — | No change |
+| `production_panel.gd` ~205 | Code comment: instant builds, `build_time_seconds` data-only | **No** | Keep comment |
+| `production_definition.gd` ~8 | Code comment: `build_time_seconds`, GameSession TODO | **No** | Keep comment |
+| `colony_ship.tres` | `build_time_seconds = 120.0` | **No** (data only) | No change |
+| `game_session.gd` | `get_colony_ship_build_time_seconds()` etc. | **No** (not called from panel) | No change |
+| `base_store.gd` | *(none)* | — | No change |
+| `data/production/*.tres` | Normal `short_description` / `effect_lines` | **Yes** (hover) | Already clean — no TODO copy |
+| Pre-cleanup hover (audit) | `"instant build — timer TODO"` | Was **yes** | **Removed** in Phase 1 |
+
+**Build-time UI strategy:** Row **hidden** (not rendered). No `"Instant"` line needed — absence is neutral for v0.1.
 
 ---
 
@@ -22,26 +45,28 @@
 
 | Location | Old (pre-cleanup) | Current |
 |----------|-------------------|---------|
-| Scene / hover | e.g. `"instant build — timer TODO"` | `"Hover an production to see details."` (placeholder only) |
+| Hover placeholder | `"instant build — timer TODO"` (or similar) | `"Hover an production to see details."` |
+| Hover on colony ship | Timer TODO copy | Description + prerequisites + costs |
 | Build buttons | unchanged | `ScanDrone`, `MiningShip`, `Survey Probe`, `ColonyShip` |
-| Hover on item | TODO timer copy | Description + costs + gates from data |
 
 ---
 
-## Decision
+## Changed files
 
-**No code/scene changes required** — Phase 1 already removed visible TODO strings. This task adds audit closure + smoke verification.
-
----
-
-## Files verified (unchanged)
-
-| File | Status |
+| File | Change |
 |------|--------|
-| `scenes/ui/system/production_panel.tscn` | No TODO/timer text |
-| `scripts/ui/system/production_panel.gd` | No player-facing build-time line; instant comment only |
-| `data/production/*.tres` | Normal descriptions; `colony_ship.build_time_seconds` data-only |
-| `resources/definitions/production_definition.gd` | `build_time_seconds` export; no UI formatting |
+| `docs/audits/production_panel_todo_text_cleanup_v0_1.md` | This audit |
+| `scripts/debug/smoke_tests/production_panel_todo_text_cleanup_smoke_test.gd` | New smoke A/B + regression |
+| `scripts/debug/smoke_tests/production_panel_todo_text_cleanup_smoke_runner.tscn` | New runner |
+
+**Verified unchanged (no edits required):**
+
+- `scenes/ui/system/production_panel.tscn`
+- `scripts/ui/system/production_panel.gd`
+- `scripts/autoload/stores/base_store.gd`
+- `scripts/autoload/game_session.gd`
+- `data/production/*.tres`
+- `SAVE_VERSION` (= 1)
 
 ---
 
@@ -49,8 +74,27 @@
 
 | Test | Result |
 |------|--------|
-| `production_panel_todo_text_cleanup_smoke_test` A–B | **PASS** |
-| `step_2b_production_scaled_cost_smoke_test` (build still works) | **PASS** |
+| **A** — no `TODO` / `timer TODO` / `instant build` in visible labels/hover | **PASS** |
+| **B** — `build_base_drone` instant (+1 drone, iron consumed) | **PASS** |
+| `object_info_simple_action_button_labels_smoke_test` | **PASS WITH NOTES** |
+| `save_behavior_v0_1_smoke_test` | **PASS WITH NOTES** |
+| `SAVE_VERSION = 1`, `tooltip_text = 0` | **PASS** |
+
+Run:
+
+```bash
+godot --headless --path . --scene res://scripts/debug/smoke_tests/production_panel_todo_text_cleanup_smoke_runner.tscn
+```
+
+---
+
+## Risks
+
+| Risk | Mitigation |
+|------|------------|
+| Re-introducing timer copy in `_build_hover_description()` | Smoke A scans panel + hover on all build buttons |
+| Future queue UI shows `build_time_seconds` without design pass | Documented as data-only in v0.1; API exists but unused in panel |
+| Colony ship `build_time_seconds = 120` misread as active timer | Not displayed; instant build behavior unchanged |
 
 ---
 
@@ -60,15 +104,6 @@
 
 ---
 
-## Risks
-
-| Risk | Mitigation |
-|------|------------|
-| Re-introducing timer copy in hover | Smoke A scans all visible labels |
-| `build_time_seconds` shown later without design | Data field documented as non-UI in v0.1 |
-
----
-
 ## Result
 
-**PASS** — Visible TODO/timer copy absent; production behavior unchanged.
+**PASS** — No visible TODO/timer debug text; production behavior, costs, gates, and save version unchanged.

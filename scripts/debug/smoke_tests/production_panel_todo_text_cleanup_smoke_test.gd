@@ -83,6 +83,17 @@ func _test_a_no_todo_in_panel(panel: ProductionPanel) -> void:
 			if lower.contains(forbidden.to_lower()):
 				_fail("Test A: forbidden '%s' in hover '%s'" % [forbidden, text])
 
+	_check_hover_cost_on_scan_drone(panel)
+
+
+func _check_hover_cost_on_scan_drone(panel: ProductionPanel) -> void:
+	panel._on_button_hover_entered(panel.build_scan_drone_button)
+	var cost_text: String = panel.hover_cost_label.text
+	_results["test_a_scan_drone_cost_hover"] = cost_text
+	if not cost_text.contains("Iron"):
+		_fail("Test A: scan drone hover cost should mention Iron, got '%s'" % cost_text)
+	panel._on_button_hover_exited(panel.build_scan_drone_button)
+
 
 func _test_b_build_still_instant() -> void:
 	var iron_before: int = GameSession.get_base_resource_amount(BASE_ID, "Iron")
