@@ -1492,16 +1492,30 @@ func _build_hover_details(kind: String) -> Dictionary:
 		"storage":
 			title = "Storage"
 			var resources_s: Dictionary = GameSession.get_base_resources(base_id)
-			var keys_sorted: Array = resources_s.keys()
-			keys_sorted.sort()
+			var resource_ids: Array[StringName] = []
+			for res_key: Variant in resources_s.keys():
+				var rid := str(res_key).strip_edges()
+				var amt_s := int(resources_s.get(res_key, 0))
+				if amt_s <= 0 or rid.is_empty():
+					continue
+				resource_ids.append(StringName(rid))
+
+			var sorted_ids: Array[StringName] = GameSession.get_storage_resource_ids_sorted(
+				resource_ids
+			)
 			var has_any := false
-			for res_id: Variant in keys_sorted:
-				var amt_s := int(resources_s.get(res_id, 0))
-				if amt_s <= 0:
+			for rid_sn: StringName in sorted_ids:
+				var rid := String(rid_sn)
+				var amt_line := int(resources_s.get(rid, resources_s.get(rid_sn, 0)))
+				if amt_line <= 0:
 					continue
 				has_any = true
+				var display_name := GameSession.get_resource_display_name(
+					rid_sn,
+					rid.capitalize()
+				)
 				details.append(
-					"%s: %s" % [str(res_id).capitalize(), NumberFormat.format_compact(amt_s)]
+					"%s: %s" % [display_name, NumberFormat.format_compact(amt_line)]
 				)
 			if not has_any:
 				details.append("No resources stored.")
