@@ -9,6 +9,9 @@ const SYSTEM_ID: String = "solar-system"
 const SIGNAL_OBJECT_ID: String = "venus"
 const BASE_ID: String = BaseStore.BASE_EARTH
 const HIDDEN_CANDIDATE_ID: String = "jupiter"
+const SIGNAL_INVESTIGATE_LABEL_PATH: String = (
+	"Margin/Root/SignalInfoSubPanel/InvestigateProgressLabel"
+)
 
 var _failures: Array[String] = []
 var _notes: Array[String] = []
@@ -50,9 +53,7 @@ func _test_a_scene_nodes() -> void:
 		return
 	add_child(panel)
 
-	var investigate: Label = panel.get_node_or_null(
-		"Margin/Root/InvestigateProgressLabel"
-	) as Label
+	var investigate: Label = panel.get_node_or_null(SIGNAL_INVESTIGATE_LABEL_PATH) as Label
 	var sensor_pulse: Label = panel.get_node_or_null(
 		"Margin/Root/SensorPulseProgressLabel"
 	) as Label
@@ -90,9 +91,7 @@ func _setup_runtime_tests() -> void:
 		_finish()
 		return
 
-	_investigate_label = _object_info.get_node_or_null(
-		"Margin/Root/InvestigateProgressLabel"
-	) as Label
+	_investigate_label = _object_info.get_node_or_null(SIGNAL_INVESTIGATE_LABEL_PATH) as Label
 	_sensor_pulse_label = _object_info.get_node_or_null(
 		"Margin/Root/SensorPulseProgressLabel"
 	) as Label

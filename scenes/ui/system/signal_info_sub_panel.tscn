@@ -1,0 +1,68 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/system/signal_info_sub_panel.gd" id="1"]
+[ext_resource type="LabelSettings" path="res://scenes/ui/font_labels/titel_label_small.tres" id="2"]
+[ext_resource type="LabelSettings" path="res://scenes/ui/font_labels/text_label.tres" id="3"]
+[ext_resource type="FontFile" path="res://assets/fonts/PixelOperatorHBSC.ttf" id="4"]
+
+[node name="SignalInfoSubPanel" type="VBoxContainer"]
+visible = false
+theme_override_constants/separation = 2
+script = ExtResource("1")
+
+[node name="LoreTitleLabel" type="Label" parent="."]
+layout_mode = 2
+text = "Info"
+label_settings = ExtResource("2")
+
+[node name="LorePanel" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LoreMargin" type="MarginContainer" parent="LorePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="LoreTextLabel" type="Label" parent="LorePanel/LoreMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unknown signal detected by the base sensors."
+label_settings = ExtResource("3")
+autowrap_mode = 3
+
+[node name="EconomyBlockLabel" type="Label" parent="."]
+visible = false
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+label_settings = ExtResource("3")
+autowrap_mode = 3
+
+[node name="InvestigateProgressLabel" type="Label" parent="."]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Investigating: 0%"
+label_settings = ExtResource("3")
+
+[node name="InvestigateButton" type="Button" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 10
+text = "Investigate"
+
+[node name="InvestigateProgressFormatTemplate" type="Label" parent="."]
+visible = false
+layout_mode = 2
+text = "Investigating: %d%%"
+label_settings = ExtResource("3")
+
+[node name="NoDescriptionLoreTemplate" type="Label" parent="."]
+visible = false
+layout_mode = 2
+text = "No description available."
+label_settings = ExtResource("3")

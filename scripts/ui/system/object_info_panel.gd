@@ -25,12 +25,15 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var resource_title_label: Label = $Margin/Root/ResourceTitleLabel
 @onready var resource_panel: PanelContainer = $Margin/Root/ResourcePanel
 @onready var resource_list: VBoxContainer = $Margin/Root/ResourcePanel/ResourceMargin/ResourceScroll/ResourceList
+@onready var divider_c: HSeparator = $Margin/Root/DividerC
 @onready var lore_title_label: Label = $Margin/Root/LoreTitleLabel
 @onready var lore_panel: PanelContainer = $Margin/Root/LorePanel
 @onready var lore_scroll: ScrollContainer = $Margin/Root/LorePanel/LoreMargin/LoreScroll
 @onready var lore_text_label: Label = $Margin/Root/LorePanel/LoreMargin/LoreScroll/LoreTextLabel
 @onready var divider_d: HSeparator = $Margin/Root/DividerD
 @onready var orbit_status_section: VBoxContainer = $Margin/Root/OrbitStatusSection
+@onready var signal_info_sub_panel: SignalInfoSubPanel = $Margin/Root/SignalInfoSubPanel
+@onready var action_grid: GridContainer = $Margin/Root/GridContainer
 
 @onready var drone_orbit_label: Label = $Margin/Root/OrbitStatusSection/DroneOrbitLabel
 @onready var scan_drone_count_label: Label = $Margin/Root/OrbitStatusSection/ScanDroneCountLabel
@@ -44,14 +47,9 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var recall_drone_button: Button = $Margin/Root/GridContainer/RecallDroneButton
 @onready var recall_mining_ship_button: Button = $Margin/Root/GridContainer/RecallMiningShipButton
 @onready var colonization_button: Button = $Margin/Root/GridContainer/ColonizationButton
-@onready var investigate_button: Button = $Margin/Root/GridContainer/InvestigateButton
 @onready var sensor_pulse_button: Button = $Margin/Root/GridContainer/SensorPulseButton
 @onready var economy_block_label: Label = $Margin/Root/EconomyBlockLabel
-@onready var investigate_progress_label: Label = $Margin/Root/InvestigateProgressLabel
 @onready var sensor_pulse_progress_label: Label = $Margin/Root/SensorPulseProgressLabel
-@onready var investigate_progress_format_template: Label = (
-	$Margin/Root/InvestigateProgressFormatTemplate
-)
 
 @onready var empty_value_template: Label = $Margin/Root/EmptyValueTemplate
 @onready var scan_state_unknown_template: Label = $Margin/Root/ScanStateUnknownTemplate
@@ -67,6 +65,7 @@ const RESOURCE_INFO_ROW_SCENE: PackedScene = preload("res://scenes/ui/system/res
 @onready var automation_drone_on_mission_template: Label = $Margin/Root/AutomationDroneOnMissionTemplate
 
 var current_object_id: String = ""
+var _last_applied_info: Dictionary = {}
 
 ## Shallow copy of `resources_visible` for live amount updates without a full info rebuild.
 var _cached_visible_resources: Array = []
@@ -122,7 +121,6 @@ var _colonization_no_ship_block_text: String = ""
 var _automation_drone_supporting_format: String = ""
 var _automation_drone_on_mission_format: String = ""
 var _unknown_display_name_fallback: String = ""
-var _investigate_progress_format: String = ""
 
 var _known_panel_custom_minimum_size: Vector2 = Vector2.ZERO
 var _known_offset_bottom: float = 0.0
@@ -159,9 +157,9 @@ func _ready() -> void:
 			colonization_button.pressed.connect(_on_colonization_pressed)
 		_colonization_button_text_default = colonization_button.text
 
-	if investigate_button != null:
-		if not investigate_button.pressed.is_connected(_on_investigate_pressed):
-			investigate_button.pressed.connect(_on_investigate_pressed)
+	if signal_info_sub_panel != null:
+		if not signal_info_sub_panel.investigate_pressed.is_connected(_on_investigate_pressed):
+			signal_info_sub_panel.investigate_pressed.connect(_on_investigate_pressed)
 	if sensor_pulse_button != null:
 		if not sensor_pulse_button.pressed.is_connected(_on_sensor_pulse_pressed):
 			sensor_pulse_button.pressed.connect(_on_sensor_pulse_pressed)
@@ -177,7 +175,6 @@ func _ready() -> void:
 		recall_drone_button,
 		recall_mining_ship_button,
 		colonization_button,
-		investigate_button,
 		sensor_pulse_button,
 	]:
 		AudioManager.bind_ui_button_optional(ui_button)
@@ -225,8 +222,6 @@ func _capture_editor_text_templates() -> void:
 		GameSession.SCAN_UNKNOWN,
 		_empty_value_text
 	)
-	if investigate_progress_format_template != null:
-		_investigate_progress_format = investigate_progress_format_template.text.strip_edges()
 
 
 func _capture_known_layout_sizes() -> void:
@@ -243,53 +238,6 @@ func _capture_known_layout_sizes() -> void:
 		_lore_scroll_known_vertical_scroll_mode = lore_scroll.vertical_scroll_mode
 
 
-func _get_lore_text_wrap_width() -> float:
-	var wrap_width := 0.0
-	if lore_scroll != null and lore_scroll.size.x > 1.0:
-		wrap_width = lore_scroll.size.x
-	elif size.x > 1.0:
-		wrap_width = size.x
-	elif custom_minimum_size.x > 1.0:
-		wrap_width = custom_minimum_size.x
-	else:
-		wrap_width = 200.0
-	# MarginContainer (4*2) + LoreMargin (4*2)
-	return maxf(wrap_width - 16.0, 80.0)
-
-
-func _fit_signal_lore_text_height() -> void:
-	if lore_text_label == null:
-		return
-
-	var wrap_width := _get_lore_text_wrap_width()
-	lore_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lore_text_label.custom_minimum_size = Vector2(wrap_width, 0)
-	lore_text_label.update_minimum_size()
-	var content_height: float = lore_text_label.get_combined_minimum_size().y
-	if content_height < 1.0:
-		content_height = lore_text_label.get_minimum_size().y
-
-	lore_text_label.custom_minimum_size = Vector2(wrap_width, content_height)
-	lore_text_label.update_minimum_size()
-
-	if lore_scroll != null:
-		lore_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		lore_scroll.custom_minimum_size = Vector2(0, float(content_height))
-		lore_scroll.update_minimum_size()
-
-	if lore_panel != null:
-		var lore_margin_height := 8.0
-		if lore_scroll != null:
-			var lore_margin := lore_scroll.get_parent() as MarginContainer
-			if lore_margin != null:
-				lore_margin_height = float(
-					lore_margin.get_theme_constant("margin_top")
-					+ lore_margin.get_theme_constant("margin_bottom")
-				)
-		lore_panel.custom_minimum_size = Vector2(0, float(content_height) + lore_margin_height)
-		lore_panel.update_minimum_size()
-
-
 func _restore_known_lore_layout() -> void:
 	if lore_scroll != null:
 		lore_scroll.vertical_scroll_mode = _lore_scroll_known_vertical_scroll_mode
@@ -303,27 +251,31 @@ func _restore_known_lore_layout() -> void:
 		lore_text_label.update_minimum_size()
 
 
-func _apply_signal_panel_layout(is_signal: bool) -> void:
+func _set_known_presentation_visible(visible: bool) -> void:
+	if divider_c != null:
+		divider_c.visible = visible
+	if lore_title_label != null:
+		lore_title_label.visible = visible
+	if lore_panel != null:
+		lore_panel.visible = visible
+	if divider_d != null:
+		divider_d.visible = visible
+	if orbit_status_section != null:
+		orbit_status_section.visible = visible
+	if action_grid != null:
+		action_grid.visible = visible
+
+
+func _apply_discovery_layout_mode(is_signal: bool) -> void:
 	if is_signal:
 		custom_minimum_size = Vector2(_known_panel_custom_minimum_size.x, 0)
-		if lore_text_label != null:
-			lore_text_label.custom_minimum_size = Vector2(_lore_text_label_known_minimum_size.x, 0)
 		if resource_panel != null:
 			resource_panel.custom_minimum_size = Vector2.ZERO
-		if divider_d != null:
-			divider_d.visible = false
-		if orbit_status_section != null:
-			orbit_status_section.visible = false
-		_fit_signal_lore_text_height()
 	else:
 		custom_minimum_size = _known_panel_custom_minimum_size
 		_restore_known_lore_layout()
 		if resource_panel != null:
 			resource_panel.custom_minimum_size = _resource_panel_known_minimum_size
-		if divider_d != null:
-			divider_d.visible = true
-		if orbit_status_section != null:
-			orbit_status_section.visible = true
 		offset_bottom = _known_offset_bottom
 
 	_queue_panel_layout_refresh(is_signal)
@@ -412,8 +364,10 @@ func show_empty() -> void:
 	}
 
 	_apply_signal_discovery_controls()
-	_hide_investigate_progress_ui()
 	_hide_sensor_pulse_progress_ui()
+	if signal_info_sub_panel != null:
+		signal_info_sub_panel.reset()
+		signal_info_sub_panel.visible = false
 	if is_instance_valid(economy_block_label):
 		economy_block_label.visible = false
 
@@ -463,6 +417,7 @@ func _apply_info(info: Dictionary) -> void:
 
 	_apply_automation_status(info)
 	_apply_resources(info)
+	_last_applied_info = info.duplicate(true)
 	_apply_lore(info)
 
 	_live_action_cache = {
@@ -515,24 +470,14 @@ func apply_investigate_progress(progress: float) -> void:
 
 	var clamped: float = clampf(progress, 0.0, 1.0)
 	var percent: int = int(round(clamped * 100.0))
-	var progress_text := _format_investigate_progress(percent)
+	var progress_text := DiscoverySignalUiTextDefinition.format_investigate_progress(percent)
 
 	_live_action_cache["investigate_progress"] = clamped
 	_live_action_cache["investigate_progress_text"] = progress_text
 	_live_action_cache["is_investigate_active"] = true
 
-	_show_investigate_progress_ui(progress_text, percent)
-
-
-func _show_investigate_progress_ui(progress_text: String, _percent: int) -> void:
-	if investigate_progress_label != null:
-		investigate_progress_label.text = progress_text
-		investigate_progress_label.visible = true
-
-
-func _hide_investigate_progress_ui() -> void:
-	if investigate_progress_label != null:
-		investigate_progress_label.visible = false
+	if signal_info_sub_panel != null and signal_info_sub_panel.visible:
+		signal_info_sub_panel.show_investigate_progress(progress_text, clamped)
 
 
 func _show_sensor_pulse_progress_ui(progress_text: String) -> void:
@@ -565,58 +510,25 @@ func _apply_signal_discovery_controls() -> void:
 	var is_signal: bool = _live_action_cache.get("is_discovery_signal", false) == true
 
 	_set_resource_section_visible(not is_signal)
-	_apply_signal_panel_layout(is_signal)
+	_set_known_presentation_visible(not is_signal)
+	_apply_discovery_layout_mode(is_signal)
 
 	if is_signal:
 		drone_orbit_label.visible = false
 		mining_ship_count_label.visible = false
 		mine_orbit_label.visible = false
 		mining_bonus_label.visible = false
-
-	if not is_signal:
-		if investigate_button != null:
-			investigate_button.visible = false
-		_hide_investigate_progress_ui()
-		return
-
-	if investigate_button == null:
-		return
-
-	var can_investigate: bool = _live_action_cache.get("can_investigate_signal", false) == true
-	var in_progress: bool = _live_action_cache.get("investigate_in_progress", false) == true
-	var blocked: String = str(_live_action_cache.get("investigate_blocked_reason", "")).strip_edges()
-	var complete_msg: String = str(_live_action_cache.get("discovery_complete_message", "")).strip_edges()
-
-	if in_progress:
-		investigate_button.visible = false
+		if economy_block_label != null:
+			economy_block_label.visible = false
+		if signal_info_sub_panel != null:
+			signal_info_sub_panel.visible = true
+			var merged: Dictionary = _live_action_cache.duplicate(true)
+			merged["lore_text"] = str(_last_applied_info.get("lore_text", "")).strip_edges()
+			signal_info_sub_panel.apply_signal_info(merged)
 	else:
-		investigate_button.visible = true
-		investigate_button.disabled = not can_investigate
-
-	if in_progress:
-		var progress_text: String = str(
-			_live_action_cache.get("investigate_progress_text", "")
-		).strip_edges()
-		if progress_text.is_empty():
-			progress_text = _format_investigate_progress(0)
-		var percent: int = int(
-			round(float(_live_action_cache.get("investigate_progress", 0.0)) * 100.0)
-		)
-		_show_investigate_progress_ui(progress_text, percent)
-	elif _live_action_cache.get("is_investigate_active", false) != true:
-		_hide_investigate_progress_ui()
-
-	if is_instance_valid(economy_block_label):
-		if not complete_msg.is_empty():
-			economy_block_label.text = complete_msg
-			economy_block_label.visible = true
-		elif in_progress:
-			economy_block_label.visible = false
-		elif not can_investigate and not blocked.is_empty():
-			economy_block_label.text = blocked
-			economy_block_label.visible = true
-		elif str(_live_action_cache.get("system_economy_blocked_reason", "")).strip_edges().is_empty():
-			economy_block_label.visible = false
+		if signal_info_sub_panel != null:
+			signal_info_sub_panel.reset()
+			signal_info_sub_panel.visible = false
 
 
 func _apply_live_action_controls() -> void:
@@ -1007,6 +919,9 @@ func _read_total_amount_from_resource_entry(resource_entry: Dictionary) -> int:
 
 
 func _apply_lore(info: Dictionary) -> void:
+	if info.get("is_discovery_signal", false) == true:
+		return
+
 	var lore_text: String = str(info.get("lore_text", "")).strip_edges()
 
 	if lore_text.is_empty():
@@ -1070,13 +985,6 @@ func _build_amount_text_without_store(resource_entry: Dictionary) -> String:
 		return "%s / %s" % [compact_total, compact_total]
 
 	return "--"
-
-
-func _format_investigate_progress(percent: int) -> String:
-	var format_str := _investigate_progress_format.strip_edges()
-	if format_str.is_empty():
-		return DiscoverySignalUiTextDefinition.format_investigate_progress(percent)
-	return format_str % maxi(0, percent)
 
 
 func _format_count_template(format_str: String, count: int) -> String:
@@ -1188,8 +1096,6 @@ func _forward_investigate_if_unconnected(object_id: String) -> void:
 
 func _on_investigate_pressed() -> void:
 	if current_object_id.is_empty():
-		return
-	if investigate_button == null or investigate_button.disabled:
 		return
 
 	var listener_count: int = investigate_requested.get_connections().size()

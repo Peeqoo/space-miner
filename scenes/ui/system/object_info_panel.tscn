@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://0umh4u1nx7fg" path="res://scripts/ui/system/object_info_panel.gd" id="1_c2q1o"]
 [ext_resource type="Texture2D" uid="uid://cyp5c64hdqm15" path="res://assets/sprites/planets/PlanetsFull/SolarSystem/Earth/Eurasia_Africa/Clouds/1.png" id="1_omcxk"]
+[ext_resource type="PackedScene" path="res://scenes/ui/system/signal_info_sub_panel.tscn" id="2_signal"]
 [ext_resource type="LabelSettings" uid="uid://bnbf80nif3enx" path="res://scenes/ui/font_labels/titel_label.tres" id="2_2h3fg"]
 [ext_resource type="FontFile" uid="uid://biga5mah242s8" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_oi0nm"]
 [ext_resource type="LabelSettings" uid="uid://ug546ntmboa" path="res://scenes/ui/font_labels/text_label.tres" id="4_ckpwi"]
@@ -89,6 +90,9 @@ text_overrun_behavior = 3
 layout_mode = 2
 text = "Distance: 184 u"
 label_settings = ExtResource("4_ckpwi")
+
+[node name="SignalInfoSubPanel" parent="Margin/Root" instance=ExtResource("2_signal")]
+layout_mode = 2
 
 [node name="DividerB" type="HSeparator" parent="Margin/Root" unique_id=342453918]
 layout_mode = 2
@@ -189,19 +193,6 @@ size_flags_horizontal = 3
 label_settings = ExtResource("6_oi0nm")
 autowrap_mode = 3
 
-[node name="InvestigateProgressFormatTemplate" type="Label" parent="Margin/Root" unique_id=934019531]
-visible = false
-layout_mode = 2
-text = "Investigating: %d%%"
-label_settings = ExtResource("6_oi0nm")
-
-[node name="InvestigateProgressLabel" type="Label" parent="Margin/Root" unique_id=920000101]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Investigating: 0%"
-label_settings = ExtResource("6_oi0nm")
-
 [node name="SensorPulseProgressLabel" type="Label" parent="Margin/Root" unique_id=920000102]
 visible = false
 layout_mode = 2
@@ -253,14 +244,6 @@ theme_override_fonts/font = ExtResource("5_ckpwi")
 theme_override_font_sizes/font_size = 10
 disabled = true
 text = "Start Colonization"
-
-[node name="InvestigateButton" type="Button" parent="Margin/Root/GridContainer" unique_id=1605375559]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("5_ckpwi")
-theme_override_font_sizes/font_size = 10
-text = "Investigate"
 
 [node name="SensorPulseButton" type="Button" parent="Margin/Root/GridContainer" unique_id=1605375560]
 visible = false

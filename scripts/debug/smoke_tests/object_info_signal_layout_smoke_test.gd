@@ -9,6 +9,7 @@ const KNOWN_OBJECT_ID: String = "mars"
 
 const MIN_KNOWN_TALLER_THAN_SIGNAL_PX: float = 12.0
 const HEIGHT_COMPARE_TOLERANCE_PX: float = 4.0
+const SIGNAL_SUB_PANEL_PATH: String = "Margin/Root/SignalInfoSubPanel"
 
 var _failures: Array[String] = []
 var _notes: Array[String] = []
@@ -82,10 +83,10 @@ func _bind_panel_nodes() -> bool:
 		"Margin/Root/GridContainer/SendMiningShipButton"
 	) as Button
 	_investigate_button = _panel.get_node_or_null(
-		"Margin/Root/GridContainer/InvestigateButton"
+		"%s/InvestigateButton" % SIGNAL_SUB_PANEL_PATH
 	) as Button
 	_investigate_label = _panel.get_node_or_null(
-		"Margin/Root/InvestigateProgressLabel"
+		"%s/InvestigateProgressLabel" % SIGNAL_SUB_PANEL_PATH
 	) as Label
 	_sensor_pulse_label = _panel.get_node_or_null(
 		"Margin/Root/SensorPulseProgressLabel"
