@@ -482,49 +482,11 @@ func _connect_ui_signals() -> void:
 
 
 func _build_signal_marker_info(marker: SignalMarker) -> Dictionary:
-	var info: Dictionary = marker.build_signal_info()
-	var object_id: String = marker.object_id.strip_edges()
-	var base_id: String = _economy_body_id_for_ui()
-
-	var can_investigate: bool = false
-	var blocked_reason: String = ""
-	var in_progress: bool = false
-
-	if survey_probe_mission_controller != null:
-		in_progress = survey_probe_mission_controller.is_investigate_active(object_id)
-		var gate: Dictionary = survey_probe_mission_controller.can_investigate_signal(object_id, base_id)
-		can_investigate = gate.get("ok", false) == true
-		blocked_reason = str(gate.get("blocked_reason", "")).strip_edges()
-	else:
-		blocked_reason = DiscoverySignalUiTextDefinition.get_template(
-			SurveyProbeMissionController.REASON_BASE_MISSING
-		)
-
-	if in_progress and not can_investigate and blocked_reason.is_empty():
-		blocked_reason = DiscoverySignalUiTextDefinition.get_template(
-			SurveyProbeMissionController.REASON_IN_PROGRESS
-		)
-
-	info["can_investigate_signal"] = can_investigate
-	info["investigate_blocked_reason"] = blocked_reason
-	info["investigate_in_progress"] = in_progress
-
-	if in_progress:
-		info["lore_text"] = DiscoverySignalUiTextDefinition.get_template(
-			DiscoverySignalUiTextDefinition.KEY_INVESTIGATE_LORE_ACTIVE
-		)
-		info["scan_state"] = GameSession.SCAN_UNKNOWN
-
-	info["is_investigate_active"] = in_progress
-	var progress: float = 0.0
-	if in_progress and survey_probe_mission_controller != null:
-		progress = survey_probe_mission_controller.get_investigation_progress(object_id)
-	info["investigate_progress"] = progress
-	info["investigate_progress_text"] = DiscoverySignalUiTextDefinition.format_investigate_progress(
-		int(round(progress * 100.0))
+	return SignalObjectInfoBuilder.build(
+		marker,
+		survey_probe_mission_controller,
+		_economy_body_id_for_ui(),
 	)
-
-	return info
 
 
 func _build_world_object_info(
