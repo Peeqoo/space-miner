@@ -656,53 +656,25 @@ func _apply_mining_ship_info_to_dict(
 	info: Dictionary,
 	selected_node: Node,
 	object_id: String,
-	scan_state: String,
+	_scan_state: String,
 ) -> void:
-	info["show_mine_with_ship"] = false
-	info["can_mine_with_ship"] = false
-	info["mine_blocked_reason"] = ""
-	info["mining_exhausted"] = false
-
-	if selected_node == null:
-		return
-
-	if selected_node is SignalMarker:
-		return
-
-	if not selected_node is SystemBody and not selected_node is PointOfInterest:
-		return
-
-	if selected_node is SystemBody and _selected_body_has_established_base(selected_node as SystemBody):
-		return
-
-	var sys_id: String = system_definition.id.strip_edges()
-	if sys_id.is_empty() or object_id.is_empty():
-		return
-
-	var mine_gate: Dictionary = GameSession.can_mine_object(
-		sys_id,
+	var is_established_home_body := false
+	if selected_node is SystemBody:
+		is_established_home_body = _selected_body_has_established_base(selected_node as SystemBody)
+	var system_id := ""
+	if system_definition != null:
+		system_id = system_definition.id.strip_edges()
+	MiningShipInfoOverlay.apply(
+		info,
+		selected_node,
 		object_id,
+		system_id,
 		_economy_body_id_for_ui(),
+		automation_controller,
 		_has_available_mining_ship(),
+		MINING_BUTTON_TEXT,
+		is_established_home_body,
 	)
-
-	info["show_mine_with_ship"] = bool(mine_gate.get("show_mine_button", false))
-	info["can_mine_with_ship"] = bool(mine_gate.get("ok", false))
-	info["mine_blocked_reason"] = str(mine_gate.get("blocked_reason", "")).strip_edges()
-
-	var block_key: StringName = mine_gate.get("blocked_reason_key", &"")
-	info["mining_exhausted"] = (
-		bool(info["show_mine_with_ship"])
-		and not bool(info["can_mine_with_ship"])
-		and block_key == GateUiTextDefinition.KEY_MINE_DEPLETED
-	)
-
-	var assigned_count: int = _get_assigned_mining_ship_count(object_id)
-	info["assigned_mining_ship_count"] = assigned_count
-	info["show_mining_ship_status"] = bool(info["show_mine_with_ship"]) or assigned_count > 0
-	info["mining_button_text"] = ""
-	if bool(info["show_mine_with_ship"]):
-		info["mining_button_text"] = MINING_BUTTON_TEXT
 
 
 func _get_preview_texture(node: Node) -> Texture2D:
