@@ -681,35 +681,12 @@ func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, objec
 
 
 func _apply_sensor_pulse_info_to_dict(info: Dictionary) -> void:
-	info["show_sensor_pulse"] = false
-	info["can_sensor_pulse"] = false
-	info["sensor_pulse_blocked_reason"] = ""
-	info["sensor_pulse_in_progress"] = false
-	info["sensor_pulse_progress_text"] = ""
-	info["sensor_pulse_cost_text"] = ""
-
-	if not bool(info.get("is_home_base", false)):
-		return
-
-	if base_sensor_pulse_controller == null:
-		return
-
-	var base_id: String = _economy_body_id_for_ui()
-	var in_progress: bool = base_sensor_pulse_controller.is_pulse_active()
-	info["sensor_pulse_in_progress"] = in_progress
-	info["show_sensor_pulse"] = true
-
-	if in_progress:
-		var percent: int = base_sensor_pulse_controller.get_pulse_progress_percent()
-		info["sensor_pulse_progress_text"] = DiscoverySignalUiTextDefinition.format_sensor_pulse_progress(
-			percent
-		)
-		return
-
-	info["sensor_pulse_cost_text"] = base_sensor_pulse_controller.get_pulse_cost_display_text()
-	var gate: Dictionary = base_sensor_pulse_controller.can_start_sensor_pulse(base_id)
-	info["can_sensor_pulse"] = bool(gate.get("ok", false))
-	info["sensor_pulse_blocked_reason"] = str(gate.get("blocked_reason", "")).strip_edges()
+	SensorPulseInfoOverlay.apply(
+		info,
+		base_sensor_pulse_controller,
+		_economy_body_id_for_ui(),
+		bool(info.get("is_home_base", false)),
+	)
 
 
 func _apply_mining_ship_info_to_dict(
