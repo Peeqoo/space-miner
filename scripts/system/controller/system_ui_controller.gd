@@ -624,60 +624,23 @@ func _body_definition_allows_base(body_id: String) -> bool:
 
 
 func _apply_scan_drone_info_to_dict(info: Dictionary, selected_node: Node, object_id: String) -> void:
-	info["show_scan_with_drone"] = false
-	info["can_scan_with_drone"] = false
-	info["scan_blocked_reason"] = ""
-	info["scan_button_text"] = ""
-	info["assigned_scan_drone_count"] = 0
-	info["show_scan_drone_status"] = false
-	info["has_active_shared_scan_job"] = false
-
-	if selected_node == null:
-		return
-
-	if selected_node is SignalMarker:
-		return
-
-	if not selected_node is SystemBody and not selected_node is PointOfInterest:
-		return
-
-	if selected_node is SystemBody and _selected_body_has_established_base(selected_node as SystemBody):
-		return
-
-	var sys_id: String = system_definition.id.strip_edges()
-	if sys_id.is_empty() or object_id.is_empty():
-		return
-
-	var base_id: String = _economy_body_id_for_ui()
-	var has_active_job: bool = _has_active_shared_scan_job_for_target(object_id)
-	var assigned_count: int = _get_assigned_scan_drone_count(object_id)
-	info["assigned_scan_drone_count"] = assigned_count
-	info["has_active_shared_scan_job"] = has_active_job
-
-	var scan_gate: Dictionary = GameSession.can_scan_object(
-		sys_id,
+	var is_established_home_body := false
+	if selected_node is SystemBody:
+		is_established_home_body = _selected_body_has_established_base(selected_node as SystemBody)
+	var system_id := ""
+	if system_definition != null:
+		system_id = system_definition.id.strip_edges()
+	ScanDroneInfoOverlay.apply(
+		info,
+		selected_node,
 		object_id,
-		base_id,
+		system_id,
+		_economy_body_id_for_ui(),
+		automation_controller,
 		_has_available_drone(),
-		has_active_job,
+		SCAN_BUTTON_TEXT,
+		is_established_home_body,
 	)
-	var target_state: String = str(scan_gate.get("target_scan_state", "")).strip_edges()
-	var show_scan_button: bool = not target_state.is_empty()
-
-	if has_active_job:
-		var assign_gate: Dictionary = _get_assign_scan_drone_gate(object_id)
-		info["show_scan_with_drone"] = true
-		info["can_scan_with_drone"] = bool(assign_gate.get("ok", false))
-		info["scan_blocked_reason"] = str(assign_gate.get("blocked_reason", "")).strip_edges()
-	elif show_scan_button:
-		info["show_scan_with_drone"] = true
-		info["can_scan_with_drone"] = bool(scan_gate.get("ok", false))
-		info["scan_blocked_reason"] = str(scan_gate.get("blocked_reason", "")).strip_edges()
-
-	if bool(info["show_scan_with_drone"]):
-		info["scan_button_text"] = SCAN_BUTTON_TEXT
-
-	info["show_scan_drone_status"] = bool(info["show_scan_with_drone"]) or assigned_count > 0
 
 
 func _apply_sensor_pulse_info_to_dict(info: Dictionary) -> void:
