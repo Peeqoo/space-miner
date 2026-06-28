@@ -733,13 +733,8 @@ func _apply_automation_status(info: Dictionary) -> void:
 	var show_mining_ship_status: bool = bool(info.get("show_mining_ship_status", false))
 	var assigned_scan_count: int = int(info.get("assigned_scan_drone_count", 0))
 	var show_scan_drone_status: bool = bool(info.get("show_scan_drone_status", false))
-	var upgrade_base_id: String = str(info.get("mining_yield_upgrade_base_id", "")).strip_edges()
-	if upgrade_base_id.is_empty():
-		upgrade_base_id = BaseStore.BASE_EARTH
-	var per_drone_pct: int = GameSession.get_scan_drone_mining_yield_bonus_per_support_drone_percent(
-		upgrade_base_id
-	)
-	var bonus_pct: int = drone_supporting * per_drone_pct
+	var mining_bonus_fraction: float = float(info.get(ObjectInfoDictKeys.MINING_BONUS, 0.0))
+	var bonus_pct: int = maxi(0, int(round(mining_bonus_fraction * 100.0)))
 
 	var drone_line_visible: bool = drone_supporting > 0 or drone_on_mission > 0
 	var mine_line_visible: bool = mining_mining_count > 0
