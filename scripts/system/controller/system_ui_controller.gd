@@ -600,14 +600,11 @@ func _build_selected_object_info(selected_node: Node) -> Dictionary:
 
 
 func _apply_colonization_info_to_dict(info: Dictionary, selected_node: Node) -> void:
-	var sys_id := _current_system_definition_id()
-	info["system_id"] = sys_id
-	info["object_id"] = _get_object_id(selected_node)
-
-	## v0.1: colonization starts from Galaxy map (system pick), not per-body in system view.
-	info["colonization_button_visible"] = false
-	info["colonization_pending"] = false
-	info["colonization_can_start"] = false
+	ColonizationInfoOverlay.apply(
+		info,
+		_current_system_definition_id(),
+		_get_object_id(selected_node),
+	)
 
 
 func _body_definition_allows_base(body_id: String) -> bool:
